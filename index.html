@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Loose Nickels</title>
   <meta name="description" content="Loose Nickels — Lewis Nichols" />
+
   <style>
     :root{
       --bg: #f7f6f2;
@@ -13,13 +14,11 @@
       --hairline: rgba(20,20,20,.12);
     }
 
-    @media (prefers-color-scheme: dark){
-      :root{
-        --bg: #0f0f10;
-        --fg: #f3f3f3;
-        --muted: rgba(243,243,243,.62);
-        --hairline: rgba(243,243,243,.14);
-      }
+    [data-theme="dark"]{
+      --bg: #0f0f10;
+      --fg: #f3f3f3;
+      --muted: rgba(243,243,243,.62);
+      --hairline: rgba(243,243,243,.14);
     }
 
     * { box-sizing: border-box; }
@@ -38,10 +37,11 @@
       overflow: hidden;
     }
 
-    /* Soft vignette + gentle highlight (calm “gallery wall” feel) */
+    /* Soft vignette */
     body::before{
       content:"";
-      position:absolute; inset:-40vmax;
+      position:absolute;
+      inset:-40vmax;
       background:
         radial-gradient(60vmax 60vmax at 50% 35%,
           rgba(255,255,255,.55), rgba(255,255,255,0) 55%),
@@ -51,21 +51,20 @@
       pointer-events:none;
     }
 
-    @media (prefers-color-scheme: dark){
-      body::before{
-        background:
-          radial-gradient(60vmax 60vmax at 50% 30%,
-            rgba(255,255,255,.08), rgba(255,255,255,0) 55%),
-          radial-gradient(80vmax 80vmax at 50% 120%,
-            rgba(0,0,0,.55), rgba(0,0,0,0) 60%);
-        mix-blend-mode: normal;
-      }
+    [data-theme="dark"] body::before{
+      background:
+        radial-gradient(60vmax 60vmax at 50% 30%,
+          rgba(255,255,255,.08), rgba(255,255,255,0) 55%),
+        radial-gradient(80vmax 80vmax at 50% 120%,
+          rgba(0,0,0,.55), rgba(0,0,0,0) 60%);
+      mix-blend-mode: normal;
     }
 
-    /* Fine grain (subtle, premium, non-distracting) */
+    /* Fine grain */
     body::after{
       content:"";
-      position:absolute; inset:0;
+      position:absolute;
+      inset:0;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
       opacity: .06;
       pointer-events:none;
@@ -103,31 +102,103 @@
                    "Cormorant Garamond", Garamond, serif;
     }
 
-    .note{
-      margin: 14px 0 0;
-      font-size: 13px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    /* Floating theme toggle */
+    .theme-btn{
+      margin: 28px auto 0;
+      padding: 8px;     /* tap area */
+      background: transparent;
+      border: none;
       color: var(--muted);
-      opacity: .75;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .15s ease, color .2s ease;
+    }
+
+    .theme-btn:hover{ color: var(--fg); }
+    .theme-btn:active{ transform: scale(0.95); }
+
+    .icon{
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
     }
   </style>
 </head>
+
 <body>
   <main class="wrap" aria-label="Loose Nickels">
     <h1>Loose Nickels</h1>
     <div class="rule" aria-hidden="true"></div>
     <p class="name">Lewis Nichols</p>
-    <p class="note" id="note" aria-hidden="true"></p>
+
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle theme">
+      <span class="sr-only">Toggle theme</span>
+      <svg class="icon" id="themeIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"></svg>
+    </button>
   </main>
 
   <script>
-    const notes = [
-      "The inner machinations of my mind are an enigma"
-    ];
-    document.getElementById("note").textContent =
-      notes[Math.floor(Math.random() * notes.length)];
+    const root = document.documentElement;
+    const btn = document.getElementById("themeBtn");
+    const icon = document.getElementById("themeIcon");
+
+    const sun = `
+      <path d="M12 18a6 6 0 1 0 0-12a6 6 0 0 0 0 12Z"
+            stroke="currentColor" stroke-width="1.6"/>
+      <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5
+               M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6L17 17
+               M7 7L5.4 5.4"
+            stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    `;
+
+    const moon = `
+      <path d="M20 14.2A7.6 7.6 0 0 1 9.8 4
+               a6.7 6.7 0 1 0 10.2 10.2Z"
+            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    `;
+
+    function prefersDark(){
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+
+    function setTheme(theme, persist=true){
+      if(theme === "dark"){
+        root.setAttribute("data-theme","dark");
+        icon.innerHTML = sun;
+      } else {
+        root.removeAttribute("data-theme");
+        icon.innerHTML = moon;
+      }
+      if(persist){
+        localStorage.setItem("ln_theme", theme);
+      }
+    }
+
+    const saved = localStorage.getItem("ln_theme");
+    if(saved){
+      setTheme(saved, false);
+    } else {
+      setTheme(prefersDark() ? "dark" : "light", false);
+    }
+
+    btn.addEventListener("click", () => {
+      const isDark = root.getAttribute("data-theme") === "dark";
+      setTheme(isDark ? "light" : "dark", true);
+    });
   </script>
 </body>
 </html>
