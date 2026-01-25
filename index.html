@@ -2,40 +2,132 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Loose Nickels</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loose Nickels</title>
+  <meta name="description" content="Loose Nickels — Lewis Nichols" />
   <style>
+    :root{
+      --bg: #f7f6f2;
+      --fg: #141414;
+      --muted: rgba(20,20,20,.62);
+      --hairline: rgba(20,20,20,.12);
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg: #0f0f10;
+        --fg: #f3f3f3;
+        --muted: rgba(243,243,243,.62);
+        --hairline: rgba(243,243,243,.14);
+      }
+    }
+
+    * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f9f9f7;
-      color: #111;
+
+    body{
+      background: var(--bg);
+      color: var(--fg);
+      display: grid;
+      place-items: center;
+      padding: 24px;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
+      position: relative;
+      overflow: hidden;
     }
-    .wrap { text-align: center; }
-    h1 {
+
+    /* Soft vignette + gentle highlight (calm “gallery wall” feel) */
+    body::before{
+      content:"";
+      position:absolute; inset:-40vmax;
+      background:
+        radial-gradient(60vmax 60vmax at 50% 35%,
+          rgba(255,255,255,.55), rgba(255,255,255,0) 55%),
+        radial-gradient(80vmax 80vmax at 50% 120%,
+          rgba(0,0,0,.08), rgba(0,0,0,0) 60%);
+      mix-blend-mode: soft-light;
+      pointer-events:none;
+    }
+
+    @media (prefers-color-scheme: dark){
+      body::before{
+        background:
+          radial-gradient(60vmax 60vmax at 50% 30%,
+            rgba(255,255,255,.08), rgba(255,255,255,0) 55%),
+          radial-gradient(80vmax 80vmax at 50% 120%,
+            rgba(0,0,0,.55), rgba(0,0,0,0) 60%);
+        mix-blend-mode: normal;
+      }
+    }
+
+    /* Fine grain (subtle, premium, non-distracting) */
+    body::after{
+      content:"";
+      position:absolute; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      opacity: .06;
+      pointer-events:none;
+    }
+
+    .wrap{
+      text-align: center;
+      transform: translateY(-2vh);
+      max-width: 560px;
+    }
+
+    h1{
       margin: 0;
-      font-size: clamp(40px, 6vw, 72px);
-      font-weight: 500;
+      font-weight: 520;
       letter-spacing: -0.02em;
-      font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Garamond, serif;
+      font-size: clamp(44px, 7vw, 78px);
+      line-height: 1.05;
+      font-family: ui-serif, "Iowan Old Style", Palatino, "Palatino Linotype",
+                   "Cormorant Garamond", Garamond, serif;
     }
-    p {
-      margin: 14px 0 0;
-      font-size: clamp(18px, 2.2vw, 26px);
-      opacity: 0.86;
+
+    .rule{
+      width: min(220px, 52vw);
+      height: 1px;
+      margin: 18px auto 16px;
+      background: var(--hairline);
+    }
+
+    .name{
+      margin: 0;
+      font-size: clamp(18px, 2.6vw, 28px);
       letter-spacing: 0.01em;
-      font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Garamond, serif;
+      color: var(--muted);
+      font-family: ui-serif, "Iowan Old Style", Palatino, "Palatino Linotype",
+                   "Cormorant Garamond", Garamond, serif;
+    }
+
+    .note{
+      margin: 14px 0 0;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: .75;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <main class="wrap" aria-label="Loose Nickels">
     <h1>Loose Nickels</h1>
-    <p>Lewis Nichols</p>
-  </div>
+    <div class="rule" aria-hidden="true"></div>
+    <p class="name">Lewis Nichols</p>
+    <p class="note" id="note" aria-hidden="true"></p>
+  </main>
+
+  <script>
+    const notes = [
+      "The inner machinations of my mind are an enigma"
+    ];
+    document.getElementById("note").textContent =
+      notes[Math.floor(Math.random() * notes.length)];
+  </script>
 </body>
 </html>
