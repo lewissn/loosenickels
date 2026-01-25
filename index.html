@@ -3,202 +3,661 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Loose Nickels</title>
-  <meta name="description" content="Loose Nickels — Lewis Nichols" />
+  <title>Loose Nickels — HTML Viewer</title>
+  <meta name="description" content="A private, beautiful HTML viewer." />
+
+  <!-- Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      --bg: #f7f6f2;
-      --fg: #141414;
-      --muted: rgba(20,20,20,.62);
-      --hairline: rgba(20,20,20,.12);
+      --bg:#0f0f10;
+      --fg:#f3f3f3;
+      --muted:rgba(243,243,243,.68);
+      --muted2:rgba(243,243,243,.46);
+      --hair:rgba(243,243,243,.14);
+
+      --panel:rgba(255,255,255,.05);
+      --panel2:rgba(255,255,255,.08);
+
+      --radius:16px;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+
+      --sans:"Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     }
 
-    [data-theme="dark"]{
-      --bg: #0f0f10;
-      --fg: #f3f3f3;
-      --muted: rgba(243,243,243,.62);
-      --hairline: rgba(243,243,243,.14);
+    [data-theme="light"]{
+      --bg:#f7f6f2;
+      --fg:#141414;
+      --muted:rgba(20,20,20,.62);
+      --muted2:rgba(20,20,20,.44);
+      --hair:rgba(20,20,20,.12);
+
+      --panel:rgba(0,0,0,.03);
+      --panel2:rgba(0,0,0,.06);
+
+      --shadow: 0 22px 70px rgba(0,0,0,.10);
     }
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; }
     body{
-      background: var(--bg);
-      color: var(--fg);
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: geometricPrecision;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Soft vignette */
-    body::before{
-      content:"";
-      position:absolute;
-      inset:-40vmax;
-      background:
-        radial-gradient(60vmax 60vmax at 50% 35%,
-          rgba(255,255,255,.55), rgba(255,255,255,0) 55%),
-        radial-gradient(80vmax 80vmax at 50% 120%,
-          rgba(0,0,0,.08), rgba(0,0,0,0) 60%);
-      mix-blend-mode: soft-light;
-      pointer-events:none;
-    }
-
-    [data-theme="dark"] body::before{
-      background:
-        radial-gradient(60vmax 60vmax at 50% 30%,
-          rgba(255,255,255,.08), rgba(255,255,255,0) 55%),
-        radial-gradient(80vmax 80vmax at 50% 120%,
-          rgba(0,0,0,.55), rgba(0,0,0,0) 60%);
-      mix-blend-mode: normal;
-    }
-
-    /* Fine grain */
-    body::after{
-      content:"";
-      position:absolute;
-      inset:0;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
-      opacity: .06;
-      pointer-events:none;
-    }
-
-    .wrap{
-      text-align: center;
-      transform: translateY(-2vh);
-      max-width: 560px;
-    }
-
-    h1{
-      margin: 0;
-      font-weight: 520;
-      letter-spacing: -0.02em;
-      font-size: clamp(44px, 7vw, 78px);
-      line-height: 1.05;
-      font-family: ui-serif, "Iowan Old Style", Palatino, "Palatino Linotype",
-                   "Cormorant Garamond", Garamond, serif;
-    }
-
-    .rule{
-      width: min(220px, 52vw);
-      height: 1px;
-      margin: 18px auto 16px;
-      background: var(--hairline);
-    }
-
-    .name{
-      margin: 0;
-      font-size: clamp(18px, 2.6vw, 28px);
-      letter-spacing: 0.01em;
-      color: var(--muted);
-      font-family: ui-serif, "Iowan Old Style", Palatino, "Palatino Linotype",
-                   "Cormorant Garamond", Garamond, serif;
-    }
-
-    /* Floating theme toggle */
-    .theme-btn{
-      margin: 28px auto 0;
-      padding: 8px;     /* tap area */
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: transform .15s ease, color .2s ease;
-    }
-
-    .theme-btn:hover{ color: var(--fg); }
-    .theme-btn:active{ transform: scale(0.95); }
-
-    .icon{
-      width: 18px;
-      height: 18px;
-      display: block;
-    }
-
-    .sr-only{
-      position:absolute;
-      width:1px;
-      height:1px;
-      padding:0;
-      margin:-1px;
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--sans);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      text-rendering:geometricPrecision;
       overflow:hidden;
-      clip:rect(0,0,0,0);
+    }
+
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:12px;
+      padding:14px;
+    }
+
+    header{
+      border:1px solid var(--hair);
+      border-radius:var(--radius);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px;
+      border-bottom:1px solid var(--hair);
+    }
+
+    .brand{ display:flex; flex-direction:column; gap:2px; }
+    .brand .title{ font-weight:600; letter-spacing:-.01em; }
+    .brand .sub{
+      font-size:11px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--muted2);
+    }
+
+    .controls{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items:center;
+    }
+
+    .pill{
+      border:1px solid var(--hair);
+      background:transparent;
+      color:var(--fg);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      transition:transform .12s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+      user-select:none;
+    }
+    .pill:hover{ background:var(--panel2); }
+    .pill:active{ transform:scale(.98); }
+    .pill[aria-pressed="true"]{
+      background:var(--panel2);
+      border-color:rgba(127,127,127,.35);
+    }
+
+    input[type="file"]{ display:none; }
+
+    .row2{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 12px 12px;
+    }
+
+    .tabs{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .hint{
+      font-size:12px;
+      color:var(--muted2);
+      letter-spacing:.02em;
       white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:55vw;
+    }
+
+    .iconbtn{
+      width:36px; height:36px;
+      border:1px solid var(--hair);
+      background:transparent;
+      border-radius:12px;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      transition:transform .12s ease, background .2s ease, border-color .2s ease;
+    }
+    .iconbtn:hover{ background:var(--panel2); }
+    .iconbtn:active{ transform:scale(.98); }
+    .icon{ width:18px; height:18px; display:block; }
+
+    main{
+      min-height:0;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width:980px){
+      main{ grid-template-columns:1fr 1fr; }
+      .hint{ max-width:38vw; }
+    }
+
+    .pane{
+      border:1px solid var(--hair);
+      border-radius:var(--radius);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .panehead{
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--hair);
+      background:transparent;
+    }
+
+    .label{
+      font-size:11px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--muted2);
+    }
+    .status{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    textarea{
+      flex:1;
+      width:100%;
       border:0;
+      outline:none;
+      resize:none;
+      padding:12px;
+      background:transparent;
+      color:var(--fg);
+      font-family:var(--mono);
+      font-size:13px;
+      line-height:1.55;
+      min-height:0;
+      tab-size:2;
+    }
+
+    .framewrap{
+      flex:1;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px;
+    }
+
+    .device{
+      width:100%;
+      height:100%;
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+      border:1px solid rgba(127,127,127,.18);
+    }
+
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+      background:#fff;
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      border:1px solid var(--hair);
+      background:var(--panel2);
+      color:var(--fg);
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:13px;
+      box-shadow:var(--shadow);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease, transform .2s ease;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(-4px);
+    }
+
+    /* Mobile: tabs control which pane is visible */
+    @media (max-width:979px){
+      #panePreview{ display:none; }
     }
   </style>
 </head>
 
 <body>
-  <main class="wrap" aria-label="Loose Nickels">
-    <h1>Loose Nickels</h1>
-    <div class="rule" aria-hidden="true"></div>
-    <p class="name">Lewis Nichols</p>
+  <div class="app">
+    <header>
+      <div class="topbar">
+        <div class="brand">
+          <div class="title">Loose Nickels</div>
+          <div class="sub">HTML Viewer</div>
+        </div>
 
-    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle theme">
-      <span class="sr-only">Toggle theme</span>
-      <svg class="icon" id="themeIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"></svg>
-    </button>
-  </main>
+        <div class="controls">
+          <button class="pill" id="runBtn" type="button">Run</button>
+          <button class="pill" id="autoBtn" type="button" aria-pressed="true">Auto</button>
+          <button class="pill" id="formatBtn" type="button">Format</button>
+          <button class="pill" id="copyBtn" type="button">Copy</button>
+          <button class="pill" id="dlBtn" type="button">Download</button>
+          <button class="pill" id="openBtn" type="button">Open</button>
+          <button class="pill" id="shareBtn" type="button">Share</button>
+
+          <label class="pill" for="fileInput" style="cursor:pointer;">Import</label>
+          <input id="fileInput" type="file" accept=".html,text/html" />
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="tabs" role="tablist" aria-label="View">
+          <button class="pill" id="tabEdit" role="tab" aria-selected="true" aria-pressed="true">Editor</button>
+          <button class="pill" id="tabPrev" role="tab" aria-selected="false" aria-pressed="false">Preview</button>
+          <span class="hint" id="hint">⌘/Ctrl+Enter to Run • Auto-save on</span>
+        </div>
+
+        <div class="tabs">
+          <button class="pill" id="deviceBtn" type="button" aria-pressed="true">Responsive</button>
+          <button class="pill" id="rotateBtn" type="button" aria-pressed="false">Rotate</button>
+
+          <button class="iconbtn" id="themeBtn" type="button" aria-label="Toggle theme">
+            <svg class="icon" id="themeIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="pane" id="paneEditor">
+        <div class="panehead">
+          <div class="label">Input</div>
+          <div class="status" id="status">Ready</div>
+        </div>
+        <textarea id="src" spellcheck="false" autocomplete="off" autocapitalize="off" inputmode="text"></textarea>
+      </section>
+
+      <section class="pane" id="panePreview">
+        <div class="panehead">
+          <div class="label">Preview</div>
+          <div class="status" id="info"></div>
+        </div>
+        <div class="framewrap">
+          <div class="device" id="deviceShell">
+            <iframe id="preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast">Done</div>
+  </div>
 
   <script>
     const root = document.documentElement;
-    const btn = document.getElementById("themeBtn");
-    const icon = document.getElementById("themeIcon");
+
+    const src = document.getElementById('src');
+    const frame = document.getElementById('preview');
+    const status = document.getElementById('status');
+    const info = document.getElementById('info');
+    const hint = document.getElementById('hint');
+
+    const runBtn = document.getElementById('runBtn');
+    const autoBtn = document.getElementById('autoBtn');
+    const formatBtn = document.getElementById('formatBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const dlBtn = document.getElementById('dlBtn');
+    const openBtn = document.getElementById('openBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    const tabEdit = document.getElementById('tabEdit');
+    const tabPrev = document.getElementById('tabPrev');
+    const paneEditor = document.getElementById('paneEditor');
+    const panePreview = document.getElementById('panePreview');
+
+    const deviceBtn = document.getElementById('deviceBtn');
+    const rotateBtn = document.getElementById('rotateBtn');
+    const deviceShell = document.getElementById('deviceShell');
+
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+
+    const toast = document.getElementById('toast');
 
     const sun = `
-      <path d="M12 18a6 6 0 1 0 0-12a6 6 0 0 0 0 12Z"
-            stroke="currentColor" stroke-width="1.6"/>
+      <path d="M12 18a6 6 0 1 0 0-12a6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="1.6"/>
       <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5
                M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6L17 17
-               M7 7L5.4 5.4"
-            stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+               M7 7L5.4 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
     `;
-
     const moon = `
       <path d="M20 14.2A7.6 7.6 0 0 1 9.8 4
                a6.7 6.7 0 1 0 10.2 10.2Z"
             stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
     `;
 
-    function prefersDark(){
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    // Toast
+    let toastT;
+    function pop(msg){
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastT);
+      toastT = setTimeout(()=>toast.classList.remove('show'), 850);
     }
 
-    function setTheme(theme, persist=true){
-      if(theme === "dark"){
-        root.setAttribute("data-theme","dark");
-        icon.innerHTML = sun;
+    // Theme
+    function setTheme(mode, persist=true){
+      if(mode === 'light'){
+        root.setAttribute('data-theme','light');
+        themeIcon.innerHTML = moon;
       } else {
-        root.removeAttribute("data-theme");
-        icon.innerHTML = moon;
+        root.removeAttribute('data-theme');
+        themeIcon.innerHTML = sun;
       }
-      if(persist){
-        localStorage.setItem("ln_theme", theme);
-      }
+      if(persist) localStorage.setItem('ln_viewer_theme', mode);
     }
+    const savedTheme = localStorage.getItem('ln_viewer_theme');
+    if(savedTheme === 'light') setTheme('light', false);
+    else setTheme('dark', false);
 
-    const saved = localStorage.getItem("ln_theme");
-    if(saved){
-      setTheme(saved, false);
-    } else {
-      setTheme(prefersDark() ? "dark" : "light", false);
-    }
-
-    btn.addEventListener("click", () => {
-      const isDark = root.getAttribute("data-theme") === "dark";
-      setTheme(isDark ? "light" : "dark", true);
+    themeBtn.addEventListener('click', () => {
+      const isLight = root.getAttribute('data-theme') === 'light';
+      setTheme(isLight ? 'dark' : 'light', true);
+      pop(isLight ? 'Dark' : 'Light');
     });
+
+    // Default HTML
+    function defaultHTML(){
+      return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preview</title>
+  <style>
+    body{font-family:system-ui;margin:24px;line-height:1.5}
+    .card{padding:16px;border:1px solid #ddd;border-radius:14px;max-width:520px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hello</h1>
+    <p>Paste HTML on the left. Run (or leave Auto on).</p>
+  </div>
+</body>
+</html>`;
+    }
+
+    const LS_SRC='ln_viewer_src', LS_AUTO='ln_viewer_auto', LS_TAB='ln_viewer_tab', LS_DEV='ln_viewer_device', LS_ROT='ln_viewer_rotate';
+
+    let autoRun = (localStorage.getItem(LS_AUTO) ?? 'true') === 'true';
+    autoBtn.setAttribute('aria-pressed', String(autoRun));
+
+    function setStatus(msg){ status.textContent = msg; }
+    function setInfo(msg){ info.textContent = msg; }
+
+    function render(){
+      const html = src.value || '';
+      frame.srcdoc = html;
+      localStorage.setItem(LS_SRC, html);
+      setStatus('Rendered');
+      setInfo(`${html.length.toLocaleString()} chars`);
+    }
+
+    // Debounced render on input
+    let t;
+    src.addEventListener('input', () => {
+      setStatus('Typing…');
+      if(!autoRun) return;
+      clearTimeout(t);
+      t = setTimeout(render, 220);
+    });
+
+    runBtn.addEventListener('click', () => { render(); pop('Run'); });
+
+    autoBtn.addEventListener('click', () => {
+      autoRun = !autoRun;
+      autoBtn.setAttribute('aria-pressed', String(autoRun));
+      localStorage.setItem(LS_AUTO, String(autoRun));
+      hint.textContent = autoRun ? '⌘/Ctrl+Enter to Run • Auto-save on' : '⌘/Ctrl+Enter to Run • Auto is off';
+      pop(autoRun ? 'Auto on' : 'Auto off');
+      if(autoRun) render();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)){
+        e.preventDefault();
+        render();
+        pop('Run');
+      }
+    });
+
+    // Basic formatter
+    function prettify(html){
+      const voidTags = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+      html = html.replace(/\r\n/g, '\n').trim();
+
+      let out = [];
+      let indent = 0;
+
+      const tokens = html
+        .replace(/>\s+</g, '><')
+        .split(/(<[^>]+>)/g)
+        .filter(Boolean);
+
+      for (let tok of tokens){
+        tok = tok.trim();
+        if(!tok) continue;
+
+        const isTag = tok.startsWith('<') && tok.endsWith('>');
+        if(!isTag){
+          out.push('  '.repeat(indent) + tok);
+          continue;
+        }
+
+        const isComment = tok.startsWith('<!--');
+        const isDoctype = /^<!doctype/i.test(tok);
+        const isClosing = /^<\//.test(tok);
+
+        const tagNameMatch = tok.match(/^<\/?\s*([a-z0-9:-]+)/i);
+        const tagName = tagNameMatch ? tagNameMatch[1].toLowerCase() : '';
+        const isVoid = voidTags.has(tagName) || /\/>$/.test(tok);
+        const isSelfClose = /\/>$/.test(tok);
+        const isBlockOpen = !isClosing && !isVoid && !isSelfClose && !isComment && !isDoctype;
+
+        if(isClosing) indent = Math.max(0, indent - 1);
+        out.push('  '.repeat(indent) + tok);
+        if(isBlockOpen) indent += 1;
+      }
+      return out.join('\n') + '\n';
+    }
+
+    formatBtn.addEventListener('click', () => {
+      try{
+        src.value = prettify(src.value || '');
+        render();
+        pop('Formatted');
+      } catch {
+        pop('Format failed');
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(src.value);
+        pop('Copied');
+      } catch {
+        pop('Copy blocked');
+      }
+    });
+
+    dlBtn.addEventListener('click', () => {
+      const blob = new Blob([src.value], {type:'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'preview.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1200);
+      pop('Downloaded');
+    });
+
+    openBtn.addEventListener('click', () => {
+      const blob = new Blob([src.value], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(()=>URL.revokeObjectURL(url), 8000);
+      pop('Opened');
+    });
+
+    shareBtn.addEventListener('click', async () => {
+      try{
+        const blob = new Blob([src.value], {type:'text/html'});
+        const file = new File([blob], 'preview.html', {type:'text/html'});
+        if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
+          await navigator.share({ title: 'HTML Preview', files: [file] });
+          pop('Shared');
+        } else if(navigator.share){
+          await navigator.share({ title: 'HTML Preview', text: src.value.slice(0, 2000) });
+          pop('Shared');
+        } else {
+          pop('Share unsupported');
+        }
+      } catch {
+        pop('Cancelled');
+      }
+    });
+
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      if(!f) return;
+      try{
+        const text = await f.text();
+        src.value = text;
+        render();
+        pop('Imported');
+      } catch {
+        pop('Import failed');
+      } finally {
+        fileInput.value = '';
+      }
+    });
+
+    // Tabs on mobile
+    function setTab(which){
+      const isEdit = which === 'edit';
+      tabEdit.setAttribute('aria-selected', String(isEdit));
+      tabPrev.setAttribute('aria-selected', String(!isEdit));
+      tabEdit.setAttribute('aria-pressed', String(isEdit));
+      tabPrev.setAttribute('aria-pressed', String(!isEdit));
+
+      const small = window.matchMedia('(max-width: 979px)').matches;
+      if(small){
+        paneEditor.style.display = isEdit ? 'flex' : 'none';
+        panePreview.style.display = isEdit ? 'none' : 'flex';
+      } else {
+        paneEditor.style.display = 'flex';
+        panePreview.style.display = 'flex';
+      }
+
+      localStorage.setItem(LS_TAB, which);
+    }
+
+    tabEdit.addEventListener('click', () => setTab('edit'));
+    tabPrev.addEventListener('click', () => setTab('preview'));
+    window.addEventListener('resize', () => setTab(localStorage.getItem(LS_TAB) || 'edit'));
+
+    // Device sizing
+    const devices = [
+      { name:'Responsive', w:null,  h:null },
+      { name:'Phone',      w:390,   h:844 },
+      { name:'Tablet',     w:820,   h:1180 },
+      { name:'Desktop',    w:1200,  h:800 },
+    ];
+
+    let deviceIndex = Number(localStorage.getItem(LS_DEV) || 0);
+    let rotated = (localStorage.getItem(LS_ROT) || 'false') === 'true';
+
+    function applyDevice(){
+      const d = devices[deviceIndex] || devices[0];
+      deviceBtn.textContent = d.name;
+
+      let w = d.w, h = d.h;
+      if(rotated && w && h){ [w,h] = [h,w]; }
+
+      if(!w || !h){
+        deviceShell.style.width = '100%';
+        deviceShell.style.height = '100%';
+      } else {
+        deviceShell.style.width = Math.min(w, deviceShell.parentElement.clientWidth - 6) + 'px';
+        deviceShell.style.height = Math.min(h, deviceShell.parentElement.clientHeight - 6) + 'px';
+      }
+
+      rotateBtn.setAttribute('aria-pressed', String(rotated));
+      localStorage.setItem(LS_DEV, String(deviceIndex));
+      localStorage.setItem(LS_ROT, String(rotated));
+    }
+
+    deviceBtn.addEventListener('click', () => {
+      deviceIndex = (deviceIndex + 1) % devices.length;
+      applyDevice();
+      pop(devices[deviceIndex].name);
+    });
+
+    rotateBtn.addEventListener('click', () => {
+      rotated = !rotated;
+      applyDevice();
+      pop(rotated ? 'Rotated' : 'Portrait');
+    });
+
+    window.addEventListener('resize', () => applyDevice());
+
+    // Init
+    const saved = localStorage.getItem(LS_SRC);
+    src.value = saved ?? defaultHTML();
+
+    setTab(localStorage.getItem(LS_TAB) || 'edit');
+    applyDevice();
+    render();
+    hint.textContent = autoRun ? '⌘/Ctrl+Enter to Run • Auto-save on' : '⌘/Ctrl+Enter to Run • Auto is off';
   </script>
 </body>
 </html>
