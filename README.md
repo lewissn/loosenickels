@@ -1,0 +1,2 @@
+# loosenickels
+Static page
