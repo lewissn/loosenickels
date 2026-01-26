@@ -807,7 +807,7 @@
       localStorage.setItem('ln_tool', which);
       updateHtmlLayout();
       shutDrawer();
-      if(isDashboard) loadDashboard();
+      if (isDashboard) loadDashboard();
     }
     btnDashboard?.addEventListener('click', ()=>showTool('dashboard'));
     btnHtml?.addEventListener('click', ()=>showTool('html'));
@@ -1151,7 +1151,7 @@
         emOut.value = `${fmt(v, 5)}em`;
       } else {
         remOut.value = '';
-        emOut.value  = '';
+        emOut.value = '';
       }
       if(base && base > 0) localStorage.setItem(LS_BASE, String(base));
     }
@@ -1399,7 +1399,10 @@
         if ((firstDay + day - 1) % 7 === 0) row = table.insertRow();
         const cell = row.insertCell();
         cell.textContent = day;
-        if (day === now.getDate()) cell.style.fontWeight = 'bold';
+        if (day === now.getDate()) {
+          cell.style.fontWeight = 'bold';
+          cell.style.color = '#fac05e';
+        }
       }
       const caption = document.createElement('caption');
       caption.textContent = `${month} ${year}`;
