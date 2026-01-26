@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Loose Nickels — Tools</title>
 
-  <!-- Favicon (create favicon.svg in repo root; see below) -->
+  <!-- Favicon -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
   <!-- Plus Jakarta Sans -->
@@ -41,7 +41,7 @@
       font-family:var(--sans);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
-      overflow:hidden; /* the tool area scrolls, not the whole page */
+      overflow:hidden; /* scroll inside .content */
     }
 
     .app{
@@ -51,20 +51,30 @@
       min-height:0;
     }
 
+    /* ---------- Header (fix overflow on mobile) ---------- */
     header{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding:10px 14px;
+      gap:10px;
+      padding:10px 12px;
       border-bottom:1px solid var(--hair);
+      min-width:0;
     }
 
-    .left, .right{
+    .left{
       display:flex;
       align-items:center;
       gap:8px;
       min-width:0;
+      flex:1 1 auto;
+      overflow:hidden; /* prevents header pushing past screen */
+    }
+    .right{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:0 0 auto;
     }
 
     .brand{
@@ -72,9 +82,10 @@
       letter-spacing:.14em;
       text-transform:uppercase;
       color:var(--muted);
-      opacity:.8;
+      opacity:.85;
       user-select:none;
       white-space:nowrap;
+      flex:0 0 auto;
     }
 
     button{
@@ -86,55 +97,75 @@
       padding:6px 10px;
       border-radius:999px;
       cursor:pointer;
-      opacity:.84;
+      opacity:.86;
       -webkit-tap-highlight-color: transparent;
       white-space:nowrap;
     }
     button:hover{ opacity:1; background:var(--panel) }
     button[aria-pressed="true"]{ opacity:1; background:var(--panel) }
 
-    .icon{
-      width:18px;
-      height:18px;
-      display:block;
-    }
+    .icon{ width:18px; height:18px; display:block; }
 
-    .content{
-  min-height:0;
-  overflow:auto;
-}
-
-    /* Desktop nav vs mobile hamburger */
+    /* Desktop nav buttons */
     .nav-desktop{ display:none; }
-    .hamburger{ display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; }
-    .mobile-only{ display:inline-flex; }
-    .desktop-only{ display:none; }
-
     @media (min-width: 900px){
-      .nav-desktop{ display:inline-flex; gap:8px; }
-      .hamburger{ display:none; }
-      .mobile-only{ display:none; }
-      .desktop-only{ display:inline-flex; }
+      .nav-desktop{ display:flex; gap:8px; }
     }
 
-    /* Tools */
-    .tool{ min-height:0; display:none; }
+    /* Mobile: show hamburger + compact tool title, hide desktop nav */
+    .hamburger{ display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; }
+    @media (min-width: 900px){
+      .hamburger{ display:none; }
+    }
+
+    /* HTML view toggles on mobile only */
+    .mobile-only{ display:inline-flex; }
+    @media (min-width: 900px){
+      .mobile-only{ display:none; }
+    }
+
+    /* On narrow screens, ensure left side can shrink without breaking header */
+    .spacer{
+      flex:1 1 auto;
+      min-width:0;
+    }
+
+    /* ---------- Content & tool sizing (fix textarea height + scroll) ---------- */
+    .content{
+      height:100%;
+      min-height:0;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tool{
+      height:100%;
+      min-height:0;
+      display:none;
+    }
     .tool.active{ display:block; }
 
     /* ---------- HTML tool ---------- */
     .split{
       height:100%;
+      min-height:0;
       display:grid;
       grid-template-columns:1fr;
-      min-height:0;
     }
     @media (min-width:900px){
       .split{ grid-template-columns:1fr 1fr; }
     }
-    .pane{ min-height:0; display:flex; flex-direction:column; }
+    .pane{
+      min-height:0;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
     textarea{
-      flex:1;
+      flex:1 1 auto;
+      height:100%;
       width:100%;
+      min-height:0;
       border:0;
       outline:none;
       resize:none;
@@ -144,17 +175,17 @@
       font-family:var(--mono);
       font-size:13px;
       line-height:1.55;
-      min-height:0;
     }
     iframe{
-      flex:1;
+      flex:1 1 auto;
+      height:100%;
       border:0;
       background:#fff;
       min-height:0;
     }
     .hidden{ display:none !important; }
 
-    /* ---------- Shared cards (Colours + Convert) ---------- */
+    /* ---------- Shared cards ---------- */
     .wrap{
       padding:14px;
       display:grid;
@@ -209,7 +240,7 @@
       border:1px solid var(--hair);
       background:transparent;
       border-radius:999px;
-      opacity:.85;
+      opacity:.88;
       cursor:pointer;
     }
     .mini:hover{ opacity:1; background:var(--panel) }
@@ -270,7 +301,7 @@
       border-radius:999px;
       border:1px solid rgba(127,127,127,.25);
       background:rgba(255,255,255,.08);
-      opacity:.9;
+      opacity:.92;
       font-family:var(--sans);
       white-space:nowrap;
     }
@@ -311,7 +342,7 @@
     }
     .dim{ opacity:.55; }
 
-    /* ---------- Mobile drawer menu ---------- */
+    /* ---------- Drawer menu ---------- */
     .drawer{
       position:fixed;
       inset:0;
@@ -375,16 +406,16 @@
 
         <div class="brand">Loose Nickels</div>
 
-        <!-- Desktop tool buttons -->
         <div class="nav-desktop">
           <button id="toolHtml" aria-pressed="true">HTML</button>
           <button id="toolColors" aria-pressed="false">Colours</button>
           <button id="toolConvert" aria-pressed="false">Convert</button>
         </div>
 
-        <!-- HTML view toggles (mobile only) -->
         <button class="mobile-only" id="htmlEditBtn" aria-pressed="true">Editor</button>
         <button class="mobile-only" id="htmlPrevBtn" aria-pressed="false">Preview</button>
+
+        <div class="spacer"></div>
 
         <button id="resetBtn">Reset</button>
       </div>
@@ -483,9 +514,7 @@
       <section class="tool" id="convertTool">
         <div class="wrap">
           <div class="card">
-            <div class="field">
-              <label>px ↔ rem / em</label>
-            </div>
+            <div class="field"><label>px ↔ rem / em</label></div>
 
             <div class="row">
               <div class="field">
@@ -530,9 +559,7 @@
           </div>
 
           <div class="card">
-            <div class="field">
-              <label>mm ↔ inches</label>
-            </div>
+            <div class="field"><label>mm ↔ inches</label></div>
             <div class="row">
               <div class="field">
                 <label>Millimetres (mm)</label>
@@ -553,9 +580,7 @@
           </div>
 
           <div class="card">
-            <div class="field">
-              <label>px ↔ mm (at DPI)</label>
-            </div>
+            <div class="field"><label>px ↔ mm (at DPI)</label></div>
             <div class="row">
               <div class="field">
                 <label>DPI</label>
@@ -581,7 +606,7 @@
                 </div>
               </div>
               <div class="field">
-                <label>Pixels from mm</label>
+                <label>Millimetres (mm)</label>
                 <div class="input">
                   <input id="mm2In" inputmode="decimal" placeholder="10" />
                   <button class="mini" id="copyMm2" type="button">Copy</button>
@@ -595,7 +620,7 @@
                 <button class="mini" id="copyPxOut" type="button">Copy</button>
               </div>
             </div>
-            <div class="note">Useful when you’re matching print specs or exporting at a known DPI.</div>
+            <div class="note">Useful for print specs or exporting at a known DPI.</div>
           </div>
         </div>
       </section>
@@ -607,12 +632,12 @@
     <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
       <div class="drawer-head">
         <div class="t">Tools</div>
-        <button id="closeDrawer" aria-label="Close">Close</button>
+        <button id="closeDrawer" type="button">Close</button>
       </div>
       <div class="drawer-body">
-        <button id="mHtml">HTML</button>
-        <button id="mColors">Colours</button>
-        <button id="mConvert">Convert</button>
+        <button id="mHtml" type="button">HTML</button>
+        <button id="mColors" type="button">Colours</button>
+        <button id="mConvert" type="button">Convert</button>
       </div>
     </div>
   </div>
@@ -624,9 +649,7 @@
       const x = parseFloat(String(v).replace(/,/g,'').trim());
       return Number.isFinite(x) ? x : null;
     };
-    async function copyText(t){
-      try{ await navigator.clipboard.writeText(String(t)); } catch {}
-    }
+    async function copyText(t){ try{ await navigator.clipboard.writeText(String(t)); } catch {} }
 
     // ---------- Theme ----------
     const root = document.documentElement;
@@ -656,9 +679,9 @@
       localStorage.setItem('ln_theme', mode);
     }
     setTheme(localStorage.getItem('ln_theme') === 'light' ? 'light' : 'dark');
-    themeBtn.onclick = () => setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    themeBtn.addEventListener('click', ()=>setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
 
-    // ---------- Drawer menu ----------
+    // ---------- Drawer ----------
     const drawer = document.getElementById('drawer');
     const menuBtn = document.getElementById('menuBtn');
     const closeDrawer = document.getElementById('closeDrawer');
@@ -682,6 +705,10 @@
     const btnColors = document.getElementById('toolColors');
     const btnConvert = document.getElementById('toolConvert');
 
+    const mHtml = document.getElementById('mHtml');
+    const mColors = document.getElementById('mColors');
+    const mConvert = document.getElementById('mConvert');
+
     const htmlTool = document.getElementById('htmlTool');
     const colorsTool = document.getElementById('colorsTool');
     const convertTool = document.getElementById('convertTool');
@@ -689,13 +716,7 @@
     const htmlEditBtn = document.getElementById('htmlEditBtn');
     const htmlPrevBtn = document.getElementById('htmlPrevBtn');
 
-    const mHtml = document.getElementById('mHtml');
-    const mColors = document.getElementById('mColors');
-    const mConvert = document.getElementById('mConvert');
-
-    function setPressed(btn, pressed){
-      if(btn) btn.setAttribute('aria-pressed', String(pressed));
-    }
+    function setPressed(el, v){ if(el) el.setAttribute('aria-pressed', String(v)); }
 
     function showTool(which){
       const isHtml = which === 'html';
@@ -710,13 +731,13 @@
       setPressed(btnColors, isColors);
       setPressed(btnConvert, isConvert);
 
-      // Mobile HTML view toggles only make sense in HTML tool
-      htmlEditBtn.style.display = isHtml ? '' : 'none';
-      htmlPrevBtn.style.display = isHtml ? '' : 'none';
+      // Only show Editor/Preview on HTML tool (mobile)
+      if(htmlEditBtn && htmlPrevBtn){
+        htmlEditBtn.style.display = isHtml ? '' : 'none';
+        htmlPrevBtn.style.display = isHtml ? '' : 'none';
+      }
 
-      // Scroll the tool area back to top
       content.scrollTop = 0;
-
       localStorage.setItem('ln_tool', which);
       updateHtmlLayout();
       shutDrawer();
@@ -760,12 +781,9 @@
     src.addEventListener('input', renderHtml);
     renderHtml();
 
-    function isDesktop(){
-      return window.matchMedia('(min-width: 900px)').matches;
-    }
+    function isDesktop(){ return window.matchMedia('(min-width: 900px)').matches; }
 
     function setHtmlView(which){
-      // Desktop: always split
       if(isDesktop()){
         editorPane.classList.remove('hidden');
         previewPane.classList.remove('hidden');
@@ -783,10 +801,8 @@
     }
 
     function updateHtmlLayout(){
-      // Only adjust when HTML tool is active
       const active = (localStorage.getItem('ln_tool') || 'html') === 'html';
       if(!active) return;
-
       if(isDesktop()){
         setHtmlView('split');
       } else {
@@ -904,32 +920,22 @@
     function chipEl(hex, bgRgb, textRgb){
       const el=document.createElement('div');
       el.className='chip';
-
       const c=document.createElement('div');
       c.className='c';
       c.style.background=hex;
       c.style.color=rgbToHex(textRgb.r,textRgb.g,textRgb.b);
       c.textContent='Aa';
-
       const m=document.createElement('div');
       m.className='meta';
-
       const left=document.createElement('span');
       left.textContent=hex;
-
       const ratio=contrast(bgRgb,textRgb);
       const lab=wcagLabel(ratio);
-
       const right=document.createElement('span');
       right.textContent=`${ratio.toFixed(2)} ${lab}`;
       if(lab === 'Fail') right.className='dim';
-
-      m.appendChild(left);
-      m.appendChild(right);
-
-      el.appendChild(c);
-      el.appendChild(m);
-
+      m.appendChild(left); m.appendChild(right);
+      el.appendChild(c); el.appendChild(m);
       el.addEventListener('click', ()=>copyText(hex));
       return el;
     }
@@ -1001,7 +1007,6 @@
         `Best text on ${baseHex} is ${rgbToHex(onBase.rgb.r,onBase.rgb.g,onBase.rgb.b)} ` +
         `with contrast ${baseRatio.toFixed(2)}:1 (${wcagLabel(baseRatio)} for normal text).`;
 
-      // Tints & shades
       tintsGrid.innerHTML='';
       const w={r:255,g:255,b:255}, k={r:0,g:0,b:0};
       const steps=[0.82,0.64,0.46,0.28,0.10];
@@ -1020,7 +1025,6 @@
         tintsGrid.appendChild(chipEl(hex, rgb, txt));
       }
 
-      // Accompanying colours
       accGrid.innerHTML='';
       const hsl = rgbToHsl(baseRgb);
       const variants = [
@@ -1063,12 +1067,8 @@
 
     useBg.addEventListener('click', ()=>{
       const bg = normHex(bgIn.value);
-      if(bg){
-        localStorage.setItem(LS_BG, bg);
-      } else {
-        localStorage.removeItem(LS_BG);
-        bgIn.value = '';
-      }
+      if(bg){ localStorage.setItem(LS_BG, bg); }
+      else { localStorage.removeItem(LS_BG); bgIn.value=''; }
       setBaseFromAny(hexIn.value);
     });
 
@@ -1097,7 +1097,6 @@
     const mm2In = document.getElementById('mm2In');
     const pxOut = document.getElementById('pxOut');
 
-    // Default values (remembered)
     const LS_BASE = 'ln_conv_base';
     const LS_DPI  = 'ln_conv_dpi';
 
@@ -1107,7 +1106,6 @@
     function fmt(x, dp=4){
       if(x === null || !Number.isFinite(x)) return '';
       const s = x.toFixed(dp);
-      // trim trailing zeros
       return s.replace(/\.?0+$/,'');
     }
 
@@ -1125,29 +1123,15 @@
       if(base && base > 0) localStorage.setItem(LS_BASE, String(base));
     }
 
-    function updateInMm(){
-      // mm -> in
+    function updateMmInch(){
       const mm = num(mmIn.value);
-      if(mm !== null) inIn.value = fmt(mm / 25.4, 6);
-
-      // in -> mm (if user typed inches)
       const inch = num(inIn.value);
-      if(inch !== null && document.activeElement === inIn) mmIn.value = fmt(inch * 25.4, 3);
-    }
 
-    function updateMmIn(){
-      // if user typed mm, update inches
-      const mm = num(mmIn.value);
-      if(mm !== null && document.activeElement === mmIn) inIn.value = fmt(mm / 25.4, 6);
-
-      // if user typed inches, update mm
-      const inch = num(inIn.value);
-      if(inch !== null && document.activeElement === inIn) mmIn.value = fmt(inch * 25.4, 3);
-    }
-
-    function updateDpi(){
-      const dpi = num(dpiIn.value);
-      if(dpi && dpi > 0) localStorage.setItem(LS_DPI, String(dpi));
+      if(document.activeElement === mmIn){
+        if(mm !== null) inIn.value = fmt(mm / 25.4, 6);
+      } else if(document.activeElement === inIn){
+        if(inch !== null) mmIn.value = fmt(inch * 25.4, 3);
+      }
     }
 
     function updatePxMmAtDpi(){
@@ -1155,37 +1139,24 @@
       const px = num(px2In.value);
       const mm = num(mm2In.value);
 
-      if(dpi && dpi > 0 && px !== null){
-        // mm = px * 25.4 / dpi
-        mmOut.value = fmt(px * 25.4 / dpi, 4);
-      } else {
-        mmOut.value = '';
-      }
+      if(dpi && dpi > 0) localStorage.setItem(LS_DPI, String(dpi));
 
-      if(dpi && dpi > 0 && mm !== null){
-        // px = mm * dpi / 25.4
-        pxOut.value = fmt(mm * dpi / 25.4, 2);
-      } else {
-        pxOut.value = '';
-      }
-
-      updateDpi();
+      mmOut.value = (dpi && dpi > 0 && px !== null) ? fmt(px * 25.4 / dpi, 4) : '';
+      pxOut.value = (dpi && dpi > 0 && mm !== null) ? fmt(mm * dpi / 25.4, 2) : '';
     }
 
-    // Wire up listeners
     pxIn.addEventListener('input', updatePx);
     baseIn.addEventListener('input', updatePx);
     document.getElementById('base16').addEventListener('click', ()=>{ baseIn.value='16'; updatePx(); });
 
-    mmIn.addEventListener('input', updateMmIn);
-    inIn.addEventListener('input', updateMmIn);
+    mmIn.addEventListener('input', updateMmInch);
+    inIn.addEventListener('input', updateMmInch);
 
     dpiIn.addEventListener('input', updatePxMmAtDpi);
     px2In.addEventListener('input', updatePxMmAtDpi);
     mm2In.addEventListener('input', updatePxMmAtDpi);
     document.getElementById('dpi96').addEventListener('click', ()=>{ dpiIn.value='96'; updatePxMmAtDpi(); });
 
-    // Copy buttons
     document.getElementById('copyPx').addEventListener('click', ()=>copyText(pxIn.value));
     document.getElementById('copyRem').addEventListener('click', ()=>copyText(remOut.value));
     document.getElementById('copyEm').addEventListener('click', ()=>copyText(emOut.value));
@@ -1198,7 +1169,6 @@
     document.getElementById('copyMm2').addEventListener('click', ()=>copyText(mm2In.value));
     document.getElementById('copyPxOut').addEventListener('click', ()=>copyText(pxOut.value));
 
-    // Initial calc
     updatePx();
     updatePxMmAtDpi();
 
