@@ -41,7 +41,7 @@
       font-family:var(--sans);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
-      overflow:hidden; /* scroll inside .content */
+      overflow:hidden;
     }
 
     .app{
@@ -99,9 +99,17 @@
       opacity:.86;
       -webkit-tap-highlight-color: transparent;
       white-space:nowrap;
+      transition: all 0.13s ease;
     }
     button:hover{ opacity:1; background:var(--panel) }
     button[aria-pressed="true"]{ opacity:1; background:var(--panel) }
+
+    button:focus-visible,
+    .mini:focus-visible,
+    .input input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px rgba(100,180,255,0.35);
+    }
 
     .icon{ width:18px; height:18px; display:block; }
 
@@ -190,7 +198,12 @@
       padding:12px;
       display:grid;
       gap:10px;
+      transition: background 0.14s ease;
     }
+    .card:hover {
+      background: color-mix(in srgb, var(--panel) 100%, var(--fg) 3%);
+    }
+
     .row{
       display:grid;
       grid-template-columns:1fr;
@@ -243,7 +256,6 @@
       line-height:1.55;
     }
 
-    /* New for dynamic rows in weight calculator */
     .material-row {
       display: grid;
       grid-template-columns: 2fr 1fr auto;
@@ -261,8 +273,9 @@
 
     .result {
       font-size: 15px;
-      font-weight: 500;
-      padding: 10px 0;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      padding: 12px 0 4px;
       color: var(--fg);
     }
 
@@ -366,10 +379,11 @@
       justify-content:flex-end;
       padding:10px;
       z-index:50;
+      transition: opacity 0.18s ease;
     }
     [data-theme="light"] .drawer{ background:rgba(0,0,0,.20); }
 
-    .drawer.open{ display:flex; }
+    .drawer.open{ display:flex; opacity:1; }
 
     .drawer-panel{
       width:min(320px, 92vw);
@@ -444,29 +458,204 @@
     </header>
 
     <div class="content" id="content">
-      <!-- HTML TOOL (unchanged) -->
+      <!-- HTML TOOL -->
       <section class="tool active" id="htmlTool">
         <div class="split">
           <section class="pane" id="editorPane">
             <textarea id="src" spellcheck="false"></textarea>
           </section>
+
           <section class="pane" id="previewPane">
             <iframe id="preview" sandbox="allow-scripts allow-forms allow-modals"></iframe>
           </section>
         </div>
       </section>
 
-      <!-- COLOURS TOOL (unchanged) -->
+      <!-- COLOURS TOOL -->
       <section class="tool" id="colorsTool">
-        <!-- ... your existing colours tool content remains here ... -->
+        <div class="wrap">
+          <div class="colors-top">
+            <div class="card">
+              <div class="row">
+                <div class="field">
+                  <label>Hex</label>
+                  <div class="input">
+                    <input id="hexIn" placeholder="#1a73e8" />
+                    <button class="mini" id="copyHex" type="button">Copy</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>RGB</label>
+                  <div class="input">
+                    <input id="rgbIn" placeholder="rgb(26, 115, 232)" />
+                    <button class="mini" id="copyRgb" type="button">Copy</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="field">
+                  <label>Text recommendation</label>
+                  <div class="input">
+                    <input id="recText" readonly />
+                    <button class="mini" id="copyRec" type="button">Copy</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Custom background for contrast</label>
+                  <div class="input">
+                    <input id="bgIn" placeholder="#ffffff (optional)" />
+                    <button class="mini" id="useBg" type="button">Use</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="note" id="contrastNote"></div>
+            </div>
+
+            <div class="swatch" id="swatch">
+              <div class="swatch-top" id="swatchTop">Preview</div>
+              <div class="swatch-bottom">
+                <span id="swatchMeta">#000000</span>
+                <div class="badges" id="badges"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="field">
+              <label>Tints & shades</label>
+              <div class="grid5" id="tintsGrid"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="field">
+              <label>Accompanying colours</label>
+              <div class="grid5" id="accGrid"></div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <!-- CONVERT TOOL (unchanged) -->
+      <!-- CONVERT TOOL -->
       <section class="tool" id="convertTool">
-        <!-- ... your existing convert tool content remains here ... -->
+        <div class="wrap">
+          <div class="card">
+            <div class="field"><label>px ↔ rem / em</label></div>
+
+            <div class="row">
+              <div class="field">
+                <label>Pixels (px)</label>
+                <div class="input">
+                  <input id="pxIn" inputmode="decimal" placeholder="16" />
+                  <button class="mini" id="copyPx" type="button">Copy</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Base font-size (px)</label>
+                <div class="input">
+                  <input id="baseIn" inputmode="decimal" placeholder="16" />
+                  <button class="mini" id="base16" type="button">16</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field">
+                <label>rem</label>
+                <div class="input">
+                  <input id="remOut" readonly />
+                  <button class="mini" id="copyRem" type="button">Copy</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>em</label>
+                <div class="input">
+                  <input id="emOut" readonly />
+                  <button class="mini" id="copyEm" type="button">Copy</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="note">
+              <b>rem</b> is relative to the <b>root</b> font-size (usually <code>html { font-size: … }</code>).<br>
+              <b>em</b> is relative to the <b>current element</b> font-size and can <b>compound</b> when nested.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="field"><label>mm ↔ inches</label></div>
+            <div class="row">
+              <div class="field">
+                <label>Millimetres (mm)</label>
+                <div class="input">
+                  <input id="mmIn" inputmode="decimal" placeholder="25.4" />
+                  <button class="mini" id="copyMm" type="button">Copy</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Inches (in)</label>
+                <div class="input">
+                  <input id="inIn" inputmode="decimal" placeholder="1" />
+                  <button class="mini" id="copyIn" type="button">Copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="note">1 inch = 25.4mm</div>
+          </div>
+
+          <div class="card">
+            <div class="field"><label>px ↔ mm (at DPI)</label></div>
+            <div class="row">
+              <div class="field">
+                <label>DPI</label>
+                <div class="input">
+                  <input id="dpiIn" inputmode="decimal" placeholder="96" />
+                  <button class="mini" id="dpi96" type="button">96</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Pixels (px)</label>
+                <div class="input">
+                  <input id="px2In" inputmode="decimal" placeholder="100" />
+                  <button class="mini" id="copyPx2" type="button">Copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Millimetres (mm)</label>
+                <div class="input">
+                  <input id="mmOut" readonly />
+                  <button class="mini" id="copyMmOut" type="button">Copy</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Millimetres (mm)</label>
+                <div class="input">
+                  <input id="mm2In" inputmode="decimal" placeholder="10" />
+                  <button class="mini" id="copyMm2" type="button">Copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>px result</label>
+              <div class="input">
+                <input id="pxOut" readonly />
+                <button class="mini" id="copyPxOut" type="button">Copy</button>
+              </div>
+            </div>
+            <div class="note">Useful for print specs or exporting at a known DPI.</div>
+          </div>
+        </div>
       </section>
 
-      <!-- NEW: EDGE BANDING TOOL -->
+      <!-- EDGE BANDING TOOL -->
       <section class="tool" id="edgeTool">
         <div class="wrap">
           <div class="card">
@@ -494,9 +683,7 @@
                   <input id="ebInner" inputmode="decimal" placeholder="76" step="0.1" />
                 </div>
               </div>
-              <div class="field">
-                <!-- spacer or future field -->
-              </div>
+              <div class="field"></div>
             </div>
 
             <button class="mini" style="margin-top:8px; width:auto;" onclick="calculateEdgeBanding()">Calculate</button>
@@ -511,15 +698,13 @@
         </div>
       </section>
 
-      <!-- NEW: WEIGHT CALCULATOR TOOL -->
+      <!-- WEIGHT CALCULATOR TOOL -->
       <section class="tool" id="weightTool">
         <div class="wrap">
           <div class="card">
             <div class="field"><label>Project Panel Weight (kg)</label></div>
 
-            <div id="materialsContainer">
-              <!-- dynamic rows added here -->
-            </div>
+            <div id="materialsContainer"></div>
 
             <div style="margin:12px 0; display:flex; gap:10px; flex-wrap:wrap;">
               <button class="mini" onclick="addMaterialRow()">+ Add Material</button>
@@ -538,7 +723,7 @@
     </div>
   </div>
 
-  <!-- Mobile drawer – added new tools -->
+  <!-- Mobile drawer -->
   <div class="drawer" id="drawer" aria-hidden="true">
     <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
       <div class="drawer-head">
@@ -556,7 +741,7 @@
   </div>
 
   <script>
-    // ── Helpers (existing + new) ───────────────────────────────────────
+    // Helpers
     const clamp = (n,a,b)=>Math.min(b,Math.max(a,n));
     const num = (v)=> {
       const x = parseFloat(String(v).replace(/,/g,'').trim());
@@ -564,13 +749,20 @@
     };
     async function copyText(t){ try{ await navigator.clipboard.writeText(String(t)); } catch {} }
 
-    // ── Theme (unchanged) ──────────────────────────────────────────────
+    // Theme
     const root = document.documentElement;
     const themeBtn = document.getElementById('themeBtn');
     const themeIcon = document.getElementById('themeIcon');
 
-    const sun = `…`;   // your existing sun path
-    const moon = `…`;  // your existing moon path
+    const sun = `
+      <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.6" fill="none"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+            stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    `;
+    const moon = `
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/>
+    `;
 
     function setTheme(mode){
       if(mode === 'light'){
@@ -582,28 +774,37 @@
       }
       localStorage.setItem('ln_theme', mode);
     }
-    setTheme(localStorage.getItem('ln_theme') === 'light' ? 'light' : 'dark');
-    themeBtn.addEventListener('click', ()=>setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
 
-    // ── Drawer (unchanged) ─────────────────────────────────────────────
+    const savedTheme = localStorage.getItem('ln_theme');
+    setTheme(savedTheme === 'light' ? 'light' : 'dark');
+
+    // Force icon on first load
+    themeIcon.innerHTML = root.hasAttribute('data-theme') ? moon : sun;
+
+    themeBtn.addEventListener('click', ()=>{
+      setTheme(root.hasAttribute('data-theme') ? 'dark' : 'light');
+    });
+
+    // Drawer
     const drawer = document.getElementById('drawer');
     const menuBtn = document.getElementById('menuBtn');
     const closeDrawer = document.getElementById('closeDrawer');
 
     function openDrawer(){ drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); }
     function shutDrawer(){ drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); }
+
     menuBtn?.addEventListener('click', openDrawer);
     closeDrawer.addEventListener('click', shutDrawer);
     drawer.addEventListener('click', (e)=>{ if(e.target === drawer) shutDrawer(); });
 
-    // ── Tool switching ─────────────────────────────────────────────────
+    // Tool switching
     const content = document.getElementById('content');
 
-    const btnHtml   = document.getElementById('toolHtml');
-    const btnColors = document.getElementById('toolColors');
-    const btnConvert= document.getElementById('toolConvert');
-    const btnEdge   = document.getElementById('toolEdge');
-    const btnWeight = document.getElementById('toolWeight');
+    const btnHtml    = document.getElementById('toolHtml');
+    const btnColors  = document.getElementById('toolColors');
+    const btnConvert = document.getElementById('toolConvert');
+    const btnEdge    = document.getElementById('toolEdge');
+    const btnWeight  = document.getElementById('toolWeight');
 
     const mHtml    = document.getElementById('mHtml');
     const mColors  = document.getElementById('mColors');
@@ -623,20 +824,22 @@
     function setPressed(el, v){ if(el) el.setAttribute('aria-pressed', String(v)); }
 
     function showTool(which){
-      const tools = { html:htmlTool, colors:colorsTool, convert:convertTool, edge:edgeTool, weight:weightTool };
-      Object.values(tools).forEach(t => t.classList.remove('active'));
-      if(tools[which]) tools[which].classList.add('active');
+      htmlTool.classList.toggle('active', which === 'html');
+      colorsTool.classList.toggle('active', which === 'colors');
+      convertTool.classList.toggle('active', which === 'convert');
+      edgeTool.classList.toggle('active', which === 'edge');
+      weightTool.classList.toggle('active', which === 'weight');
 
-      setPressed(btnHtml,    which==='html');
-      setPressed(btnColors,  which==='colors');
-      setPressed(btnConvert, which==='convert');
-      setPressed(btnEdge,    which==='edge');
-      setPressed(btnWeight,  which==='weight');
+      setPressed(btnHtml,    which === 'html');
+      setPressed(btnColors,  which === 'colors');
+      setPressed(btnConvert, which === 'convert');
+      setPressed(btnEdge,    which === 'edge');
+      setPressed(btnWeight,  which === 'weight');
 
+      const isHtml = which === 'html';
       if(htmlEditBtn && htmlPrevBtn){
-        const showHtmlBtns = which === 'html';
-        htmlEditBtn.style.display = showHtmlBtns ? '' : 'none';
-        htmlPrevBtn.style.display = showHtmlBtns ? '' : 'none';
+        htmlEditBtn.style.display = isHtml ? '' : 'none';
+        htmlPrevBtn.style.display = isHtml ? '' : 'none';
       }
 
       content.scrollTop = 0;
@@ -644,7 +847,6 @@
       updateHtmlLayout();
       shutDrawer();
 
-      // Optional: init weight rows if first time
       if(which === 'weight' && document.querySelectorAll('.material-row').length === 0){
         addMaterialRow();
       }
@@ -656,46 +858,48 @@
     btnEdge?.addEventListener('click', ()=>showTool('edge'));
     btnWeight?.addEventListener('click', ()=>showTool('weight'));
 
-    mHtml?.addEventListener('click', ()=>showTool('html'));
-    mColors?.addEventListener('click', ()=>showTool('colors'));
-    mConvert?.addEventListener('click', ()=>showTool('convert'));
-    mEdge?.addEventListener('click', ()=>showTool('edge'));
-    mWeight?.addEventListener('click', ()=>showTool('weight'));
+    // Mobile buttons – explicit close
+    mHtml?.addEventListener('click', ()=>{ showTool('html'); shutDrawer(); });
+    mColors?.addEventListener('click', ()=>{ showTool('colors'); shutDrawer(); });
+    mConvert?.addEventListener('click', ()=>{ showTool('convert'); shutDrawer(); });
+    mEdge?.addEventListener('click', ()=>{ showTool('edge'); shutDrawer(); });
+    mWeight?.addEventListener('click', ()=>{ showTool('weight'); shutDrawer(); });
 
     showTool(localStorage.getItem('ln_tool') || 'html');
 
-    // ── HTML tool logic (unchanged) ────────────────────────────────────
-    // ... your existing HTML tool code remains here ...
+    // HTML tool logic (your original code – abbreviated here)
+    const src = document.getElementById('src');
+    const frame = document.getElementById('preview');
+    const DEFAULT_HTML = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hello</title></head><body><h1>Hello</h1><p>Paste HTML above.</p></body></html>`;
+    src.value = localStorage.getItem('ln_html') || DEFAULT_HTML;
 
-    // ── Colours tool logic (unchanged) ─────────────────────────────────
-    // ... your existing colours code remains here ...
+    function renderHtml(){ frame.srcdoc = src.value; localStorage.setItem('ln_html', src.value); }
+    src.addEventListener('input', renderHtml);
+    renderHtml();
 
-    // ── Convert tool logic (unchanged) ─────────────────────────────────
-    // ... your existing convert code remains here ...
+    // ... rest of your HTML tool, colours tool, convert tool code remains unchanged ...
 
-    // ── Edge Banding Calculator ────────────────────────────────────────
+    // Edge Banding
     function calculateEdgeBanding(){
       const t  = num(document.getElementById('ebThickness').value);
       const Do = num(document.getElementById('ebOuter').value);
       const Di = num(document.getElementById('ebInner').value);
 
-      const resultEl = document.getElementById('ebResult');
+      const el = document.getElementById('ebResult');
 
       if(!t || t <= 0 || !Do || !Di || Do <= Di){
-        resultEl.textContent = 'Invalid values (outer > inner, thickness > 0)';
-        resultEl.style.color = 'tomato';
+        el.textContent = 'Invalid values (outer > inner, thickness > 0)';
+        el.style.color = 'tomato';
         return;
       }
 
-      // L in mm → /1000 for meters
       const L_mm = Math.PI * (Do**2 - Di**2) / (4 * t);
       const L_m  = (L_mm / 1000).toFixed(2);
-
-      resultEl.textContent = `≈ ${L_m} meters`;
-      resultEl.style.color = 'inherit';
+      el.textContent = `≈ ${L_m} meters`;
+      el.style.color = 'inherit';
     }
 
-    // ── Panel Weight Calculator ────────────────────────────────────────
+    // Weight Calculator
     const densities = {
       'mdf-6':  { thick: 0.006, dens: 750 },
       'mdf-18': { thick: 0.018, dens: 750 },
@@ -707,7 +911,6 @@
       const container = document.getElementById('materialsContainer');
       const row = document.createElement('div');
       row.className = 'material-row';
-
       row.innerHTML = `
         <div class="field">
           <label>Material</label>
@@ -727,9 +930,8 @@
             <input type="number" class="area" inputmode="decimal" step="0.01" min="0" placeholder="1.25" />
           </div>
         </div>
-        <button type="button" class="mini remove-btn" onclick="this.closest('.material-row').remove()">Remove</button>
+        <button type="button" class="mini remove-btn" onclick="this.closest('.material-row').remove();">Remove</button>
       `;
-
       container.appendChild(row);
     }
 
@@ -738,55 +940,43 @@
       let total = 0;
       let valid = true;
 
-      rows.forEach(row => {
-        const type = row.querySelector('.material-type').value;
-        const area = num(row.querySelector('.area').value);
-
-        if(!type || !densities[type] || !area || area <= 0){
-          valid = false;
-          return;
-        }
-
+      rows.forEach(r => {
+        const type = r.querySelector('.material-type').value;
+        const area = num(r.querySelector('.area').value);
+        if(!type || !densities[type] || !area || area <= 0) { valid = false; return; }
         const { thick, dens } = densities[type];
         total += area * thick * dens;
       });
 
-      const resultEl = document.getElementById('weightResult');
-
+      const el = document.getElementById('weightResult');
       if(!valid || total === 0){
-        resultEl.textContent = rows.length === 0 ? 'Add at least one material' : 'Check inputs';
-        resultEl.style.color = 'tomato';
+        el.textContent = rows.length === 0 ? 'Add at least one material' : 'Check inputs';
+        el.style.color = 'tomato';
       } else {
-        resultEl.textContent = `Total ≈ ${total.toFixed(1)} kg`;
-        resultEl.style.color = 'inherit';
+        el.textContent = `Total ≈ ${total.toFixed(1)} kg`;
+        el.style.color = 'inherit';
       }
     }
 
-    // ── Reset button extension ─────────────────────────────────────────
-    const resetBtn = document.getElementById('resetBtn');
-    resetBtn.addEventListener('click', ()=>{
+    // Reset button (extended)
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
       const which = localStorage.getItem('ln_tool') || 'html';
-
       if(which === 'edge'){
         if(confirm('Reset Edge Banding fields?')){
-          document.getElementById('ebThickness').value = '';
-          document.getElementById('ebOuter').value = '';
-          document.getElementById('ebInner').value = '';
+          ['ebThickness','ebOuter','ebInner'].forEach(id => document.getElementById(id).value = '');
           document.getElementById('ebResult').textContent = '';
         }
       } else if(which === 'weight'){
         if(confirm('Clear all materials?')){
           document.getElementById('materialsContainer').innerHTML = '';
           document.getElementById('weightResult').textContent = '';
-          addMaterialRow(); // start with one row
+          addMaterialRow();
         }
       } else {
-        // existing reset logic for html/colors/convert...
-        // you can extend the if-chain here if needed
+        // Add your existing reset logic for html/colors/convert here if needed
+        alert('Reset not implemented for this tool yet.');
       }
     });
-
-    // Initial row for weight tool (only when shown first time – see showTool)
   </script>
 </body>
 </html>
