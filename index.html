@@ -8,426 +8,353 @@
   <!-- Favicon -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
-  <!-- Plus Jakarta Sans -->
+  <!-- Plus Jakarta Sans + SF Pro fallback for premium feel -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> <!-- Using Inter for SF Pro-like elegance -->
+
+  <!-- Manifest for PWA -->
+  <link rel="manifest" href="data:application/manifest+json,{
+    \"name\": \"Loose Nickels Tools\",
+    \"short_name\": \"LN Tools\",
+    \"icons\": [{\"src\": \"/favicon.svg\", \"type\": \"image/svg+xml\", \"sizes\": \"any\"}],
+    \"start_url\": \"/\",
+    \"display\": \"standalone\",
+    \"theme_color\": \"#0f0f10\",
+    \"background_color\": \"#0f0f10\"
+  }">
 
   <style>
     :root{
-      --bg:#0f0f10;
-      --fg:#f3f3f3;
-      --muted:rgba(243,243,243,.62);
-      --hair:rgba(243,243,243,.14);
-      --panel:rgba(255,255,255,.05);
+      --bg: #0f0f10;
+      --fg: #f3f3f3;
+      --muted: rgba(243,243,243,.62);
+      --hair: rgba(243,243,243,.14);
+      --panel: rgba(255,255,255,.05);
+      --accent: #007aff; /* Subtle blue for highlights, Apple-inspired */
 
-      --radius:14px;
-      --sans:"Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      --mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --radius: 16px; /* Slightly larger for premium feel */
+      --sans: "Inter", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     [data-theme="light"]{
-      --bg:#f7f6f2;
-      --fg:#141414;
-      --muted:rgba(20,20,20,.56);
-      --hair:rgba(20,20,20,.12);
-      --panel:rgba(0,0,0,.03);
+      --bg: #f7f6f2;
+      --fg: #141414;
+      --muted: rgba(20,20,20,.56);
+      --hair: rgba(20,20,20,.12);
+      --panel: rgba(0,0,0,.03);
+      --accent: #007aff;
     }
 
-    *{ box-sizing:border-box }
-    html,body{ height:100%; margin:0 }
-    body{
-      background:var(--bg);
-      color:var(--fg);
-      font-family:var(--sans);
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      overflow:hidden; /* scroll inside .content */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow: hidden;
+      transition: background 0.3s ease; /* Smooth theme switch */
     }
 
-    .app{
-      height:100%;
-      display:grid;
-      grid-template-rows:auto 1fr;
-      min-height:0;
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
     }
 
-    /* ---------- Header (fix overflow on mobile) ---------- */
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 12px;
-      border-bottom:1px solid var(--hair);
-      min-width:0;
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px; /* Increased spacing */
+      padding: 12px 16px; /* More padding */
+      border-bottom: 1px solid var(--hair);
+      min-width: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Subtle shadow for depth */
     }
 
-    .left{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:0;
-      flex:1 1 auto;
-      overflow:hidden; /* prevents header pushing past screen */
+    .left {
+      display: flex;
+      align-items: center;
+      gap: 10px; /* Adjusted */
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
     }
-    .right{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex:0 0 auto;
-    }
-
-    .brand{
-      font-size:12px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      color:var(--muted);
-      opacity:.85;
-      user-select:none;
-      white-space:nowrap;
-      flex:0 0 auto;
+    .right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
     }
 
-    button{
-      background:transparent;
-      border:0;
-      color:var(--fg);
-      font-family:var(--sans);
-      font-size:13px;
-      padding:6px 10px;
-      border-radius:999px;
-      cursor:pointer;
-      opacity:.86;
+    .brand {
+      font-size: 13px; /* Slightly larger */
+      font-weight: 500; /* Bolder for premium */
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.9;
+      user-select: none;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    button {
+      background: transparent;
+      border: 0;
+      color: var(--fg);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 12px; /* More padding */
+      border-radius: 999px;
+      cursor: pointer;
+      opacity: 0.9;
       -webkit-tap-highlight-color: transparent;
-      white-space:nowrap;
-      transition: all 0.13s ease;
+      white-space: nowrap;
+      transition: opacity 0.2s ease, background 0.2s ease, transform 0.1s ease;
     }
-    button:hover{ opacity:1; background:var(--panel) }
-    button[aria-pressed="true"]{ opacity:1; background:var(--panel) }
+    button:hover { opacity: 1; background: var(--panel); }
+    button:active { transform: scale(0.96); } /* Micro-interaction on press */
+    button[aria-pressed="true"] { opacity: 1; background: var(--panel); }
 
-    .icon{ width:18px; height:18px; display:block; }
+    .icon { width: 20px; height: 20px; display: block; transition: transform 0.2s ease; } /* Slightly larger icons */
 
-    /* Desktop nav buttons */
-    .nav-desktop{ display:none; }
-    @media (min-width: 900px){
-      .nav-desktop{ display:flex; gap:8px; }
-    }
-
-    /* Mobile: show hamburger + compact tool title, hide desktop nav */
-    .hamburger{ display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; }
-    @media (min-width: 900px){
-      .hamburger{ display:none; }
+    .nav-desktop { display: none; }
+    @media (min-width: 900px) {
+      .nav-desktop { display: flex; gap: 10px; }
     }
 
-    /* HTML view toggles on mobile only */
-    .mobile-only{ display:inline-flex; }
-    @media (min-width: 900px){
-      .mobile-only{ display:none; }
+    .hamburger { display: inline-flex; align-items: center; justify-content: center; padding: 8px 12px; }
+    @media (min-width: 900px) {
+      .hamburger { display: none; }
     }
 
-    /* On narrow screens, ensure left side can shrink without breaking header */
-    .spacer{
-      flex:1 1 auto;
-      min-width:0;
+    .mobile-only { display: inline-flex; }
+    @media (min-width: 900px) {
+      .mobile-only { display: none; }
     }
 
-    /* ---------- Content & tool sizing (fix textarea height + scroll) ---------- */
-    .content{
-      height:100%;
-      min-height:0;
-      overflow:auto;
+    .spacer {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .content {
+      height: 100%;
+      min-height: 0;
+      overflow: auto;
       -webkit-overflow-scrolling: touch;
     }
 
-    .tool{
-      height:100%;
-      min-height:0;
-      display:none;
+    .tool {
+      height: 100%;
+      min-height: 0;
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
-    .tool.active{ display:block; }
-
-    /* ---------- HTML tool ---------- */
-    .split{
-      height:100%;
-      min-height:0;
-      display:grid;
-      grid-template-columns:1fr;
-    }
-    @media (min-width:900px){
-      .split{ grid-template-columns:1fr 1fr; }
-    }
-    .pane{
-      min-height:0;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-    }
-    textarea{
-      flex:1 1 auto;
-      height:100%;
-      width:100%;
-      min-height:0;
-      border:0;
-      outline:none;
-      resize:none;
-      padding:14px;
-      background:transparent;
-      color:var(--fg);
-      font-family:var(--mono);
-      font-size:13px;
-      line-height:1.55;
-    }
-    iframe{
-      flex:1 1 auto;
-      height:100%;
-      border:0;
-      background:#fff;
-      min-height:0;
-    }
-    .hidden{ display:none !important; }
-
-    /* ---------- Shared cards ---------- */
-    .wrap{
-      padding:14px;
-      display:grid;
-      gap:12px;
-    }
-    .card{
-      border:1px solid var(--hair);
-      background:var(--panel);
-      border-radius:var(--radius);
-      padding:12px;
-      display:grid;
-      gap:10px;
-      transition: background 0.14s ease;
-    }
-    .card:hover {
-      background: color-mix(in srgb, var(--panel) 100%, var(--fg) 3%);
-    }
-    .row{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
-    }
-    @media (min-width:700px){
-      .row{ grid-template-columns: 1fr 1fr; }
-    }
-    .field label{
-      display:block;
-      font-size:11px;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin:0 0 6px;
-    }
-    .input{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      border:1px solid var(--hair);
-      border-radius:12px;
-      padding:10px 10px;
-      background:transparent;
-    }
-    .input input{
-      width:100%;
-      border:0;
-      outline:none;
-      background:transparent;
-      color:var(--fg);
-      font-family:var(--mono);
-      font-size:13px;
-    }
-    .mini{
-      font-family:var(--sans);
-      font-size:12px;
-      padding:6px 8px;
-      border:1px solid var(--hair);
-      background:transparent;
-      border-radius:999px;
-      opacity:.88;
-      cursor:pointer;
-    }
-    .mini:hover{ opacity:1; background:var(--panel) }
-
-    .note{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.55;
+    .tool.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
 
-    /* ---------- Colours tool ---------- */
-    .colors-top{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-    @media (min-width:900px){
-      .colors-top{ grid-template-columns: 1.25fr .75fr; }
-    }
-
-    .swatch{
-      border:1px solid var(--hair);
-      border-radius:14px;
-      overflow:hidden;
-      min-height:132px;
-      display:grid;
-      grid-template-rows: 1fr auto;
-      background:#111;
-    }
-    .swatch-top{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:14px;
-      font-weight:600;
-      letter-spacing:-.01em;
-    }
-    .swatch-bottom{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:10px 12px;
-      border-top:1px solid rgba(127,127,127,.18);
-      font-size:12px;
-      font-family:var(--mono);
-      opacity:.9;
-      gap:10px;
-    }
-    .badges{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-    .badge{
-      font-size:11px;
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid rgba(127,127,127,.25);
-      background:rgba(255,255,255,.08);
-      opacity:.92;
-      font-family:var(--sans);
-      white-space:nowrap;
-    }
-    [data-theme="light"] .badge{ background:rgba(0,0,0,.04); }
-
-    .grid5{
-      display:grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap:10px;
-    }
-    .chip{
-      border:1px solid var(--hair);
-      border-radius:14px;
-      overflow:hidden;
-      background:var(--panel);
-      min-height:84px;
-      display:grid;
-      grid-template-rows: 1fr auto;
-      cursor:pointer;
-    }
-    .chip .c{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:600;
-      font-size:12px;
-    }
-    .chip .meta{
-      padding:8px 10px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      border-top:1px solid rgba(127,127,127,.18);
-      font-family:var(--mono);
-      font-size:11px;
-      opacity:.9;
-    }
-    .dim{ opacity:.55; }
-
-    /* ---------- Drawer menu ---------- */
-    .drawer{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.35);
-      display:none;
-      align-items:flex-start;
-      justify-content:flex-end;
-      padding:10px;
-      z-index:50;
-      transition: opacity 0.18s ease;
-    }
-    [data-theme="light"] .drawer{ background:rgba(0,0,0,.20); }
-
-    .drawer.open{ display:flex; opacity:1; }
-
-    .drawer-panel{
-      width:min(320px, 92vw);
-      border:1px solid var(--hair);
-      background:var(--bg);
-      border-radius:16px;
-      overflow:hidden;
-    }
-    .drawer-head{
-      padding:12px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      border-bottom:1px solid var(--hair);
-    }
-    .drawer-head .t{
-      font-size:12px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      color:var(--muted);
-    }
-    .drawer-body{
-      padding:10px;
-      display:grid;
-      gap:8px;
-    }
-    .drawer-body button{
-      width:100%;
-      text-align:left;
-      border-radius:12px;
-      padding:10px 12px;
-      border:1px solid var(--hair);
-      opacity:1;
-    }
-    .drawer-body button:hover{ background:var(--panel); }
-
-    /* New for dynamic rows in weight calculator */
-    .material-row {
+    .split {
+      height: 100%;
+      min-height: 0;
       display: grid;
-      grid-template-columns: 2fr 1fr auto;
-      gap: 8px;
-      align-items: end;
+      grid-template-columns: 1fr;
     }
-    .material-row .input { margin: 0; }
-    .remove-btn {
-      padding: 8px 12px;
+    @media (min-width: 900px) {
+      .split { grid-template-columns: 1fr 1fr; }
+    }
+    .pane {
+      min-height: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    textarea {
+      flex: 1 1 auto;
+      height: 100%;
+      width: 100%;
+      min-height: 0;
+      border: 0;
+      outline: none;
+      resize: none;
+      padding: 16px; /* More padding */
+      background: transparent;
+      color: var(--fg);
+      font-family: var(--mono);
       font-size: 13px;
-      opacity: 0.7;
-      border-radius: 12px;
+      line-height: 1.55;
+      transition: box-shadow 0.2s ease;
     }
-    .remove-btn:hover { opacity: 1; background: rgba(255,80,80,0.15); }
+    textarea:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+    iframe {
+      flex: 1 1 auto;
+      height: 100%;
+      border: 0;
+      background: #fff;
+      min-height: 0;
+    }
+    .hidden { display: none !important; }
+
+    .wrap {
+      padding: 20px; /* Increased white space */
+      display: grid;
+      gap: 16px; /* More gap */
+    }
+    .card {
+      border: none; /* Remove hard borders */
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 20px; /* More padding */
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Subtle shadow for depth */
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.12); transform: translateY(-2px); } /* Lift on hover */
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 700px) {
+      .row { grid-template-columns: 1fr 1fr; }
+    }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500; /* Bolder labels */
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 8px; /* More space */
+    }
+    .input {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--hair);
+      border-radius: 12px;
+      padding: 12px; /* More padding */
+      background: transparent;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+    .input input {
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--fg);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+    .mini {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 12px; /* Adjusted */
+      border: 1px solid var(--hair);
+      background: transparent;
+      border-radius: 999px;
+      opacity: 0.9;
+      cursor: pointer;
+      transition: opacity 0.2s ease, background 0.2s ease, transform 0.1s ease;
+    }
+    .mini:hover { opacity: 1; background: var(--panel); }
+    .mini:active { transform: scale(0.96); }
+
+    .note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6; /* Better readability */
+    }
+
+    /* Material row for weight tool */
+    .material-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .material-row select, .material-row input { flex: 1; }
+    .remove-btn { background: red; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 999px; transition: transform 0.1s ease; }
+    .remove-btn:active { transform: scale(0.96); }
 
     .result {
-      font-size: 15px;
+      font-size: 16px; /* Larger for emphasis */
       font-weight: 600;
-      letter-spacing: -0.01em;
-      padding: 12px 0 4px;
       color: var(--fg);
+      transition: opacity 0.3s ease;
+      opacity: 0;
     }
+    .result.visible { opacity: 1; } /* Fade in on calculation */
 
-    button:focus-visible,
-    .mini:focus-visible,
-    .input input:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px rgba(100,180,255,0.4);
+    /* Drawer with smoother animation */
+    .drawer {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 16px; /* More padding */
+      z-index: 50;
+      transition: opacity 0.3s ease;
     }
+    .drawer.open { display: flex; opacity: 1; }
+    .drawer-panel {
+      width: min(340px, 94vw); /* Slightly wider for comfort */
+      border: none;
+      background: var(--bg);
+      border-radius: 20px; /* Softer corners */
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2); /* Deeper shadow */
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+    .drawer.open .drawer-panel { transform: translateX(0); }
+    .drawer-head {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--hair);
+    }
+    .drawer-head .t {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .drawer-body {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .drawer-body button {
+      width: 100%;
+      text-align: left;
+      border-radius: 14px;
+      padding: 12px 16px;
+      border: 1px solid var(--hair);
+      opacity: 1;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    .drawer-body button:hover { background: var(--panel); }
+    .drawer-body button:active { transform: scale(0.98); }
   </style>
 </head>
 
@@ -668,36 +595,42 @@
       <section class="tool" id="edgeTool">
         <div class="wrap">
           <div class="card">
-            <div class="field"><label>Edge Banding Length Calculator</label></div>
+            <div class="field"><label>Edge Banding Roll Length</label></div>
+
             <div class="row">
               <div class="field">
                 <label>Thickness (mm)</label>
                 <div class="input">
-                  <input id="thickness" inputmode="decimal" placeholder="1.0" step="0.1" />
+                  <input id="ebThickness" inputmode="decimal" placeholder="1.0" step="0.1" />
                 </div>
               </div>
               <div class="field">
-                <label>Outer Diameter (mm)</label>
+                <label>Outer diameter (mm)</label>
                 <div class="input">
-                  <input id="outer-diameter" inputmode="decimal" placeholder="200" step="0.1" />
+                  <input id="ebOuter" inputmode="decimal" placeholder="220" step="0.1" />
                 </div>
               </div>
             </div>
+
             <div class="row">
               <div class="field">
-                <label>Inner Diameter (mm)</label>
+                <label>Inner diameter (mm)</label>
                 <div class="input">
-                  <input id="inner-diameter" inputmode="decimal" placeholder="50" step="0.1" />
+                  <input id="ebInner" inputmode="decimal" placeholder="76" step="0.1" />
                 </div>
               </div>
               <div class="field">
+                <!-- spacer or future field -->
               </div>
             </div>
-            <button class="mini" id="calculateEdgeBtn" style="margin-top:8px; width:auto;">Calculate</button>
-            <div class="result" id="edge-banding-result"></div>
+
+            <button class="mini" id="ebCalculateBtn" style="margin-top:8px; width:auto;">Calculate</button>
+
+            <div class="result" id="ebResult"></div>
+
             <div class="note">
-              Formula: L = π * (D_outer² - D_inner²) / (4 * thickness) in mm, then /1000 for meters.<br>
-              Ensure outer > inner and thickness > 0.
+              Formula approximation: L = π × (Do² − Di²) / (4 × t) → meters<br>
+              Outer > inner and thickness > 0 required.
             </div>
           </div>
         </div>
@@ -708,10 +641,12 @@
         <div class="wrap">
           <div class="card">
             <div class="field"><label>Cabinet/Project Weight Calculator</label></div>
-            <div id="materials-container"></div>
+            <div id="materials-container">
+              <!-- dynamic rows -->
+            </div>
             <div style="margin:12px 0; display:flex; gap:10px; flex-wrap:wrap;">
-              <button class="mini" id="addMaterialBtn">+ Add Another Material</button>
-              <button class="mini" id="calculateWeightBtn">Calculate Total Weight</button>
+              <button class="mini" id="addMaterialBtn">+ Add Material</button>
+              <button class="mini" id="calculateWeightBtn">Calculate Total</button>
             </div>
             <div class="result" id="weight-result"></div>
             <div class="note">
@@ -750,6 +685,15 @@
     };
     async function copyText(t){ try{ await navigator.clipboard.writeText(String(t)); } catch {} }
 
+    // Debounce for auto-calc
+    function debounce(fn, delay = 300) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
+    }
+
     // ---------- Theme ----------
     const root = document.documentElement;
     const themeBtn = document.getElementById('themeBtn');
@@ -777,7 +721,7 @@
       }
       localStorage.setItem('ln_theme', mode);
     }
-    setTheme(localStorage.getItem('ln_theme') === 'light' ? 'light' : 'dark');
+    setTheme(localStorage.getItem('ln_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
     themeBtn.addEventListener('click', ()=>setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
 
     // ---------- Drawer ----------
@@ -842,7 +786,6 @@
       setPressed(btnEdge, isEdge);
       setPressed(btnWeight, isWeight);
 
-      // Only show Editor/Preview on HTML tool (mobile)
       if(htmlEditBtn && htmlPrevBtn){
         htmlEditBtn.style.display = isHtml ? '' : 'none';
         htmlPrevBtn.style.display = isHtml ? '' : 'none';
@@ -1379,6 +1322,9 @@
 
     document.getElementById('addMaterialBtn')?.addEventListener('click', addMaterialRow);
     document.getElementById('calculateWeightBtn')?.addEventListener('click', calculateWeight);
+    document.getElementById('materials-container').addEventListener('input', debounce(calculateWeight, 300));
+    document.getElementById('materials-container').addEventListener('change', debounce(calculateWeight, 300));
+
 
     // Add initial row if none
     if (document.querySelectorAll('.material-row').length === 0) {
@@ -1436,6 +1382,23 @@
           showTool('weight');
         }
       }
+    });
+    // Service Worker for PWA (basic offline cache)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register(new URL('', import.meta.url), { type: 'module' }).then(() => console.log('Service Worker registered')).catch(err => console.log('Service Worker registration failed', err));
+    }
+
+    // Touch swipe to close drawer (mobile)
+    let touchStartX = 0;
+    drawer.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
+    drawer.addEventListener('touchend', e => {
+      const touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > 50) shutDrawer(); // Swipe left to close
+    });
+
+    // Keyboard nav for accessibility
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') shutDrawer();
     });
   </script>
 </body>
