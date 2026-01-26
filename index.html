@@ -399,34 +399,17 @@
       outline: none;
       box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px rgba(100,180,255,0.4);
     }
-
-    /* Additional premium styling */
-    .card {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: box-shadow 0.2s ease;
+    /* Weather icon styles */
+    .weather-icon {
+      width: 24px;
+      height: 24px;
+      vertical-align: middle;
+      margin-right: 4px;
     }
-    [data-theme="light"] .card {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .wrap {
-      padding: 20px;
-      gap: 16px;
-    }
-    .note, .result {
-      font-size: 13px;
-      line-height: 1.6;
-    }
-    button, .mini {
-      transition: background 0.2s ease, transform 0.1s ease;
-    }
-    button:active, .mini:active {
-      transform: scale(0.98);
-    }
-    textarea:focus {
-      box-shadow: inset 0 0 0 1px var(--fg);
+    .forecast-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
     }
   </style>
 </head>
@@ -1507,24 +1490,51 @@
       calendarEl.appendChild(table);
     }
 
-    async function fetchWeather() {
+    function fetchWeather() {
       const weatherEl = document.getElementById('weather');
-      try {
-        const response = await fetch('https://wttr.in/Bishops+Stortford?format=j1');
-        const data = await response.json();
-        const current = data.current_condition[0];
-        const forecast = data.weather;
-        let weatherHtml = `Current: ${current.temp_C}°C, ${current.weatherDesc[0].value}<br>Humidity: ${current.humidity}%<br>Wind: ${current.winddir16Point} ${current.windspeedKmph} km/h<br><br>Forecast:`;
-        forecast.forEach((day, index) => {
-          if (index > 0) { // Skip today for forecast
-            const date = new Date(day.date).toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' });
-            weatherHtml += `<br>${date}: High ${day.maxtempC}°C, Low ${day.mintempC}°C, ${day.hourly[0].weatherDesc[0].value}`;
-          }
-        });
-        weatherEl.innerHTML = weatherHtml;
-      } catch (error) {
-        weatherEl.textContent = 'Unable to fetch weather.';
-      }
+      fetch('https://wttr.in/Bishops+Stortford?format=j1')
+        .then(response => response.json())
+        .then(data => {
+          const current = data.current_condition[0];
+          let html = `
+            <div class="forecast-row">
+              <span>${getWeatherIcon(current.weatherDesc[0].value)}</span>
+              <span>Current: ${current.temp_C}°C, ${current.weatherDesc[0].value}</span>
+            </div>
+            <div class="forecast-row">
+              <span>Humidity: ${current.humidity}%</span>
+              <span>Wind: ${current.winddir16Point} ${current.windspeedKmph} km/h</span>
+            </div>
+            <br>Forecast:`;
+          data.weather.forEach((day, index) => {
+            if (index > 0 && index < 7) { // Next 6 days
+              const date = new Date(day.date).toLocaleDateString('default', { weekday: 'short' });
+              const maxTemp = day.maxtempC;
+              const minTemp = day.mintempC;
+              const desc = day.hourly[0].weatherDesc[0].value;
+              html += `
+                <div class="forecast-row">
+                  <span>${getWeatherIcon(desc)}</span>
+                  <span>${date}: ${desc}, High ${maxTemp}°C, Low ${minTemp}°C</span>
+                </div>`;
+            }
+          });
+          weatherEl.innerHTML = html;
+        })
+        .catch(() => weatherEl.textContent = 'Unable to fetch weather.');
+    }
+
+    function getWeatherIcon(condition) {
+      const icons = {
+        'Sunny': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'Cloudy': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 15a4 4 0 004 4h10a4 4 0 004-4M5 11a4 4 0 014-4h6a4 4 0 014 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'Rain': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 20v4m-4 0v4m8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'Snow': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 4v16m-4-4h8m-4-4V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'Fog': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 12h18M3 16h18M3 20h18M3 8h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'Thunderstorm': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M15 15l-3 3 3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'Default': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M12 2v2m0 16v2m9-9h-2m-16 0H3m15.364-6.364l-1.414 1.414M6.05 6.05l-1.414 1.414m12.728 0l-1.414-1.414M6.05 17.95l-1.414-1.414" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      };
+      return icons[condition] || icons['Default'];
     }
 
     function saveRecentCalc(tool, result) {
