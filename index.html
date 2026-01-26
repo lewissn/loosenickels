@@ -1525,16 +1525,22 @@
     }
 
     function getWeatherIcon(condition) {
-      const icons = {
-        'Sunny': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        'Cloudy': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 15a4 4 0 004 4h10a4 4 0 004-4M5 11a4 4 0 014-4h6a4 4 0 014 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        'Rain': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 20v4m-4 0v4m8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        'Snow': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 4v16m-4-4h8m-4-4V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        'Fog': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 12h18M3 16h18M3 20h18M3 8h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        'Thunderstorm': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M15 15l-3 3 3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        'Default': '<svg class="weather-icon" viewBox="0 0 24 24"><path d="M12 2v2m0 16v2m9-9h-2m-16 0H3m15.364-6.364l-1.414 1.414M6.05 6.05l-1.414 1.414m12.728 0l-1.414-1.414M6.05 17.95l-1.414-1.414" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-      };
-      return icons[condition] || icons['Default'];
+      condition = condition.toLowerCase();
+      if (condition.includes('sun') || condition.includes('clear')) {
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></svg>';
+      } else if (condition.includes('cloud')) {
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 15a4 4 0 004 4h10a4 4 0 004-4M5 11a4 4 0 014-4h6a4 4 0 014 4" /></svg>';
+      } else if (condition.includes('rain') || condition.includes('shower')) {
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 20v4m-4 0v4m8 0v4" /></svg>';
+      } else if (condition.includes('snow')) {
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 4v16m-4-4h8m-4-4V8" /></svg>';
+      } else if (condition.includes('fog') || condition.includes('mist')) {
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h18M3 16h18M3 20h18M3 8h18" /></svg>';
+      } else if (condition.includes('thunder')) {
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M15 15l-3 3 3 3" /></svg>';
+      } else {
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v2m0 16v2m9-9h-2m-16 0H3m15.364-6.364l-1.414 1.414M6.05 6.05l-1.414 1.414m12.728 0l-1.414-1.414M6.05 17.95l-1.414-1.414" /></svg>'; // Default
+      }
     }
 
     function saveRecentCalc(tool, result) {
