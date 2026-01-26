@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Loose Nickels — Tools</title>
+  <title>Loose Nickels</title>
   <!-- Favicon -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <!-- Plus Jakarta Sans -->
@@ -452,7 +452,7 @@
             <div class="note" id="greeting"></div>
           </div>
           <div class="card">
-            <div class="field"><label>Weather in Bishops Stortford, UK</label></div>
+            <div class="field"><label>Weather in Southend-on-Sea, UK</label></div>
             <div id="weather" class="note">Loading weather...</div>
           </div>
           <div class="card">
@@ -1559,7 +1559,7 @@
 
     function fetchWeather() {
       const weatherEl = document.getElementById('weather');
-      fetch('https://wttr.in/Bishops+Stortford?format=j1')
+      fetch('https://wttr.in/Southend-on-Sea?format=j1')
         .then(response => response.json())
         .then(data => {
           const current = data.current_condition[0];
