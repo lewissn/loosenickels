@@ -471,14 +471,6 @@
             <textarea id="notes" placeholder="Jot down your thoughts..."></textarea>
           </div>
           <div class="card">
-            <div class="field"><label>Grok Chat</label></div>
-            <div class="input">
-              <input id="grok-query" placeholder="Ask Grok anything..." />
-              <button class="mini" id="grokBtn" type="button">Send</button>
-            </div>
-            <div class="note" id="grok-response">Response will appear here.</div>
-          </div>
-          <div class="card">
             <div class="field"><label>Calendar</label></div>
             <div id="calendar" class="note"></div>
           </div>
@@ -1462,33 +1454,6 @@
       notesEl.value = localStorage.getItem('ln_notes') || '';
       notesEl.addEventListener('blur', () => localStorage.setItem('ln_notes', notesEl.value));
 
-      // Grok Chat
-      const grokBtn = document.getElementById('grokBtn');
-      const grokQuery = document.getElementById('grok-query');
-      const grokResponse = document.getElementById('grok-response');
-      grokBtn.addEventListener('click', async () => {
-        const query = grokQuery.value.trim();
-        if (!query) return;
-        grokResponse.textContent = 'Thinking...';
-        try {
-          const response = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'xai-KgcId5P4I2FYyJUCH1FbtISH91pGlSJADiTIKTYX2UwTczRV7E5pIvjAe8QJjCLNQKj7PFNh251pFTpf'  // Replace with your xAI API key
-            },
-            body: JSON.stringify({
-              model: 'grok-beta',  // Or 'grok-4' if available in your tier
-              messages: [{ role: 'user', content: query }]
-            })
-          });
-          const data = await response.json();
-          grokResponse.textContent = data.choices[0].message.content;
-        } catch (error) {
-          grokResponse.textContent = 'Error: Could not connect to Grok API.';
-        }
-      });
-
       // Calendar (simple current month)
       const calendarEl = document.getElementById('calendar');
       calendarEl.innerHTML = '';
@@ -1562,19 +1527,19 @@
     function getWeatherIcon(condition) {
       condition = condition.toLowerCase();
       if (condition.includes('sun') || condition.includes('clear')) {
-        return '☀️';
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></svg>';
       } else if (condition.includes('cloud')) {
-        return '☁️';
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 15a4 4 0 004 4h10a4 4 0 004-4M5 11a4 4 0 014-4h6a4 4 0 014 4" /></svg>';
       } else if (condition.includes('rain') || condition.includes('shower')) {
-        return '🌧️';
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 20v4m-4 0v4m8 0v4" /></svg>';
       } else if (condition.includes('snow')) {
-        return '❄️';
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M12 4v16m-4-4h8m-4-4V8" /></svg>';
       } else if (condition.includes('fog') || condition.includes('mist')) {
-        return '🌫️';
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h18M3 16h18M3 20h18M3 8h18" /></svg>';
       } else if (condition.includes('thunder')) {
-        return '⛈️';
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16a4 4 0 004 4h10a4 4 0 004-4M5 12a4 4 0 014-4h6a4 4 0 014 4M15 15l-3 3 3 3" /></svg>';
       } else {
-        return '🌤️'; // Default partial cloud
+        return '<svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v2m0 16v2m9-9h-2m-16 0H3m15.364-6.364l-1.414 1.414M6.05 6.05l-1.414 1.414m12.728 0l-1.414-1.414M6.05 17.95l-1.414-1.414" /></svg>'; // Default
       }
     }
 
