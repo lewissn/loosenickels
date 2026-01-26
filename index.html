@@ -451,9 +451,8 @@
             <div class="note" id="greeting"></div>
           </div>
           <div class="card">
-            <div class="field"><label id="weather-label">Weather in Bishops Stortford, UK</label></div>
+            <div class="field"><label>Weather in Bishops Stortford, UK</label></div>
             <div id="weather" class="note">Loading weather...</div>
-            <button class="mini" id="toggle-weather" type="button">Toggle to Southend-on-Sea</button>
           </div>
           <div class="card">
             <div class="field"><label>Recent Calculations</label></div>
@@ -1388,19 +1387,13 @@
 
       // Weather with forecast
       const weatherLocation = localStorage.getItem('weather_location') || 'Bishops+Stortford';
-      const weatherLabel = document.getElementById('weather-label');
-      const toggleWeatherBtn = document.getElementById('toggle-weather');
-      const toggleText = weatherLocation === 'Bishops+Stortford' ? 'Toggle to Southend-on-Sea' : 'Toggle to Bishops Stortford';
-      toggleWeatherBtn.textContent = toggleText;
-      weatherLabel.textContent = `Weather in ${weatherLocation === 'Bishops+Stortford' ? 'Bishops Stortford' : 'Southend-on-Sea'}, UK`;
       fetchWeather(weatherLocation);
 
+      const toggleWeatherBtn = document.getElementById('toggle-weather');
       toggleWeatherBtn.addEventListener('click', () => {
-        const newLocation = weatherLocation === 'Bishops+Stortford' ? 'Southend-on-Sea' : 'Bishops+Stortford';
-        localStorage.setItem('weather_location', newLocation.replace(/-/g, '+'));
-        weatherLabel.textContent = `Weather in ${newLocation}, UK`;
-        toggleWeatherBtn.textContent = newLocation === 'Bishops Stortford' ? 'Toggle to Southend-on-Sea' : 'Toggle to Bishops Stortford';
-        fetchWeather(newLocation.replace(/-/g, '+'));
+        const newLocation = weatherLocation === 'Bishops+Stortford' ? 'Southend' : 'Bishops+Stortford';
+        localStorage.setItem('weather_location', newLocation);
+        fetchWeather(newLocation);
       });
 
       // Recent Calculations (last 5)
@@ -1474,33 +1467,6 @@
       notesEl.value = localStorage.getItem('ln_notes') || '';
       notesEl.addEventListener('blur', () => localStorage.setItem('ln_notes', notesEl.value));
 
-      // Daily Philosophy Quote
-      const quotes = [
-        "The happiness of your life depends upon the quality of your thoughts. - Marcus Aurelius",
-        "You have power over your mind - not outside events. Realize this, and you will find strength. - Marcus Aurelius",
-        "Very little is needed to make a happy life; it is all within yourself, in your way of thinking. - Marcus Aurelius",
-        "Reject your sense of injury and the injury itself disappears. - Marcus Aurelius",
-        "Waste no more time arguing about what a good man should be. Be one. - Marcus Aurelius",
-        "Who looks outside, dreams; who looks inside, awakes. - Carl Jung",
-        "The meeting of two personalities is like the contact of two chemical substances: if there is any reaction, both are transformed. - Carl Jung",
-        "Your vision will become clear only when you can look into your own heart. Who looks outside, dreams; who looks inside, awakes. - Carl Jung",
-        "I am not what happened to me, I am what I choose to become. - Carl Jung",
-        "The privilege of a lifetime is to become who you truly are. - Carl Jung",
-        "Knowing your own darkness is the best method for dealing with the darknesses of other people. - Carl Jung",
-        "Until you make the unconscious conscious, it will direct your life and you will call it fate. - Carl Jung",
-        "One does not become enlightened by imagining figures of light, but by making the darkness conscious. - Carl Jung",
-        "The shoe that fits one person pinches another; there is no recipe for living that suits all cases. - Carl Jung",
-        "Everything that irritates us about others can lead us to an understanding of ourselves. - Carl Jung"
-      ];
-      const quoteEl = document.getElementById('philosophy-quote');
-      const newQuoteBtn = document.getElementById('new-quote');
-      function getRandomQuote() {
-        const randomIndex = Math.floor(Math.random() * quotes.length);
-        quoteEl.textContent = quotes[randomIndex];
-      }
-      getRandomQuote();
-      newQuoteBtn.addEventListener('click', getRandomQuote);
-
       // Calendar (simple current month)
       const calendarEl = document.getElementById('calendar');
       calendarEl.innerHTML = '';
@@ -1537,7 +1503,7 @@
       calendarEl.appendChild(table);
     }
 
-    function fetchWeather(location = 'Bishops+Stortford') {
+    function fetchWeather(location = 'Southend-On-Sea') {
       const weatherEl = document.getElementById('weather');
       fetch(`https://wttr.in/${location}?format=j1`)
         .then(response => response.json())
