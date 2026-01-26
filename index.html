@@ -4,15 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Loose Nickels — Tools</title>
-
   <!-- Favicon -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-
   <!-- Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-
   <style>
     :root{
       --bg:#0f0f10;
@@ -20,7 +17,6 @@
       --muted:rgba(243,243,243,.62);
       --hair:rgba(243,243,243,.14);
       --panel:rgba(255,255,255,.05);
-
       --radius:14px;
       --sans:"Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       --mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -32,7 +28,6 @@
       --hair:rgba(20,20,20,.12);
       --panel:rgba(0,0,0,.03);
     }
-
     *{ box-sizing:border-box }
     html,body{ height:100%; margin:0 }
     body{
@@ -43,14 +38,12 @@
       -moz-osx-font-smoothing:grayscale;
       overflow:hidden; /* scroll inside .content */
     }
-
     .app{
       height:100%;
       display:grid;
       grid-template-rows:auto 1fr;
       min-height:0;
     }
-
     /* ---------- Header (fix overflow on mobile) ---------- */
     header{
       display:flex;
@@ -61,7 +54,6 @@
       border-bottom:1px solid var(--hair);
       min-width:0;
     }
-
     .left{
       display:flex;
       align-items:center;
@@ -76,7 +68,6 @@
       gap:8px;
       flex:0 0 auto;
     }
-
     .brand{
       font-size:12px;
       letter-spacing:.14em;
@@ -87,7 +78,6 @@
       white-space:nowrap;
       flex:0 0 auto;
     }
-
     button{
       background:transparent;
       border:0;
@@ -104,33 +94,27 @@
     }
     button:hover{ opacity:1; background:var(--panel) }
     button[aria-pressed="true"]{ opacity:1; background:var(--panel) }
-
     .icon{ width:18px; height:18px; display:block; }
-
     /* Desktop nav buttons */
     .nav-desktop{ display:none; }
     @media (min-width: 900px){
       .nav-desktop{ display:flex; gap:8px; }
     }
-
     /* Mobile: show hamburger + compact tool title, hide desktop nav */
     .hamburger{ display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; }
     @media (min-width: 900px){
       .hamburger{ display:none; }
     }
-
     /* HTML view toggles on mobile only */
     .mobile-only{ display:inline-flex; }
     @media (min-width: 900px){
       .mobile-only{ display:none; }
     }
-
     /* On narrow screens, ensure left side can shrink without breaking header */
     .spacer{
       flex:1 1 auto;
       min-width:0;
     }
-
     /* ---------- Content & tool sizing (fix textarea height + scroll) ---------- */
     .content{
       height:100%;
@@ -138,14 +122,12 @@
       overflow:auto;
       -webkit-overflow-scrolling: touch;
     }
-
     .tool{
       height:100%;
       min-height:0;
       display:none;
     }
     .tool.active{ display:block; }
-
     /* ---------- HTML tool ---------- */
     .split{
       height:100%;
@@ -185,7 +167,6 @@
       min-height:0;
     }
     .hidden{ display:none !important; }
-
     /* ---------- Shared cards ---------- */
     .wrap{
       padding:14px;
@@ -249,13 +230,11 @@
       cursor:pointer;
     }
     .mini:hover{ opacity:1; background:var(--panel) }
-
     .note{
       font-size:12px;
       color:var(--muted);
       line-height:1.55;
     }
-
     /* ---------- Colours tool ---------- */
     .colors-top{
       display:grid;
@@ -265,7 +244,6 @@
     @media (min-width:900px){
       .colors-top{ grid-template-columns: 1.25fr .75fr; }
     }
-
     .swatch{
       border:1px solid var(--hair);
       border-radius:14px;
@@ -311,7 +289,6 @@
       white-space:nowrap;
     }
     [data-theme="light"] .badge{ background:rgba(0,0,0,.04); }
-
     .grid5{
       display:grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -346,7 +323,6 @@
       opacity:.9;
     }
     .dim{ opacity:.55; }
-
     /* ---------- Drawer menu ---------- */
     .drawer{
       position:fixed;
@@ -360,9 +336,7 @@
       transition: opacity 0.18s ease;
     }
     [data-theme="light"] .drawer{ background:rgba(0,0,0,.20); }
-
     .drawer.open{ display:flex; opacity:1; }
-
     .drawer-panel{
       width:min(320px, 92vw);
       border:1px solid var(--hair);
@@ -397,7 +371,6 @@
       opacity:1;
     }
     .drawer-body button:hover{ background:var(--panel); }
-
     /* New for dynamic rows in weight calculator */
     .material-row {
       display: grid;
@@ -413,7 +386,6 @@
       border-radius: 12px;
     }
     .remove-btn:hover { opacity: 1; background: rgba(255,80,80,0.15); }
-
     .result {
       font-size: 15px;
       font-weight: 600;
@@ -421,7 +393,6 @@
       padding: 12px 0 4px;
       color: var(--fg);
     }
-
     button:focus-visible,
     .mini:focus-visible,
     .input input:focus {
@@ -430,7 +401,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="app">
     <header>
@@ -440,46 +410,59 @@
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
         </button>
-
         <div class="brand">Loose Nickels</div>
-
         <div class="nav-desktop">
-          <button id="toolHtml" aria-pressed="true">HTML</button>
+          <button id="toolDashboard" aria-pressed="true">Dashboard</button>
+          <button id="toolHtml" aria-pressed="false">HTML</button>
           <button id="toolColors" aria-pressed="false">Colours</button>
           <button id="toolConvert" aria-pressed="false">Convert</button>
           <button id="toolEdge" aria-pressed="false">Edge Banding</button>
           <button id="toolWeight" aria-pressed="false">Panel Weight</button>
         </div>
-
         <button class="mobile-only" id="htmlEditBtn" aria-pressed="true">Editor</button>
         <button class="mobile-only" id="htmlPrevBtn" aria-pressed="false">Preview</button>
-
         <div class="spacer"></div>
-
         <button id="resetBtn">Reset</button>
       </div>
-
       <div class="right">
         <button id="themeBtn" aria-label="Toggle theme">
           <svg class="icon" id="themeIcon" viewBox="0 0 24 24" fill="none"></svg>
         </button>
       </div>
     </header>
-
     <div class="content" id="content">
+      <!-- New Dashboard Tool -->
+      <section class="tool active" id="dashboardTool">
+        <div class="wrap">
+          <div class="card">
+            <div class="field"><label>Dashboard</label></div>
+            <div class="note" id="greeting"></div>
+          </div>
+          <div class="card">
+            <div class="field"><label>Recent Calculations</label></div>
+            <div id="recent-calcs" class="note"></div>
+          </div>
+          <div class="card">
+            <div class="field"><label>Notes</label></div>
+            <textarea id="notes" placeholder="Jot down your thoughts..."></textarea>
+          </div>
+          <div class="card">
+            <div class="field"><label>Calendar</label></div>
+            <div id="calendar" class="note"></div>
+          </div>
+        </div>
+      </section>
       <!-- HTML TOOL -->
-      <section class="tool active" id="htmlTool">
+      <section class="tool" id="htmlTool">
         <div class="split">
           <section class="pane" id="editorPane">
             <textarea id="src" spellcheck="false"></textarea>
           </section>
-
           <section class="pane" id="previewPane">
             <iframe id="preview" sandbox="allow-scripts allow-forms allow-modals"></iframe>
           </section>
         </div>
       </section>
-
       <!-- COLOURS TOOL -->
       <section class="tool" id="colorsTool">
         <div class="wrap">
@@ -493,7 +476,6 @@
                     <button class="mini" id="copyHex" type="button">Copy</button>
                   </div>
                 </div>
-
                 <div class="field">
                   <label>RGB</label>
                   <div class="input">
@@ -502,7 +484,6 @@
                   </div>
                 </div>
               </div>
-
               <div class="row">
                 <div class="field">
                   <label>Text recommendation</label>
@@ -511,7 +492,6 @@
                     <button class="mini" id="copyRec" type="button">Copy</button>
                   </div>
                 </div>
-
                 <div class="field">
                   <label>Custom background for contrast</label>
                   <div class="input">
@@ -520,10 +500,8 @@
                   </div>
                 </div>
               </div>
-
               <div class="note" id="contrastNote"></div>
             </div>
-
             <div class="swatch" id="swatch">
               <div class="swatch-top" id="swatchTop">Preview</div>
               <div class="swatch-bottom">
@@ -532,14 +510,12 @@
               </div>
             </div>
           </div>
-
           <div class="card">
             <div class="field">
               <label>Tints & shades</label>
               <div class="grid5" id="tintsGrid"></div>
             </div>
           </div>
-
           <div class="card">
             <div class="field">
               <label>Accompanying colours</label>
@@ -548,13 +524,11 @@
           </div>
         </div>
       </section>
-
       <!-- CONVERTER TOOL -->
       <section class="tool" id="convertTool">
         <div class="wrap">
           <div class="card">
             <div class="field"><label>px ↔ rem / em</label></div>
-
             <div class="row">
               <div class="field">
                 <label>Pixels (px)</label>
@@ -563,7 +537,6 @@
                   <button class="mini" id="copyPx" type="button">Copy</button>
                 </div>
               </div>
-
               <div class="field">
                 <label>Base font-size (px)</label>
                 <div class="input">
@@ -572,7 +545,6 @@
                 </div>
               </div>
             </div>
-
             <div class="row">
               <div class="field">
                 <label>rem</label>
@@ -581,7 +553,6 @@
                   <button class="mini" id="copyRem" type="button">Copy</button>
                 </div>
               </div>
-
               <div class="field">
                 <label>em</label>
                 <div class="input">
@@ -590,13 +561,11 @@
                 </div>
               </div>
             </div>
-
             <div class="note">
               <b>rem</b> is relative to the <b>root</b> font-size (usually <code>html { font-size: … }</code>).<br>
               <b>em</b> is relative to the <b>current element</b> font-size and can <b>compound</b> when nested.
             </div>
           </div>
-
           <div class="card">
             <div class="field"><label>mm ↔ inches</label></div>
             <div class="row">
@@ -617,7 +586,6 @@
             </div>
             <div class="note">1 inch = 25.4mm</div>
           </div>
-
           <div class="card">
             <div class="field"><label>px ↔ mm (at DPI)</label></div>
             <div class="row">
@@ -663,7 +631,6 @@
           </div>
         </div>
       </section>
-
       <!-- Edge Banding Calculator -->
       <section class="tool" id="edgeTool">
         <div class="wrap">
@@ -702,7 +669,6 @@
           </div>
         </div>
       </section>
-
       <!-- Weight Calculator -->
       <section class="tool" id="weightTool">
         <div class="wrap">
@@ -723,7 +689,6 @@
       </section>
     </div>
   </div>
-
   <!-- Mobile drawer -->
   <div class="drawer" id="drawer" aria-hidden="true">
     <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
@@ -732,6 +697,7 @@
         <button id="closeDrawer" type="button">Close</button>
       </div>
       <div class="drawer-body">
+        <button id="mDashboard" type="button">Dashboard</button>
         <button id="mHtml" type="button">HTML</button>
         <button id="mColors" type="button">Colours</button>
         <button id="mConvert" type="button">Convert</button>
@@ -740,7 +706,6 @@
       </div>
     </div>
   </div>
-
   <script>
     // ---------- Helpers ----------
     const clamp = (n,a,b)=>Math.min(b,Math.max(a,n));
@@ -749,12 +714,10 @@
       return Number.isFinite(x) ? x : null;
     };
     async function copyText(t){ try{ await navigator.clipboard.writeText(String(t)); } catch {} }
-
     // ---------- Theme ----------
     const root = document.documentElement;
     const themeBtn = document.getElementById('themeBtn');
     const themeIcon = document.getElementById('themeIcon');
-
     const sun = `
       <path d="M12 18a6 6 0 1 0 0-12a6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="1.6"/>
       <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5
@@ -766,7 +729,6 @@
                a6.7 6.7 0 1 0 10.2 10.2Z"
             stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
     `;
-
     function setTheme(mode){
       if(mode === 'light'){
         root.setAttribute('data-theme','light');
@@ -779,12 +741,10 @@
     }
     setTheme(localStorage.getItem('ln_theme') === 'light' ? 'light' : 'dark');
     themeBtn.addEventListener('click', ()=>setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
-
     // ---------- Drawer ----------
     const drawer = document.getElementById('drawer');
     const menuBtn = document.getElementById('menuBtn');
     const closeDrawer = document.getElementById('closeDrawer');
-
     function openDrawer(){
       drawer.classList.add('open');
       drawer.setAttribute('aria-hidden','false');
@@ -796,84 +756,77 @@
     menuBtn?.addEventListener('click', openDrawer);
     closeDrawer.addEventListener('click', shutDrawer);
     drawer.addEventListener('click', (e)=>{ if(e.target === drawer) shutDrawer(); });
-
     // ---------- Tool switching ----------
     const content = document.getElementById('content');
-
+    const btnDashboard = document.getElementById('toolDashboard');
     const btnHtml = document.getElementById('toolHtml');
     const btnColors = document.getElementById('toolColors');
     const btnConvert = document.getElementById('toolConvert');
     const btnEdge = document.getElementById('toolEdge');
     const btnWeight = document.getElementById('toolWeight');
-
+    const mDashboard = document.getElementById('mDashboard');
     const mHtml = document.getElementById('mHtml');
     const mColors = document.getElementById('mColors');
     const mConvert = document.getElementById('mConvert');
     const mEdge = document.getElementById('mEdge');
     const mWeight = document.getElementById('mWeight');
-
+    const dashboardTool = document.getElementById('dashboardTool');
     const htmlTool = document.getElementById('htmlTool');
     const colorsTool = document.getElementById('colorsTool');
     const convertTool = document.getElementById('convertTool');
     const edgeTool = document.getElementById('edgeTool');
     const weightTool = document.getElementById('weightTool');
-
     const htmlEditBtn = document.getElementById('htmlEditBtn');
     const htmlPrevBtn = document.getElementById('htmlPrevBtn');
-
     function setPressed(el, v){ if(el) el.setAttribute('aria-pressed', String(v)); }
-
     function showTool(which){
+      const isDashboard = which === 'dashboard';
       const isHtml = which === 'html';
       const isColors = which === 'colors';
       const isConvert = which === 'convert';
       const isEdge = which === 'edge';
       const isWeight = which === 'weight';
-
+      dashboardTool.classList.toggle('active', isDashboard);
       htmlTool.classList.toggle('active', isHtml);
       colorsTool.classList.toggle('active', isColors);
       convertTool.classList.toggle('active', isConvert);
       edgeTool.classList.toggle('active', isEdge);
       weightTool.classList.toggle('active', isWeight);
-
+      setPressed(btnDashboard, isDashboard);
       setPressed(btnHtml, isHtml);
       setPressed(btnColors, isColors);
       setPressed(btnConvert, isConvert);
       setPressed(btnEdge, isEdge);
       setPressed(btnWeight, isWeight);
-
       // Only show Editor/Preview on HTML tool (mobile)
       if(htmlEditBtn && htmlPrevBtn){
         htmlEditBtn.style.display = isHtml ? '' : 'none';
         htmlPrevBtn.style.display = isHtml ? '' : 'none';
       }
-
       content.scrollTop = 0;
       localStorage.setItem('ln_tool', which);
       updateHtmlLayout();
       shutDrawer();
+      if(isDashboard) loadDashboard();
     }
-
+    btnDashboard?.addEventListener('click', ()=>showTool('dashboard'));
     btnHtml?.addEventListener('click', ()=>showTool('html'));
     btnColors?.addEventListener('click', ()=>showTool('colors'));
     btnConvert?.addEventListener('click', ()=>showTool('convert'));
     btnEdge?.addEventListener('click', ()=>showTool('edge'));
     btnWeight?.addEventListener('click', ()=>showTool('weight'));
-
+    mDashboard.addEventListener('click', ()=>showTool('dashboard'));
     mHtml.addEventListener('click', ()=>showTool('html'));
     mColors.addEventListener('click', ()=>showTool('colors'));
     mConvert.addEventListener('click', ()=>showTool('convert'));
     mEdge.addEventListener('click', ()=>showTool('edge'));
     mWeight.addEventListener('click', ()=>showTool('weight'));
-
-    showTool(localStorage.getItem('ln_tool') || 'html');
-
+    showTool(localStorage.getItem('ln_tool') || 'dashboard');
     // ---------- HTML tool ----------
     const src = document.getElementById('src');
     const frame = document.getElementById('preview');
     const editorPane = document.getElementById('editorPane');
     const previewPane = document.getElementById('previewPane');
-
     const DEFAULT_HTML = `<!doctype html>
 <html>
 <head>
@@ -886,18 +839,14 @@
   <p>Paste HTML above.</p>
 </body>
 </html>`;
-
     src.value = localStorage.getItem('ln_html') || DEFAULT_HTML;
-
     function renderHtml(){
       frame.srcdoc = src.value;
       localStorage.setItem('ln_html', src.value);
     }
     src.addEventListener('input', renderHtml);
     renderHtml();
-
     function isDesktop(){ return window.matchMedia('(min-width: 900px)').matches; }
-
     function setHtmlView(which){
       if(isDesktop()){
         editorPane.classList.remove('hidden');
@@ -914,9 +863,8 @@
       setPressed(htmlPrevBtn, !isEditor);
       localStorage.setItem('ln_html_view', which);
     }
-
     function updateHtmlLayout(){
-      const active = (localStorage.getItem('ln_tool') || 'html') === 'html';
+      const active = (localStorage.getItem('ln_tool') || 'dashboard') === 'html';
       if(!active) return;
       if(isDesktop()){
         setHtmlView('split');
@@ -925,33 +873,27 @@
         setHtmlView(pref === 'preview' ? 'preview' : 'editor');
       }
     }
-
     htmlEditBtn.addEventListener('click', ()=>setHtmlView('editor'));
     htmlPrevBtn.addEventListener('click', ()=>setHtmlView('preview'));
     window.addEventListener('resize', updateHtmlLayout);
     updateHtmlLayout();
-
     // ---------- Colours tool ----------
     const hexIn = document.getElementById('hexIn');
     const rgbIn = document.getElementById('rgbIn');
     const bgIn = document.getElementById('bgIn');
     const useBg = document.getElementById('useBg');
-
     const copyHex = document.getElementById('copyHex');
     const copyRgb = document.getElementById('copyRgb');
     const recText = document.getElementById('recText');
     const copyRec = document.getElementById('copyRec');
-
     const swatchTop = document.getElementById('swatchTop');
     const swatchMeta = document.getElementById('swatchMeta');
     const badges = document.getElementById('badges');
     const contrastNote = document.getElementById('contrastNote');
     const tintsGrid = document.getElementById('tintsGrid');
     const accGrid = document.getElementById('accGrid');
-
     const LS_COL = 'ln_color_base';
-    const LS_BG  = 'ln_color_bg';
-
+    const LS_BG = 'ln_color_bg';
     function normHex(h){
       h = (h || '').trim().toLowerCase();
       if(!h) return null;
@@ -989,7 +931,6 @@
       };
     }
     const fmtRgb = ({r,g,b}) => `rgb(${r}, ${g}, ${b})`;
-
     function srgbToLin(c){
       c/=255;
       return (c<=0.04045) ? (c/12.92) : Math.pow((c+0.055)/1.055, 2.4);
@@ -1054,7 +995,6 @@
       el.addEventListener('click', ()=>copyText(hex));
       return el;
     }
-
     function rgbToHsl({r,g,b}){
       r/=255; g/=255; b/=255;
       const max=Math.max(r,g,b), min=Math.min(r,g,b);
@@ -1085,26 +1025,20 @@
       const m=l-C/2;
       return { r:Math.round((r1+m)*255), g:Math.round((g1+m)*255), b:Math.round((b1+m)*255) };
     }
-
     function updateFromBase(baseRgb){
       const baseHex = rgbToHex(baseRgb.r,baseRgb.g,baseRgb.b).toLowerCase();
       const baseRgbStr = fmtRgb(baseRgb);
-
       hexIn.value = baseHex;
       rgbIn.value = baseRgbStr;
       localStorage.setItem(LS_COL, baseHex);
-
       const bgHex = normHex(bgIn.value) || localStorage.getItem(LS_BG) || null;
       const bgRgb = bgHex ? hexToRgb(bgHex) : baseRgb;
-
       const onBase = bestTextOn(baseRgb);
       recText.value = onBase.label;
-
       swatchTop.style.background = baseHex;
       swatchTop.style.color = rgbToHex(onBase.rgb.r,onBase.rgb.g,onBase.rgb.b);
       swatchTop.textContent = 'Loose Nickels';
-      swatchMeta.textContent = `${baseHex}  •  ${baseRgbStr}`;
-
+      swatchMeta.textContent = `${baseHex} • ${baseRgbStr}`;
       const white={r:255,g:255,b:255}, black={r:0,g:0,b:0};
       const cW=contrast(baseRgb,white), cB=contrast(baseRgb,black);
       const badgeItems = [
@@ -1116,17 +1050,14 @@
         badgeItems.push(`bg ${bgHex}: ${wcagLabel(contrast(bgRgb, chosen.rgb))}`);
       }
       setBadges(badgeItems);
-
       const baseRatio = contrast(baseRgb, onBase.rgb);
       contrastNote.textContent =
         `Best text on ${baseHex} is ${rgbToHex(onBase.rgb.r,onBase.rgb.g,onBase.rgb.b)} ` +
         `with contrast ${baseRatio.toFixed(2)}:1 (${wcagLabel(baseRatio)} for normal text).`;
-
       tintsGrid.innerHTML='';
       const w={r:255,g:255,b:255}, k={r:0,g:0,b:0};
       const steps=[0.82,0.64,0.46,0.28,0.10];
       const steps2=[0.10,0.28,0.46,0.64,0.82];
-
       for(const t of steps){
         const rgb=mix(baseRgb,w,t);
         const hex=rgbToHex(rgb.r,rgb.g,rgb.b).toLowerCase();
@@ -1139,20 +1070,19 @@
         const txt=bestTextOn(rgb).rgb;
         tintsGrid.appendChild(chipEl(hex, rgb, txt));
       }
-
       accGrid.innerHTML='';
       const hsl = rgbToHsl(baseRgb);
       const variants = [
         { h:(hsl.h+180)%360, s:hsl.s, l:hsl.l },
         { h:(hsl.h+150)%360, s:hsl.s, l:hsl.l },
         { h:(hsl.h+210)%360, s:hsl.s, l:hsl.l },
-        { h:(hsl.h+30)%360,  s:hsl.s, l:hsl.l },
+        { h:(hsl.h+30)%360, s:hsl.s, l:hsl.l },
         { h:(hsl.h+330)%360, s:hsl.s, l:hsl.l },
         { h:(hsl.h+120)%360, s:hsl.s, l:hsl.l },
         { h:(hsl.h+240)%360, s:hsl.s, l:hsl.l },
         { h:(hsl.h+180)%360, s:Math.min(1,hsl.s*0.72), l:clamp(hsl.l*1.02,0,1) },
-        { h:hsl.h,           s:Math.min(1,hsl.s*0.55), l:clamp(hsl.l*1.05,0,1) },
-        { h:hsl.h,           s:hsl.s, l:clamp(hsl.l*0.72,0,1) },
+        { h:hsl.h, s:Math.min(1,hsl.s*0.55), l:clamp(hsl.l*1.05,0,1) },
+        { h:hsl.h, s:hsl.s, l:clamp(hsl.l*0.72,0,1) },
       ];
       for(const v of variants.slice(0,10)){
         const rgb=hslToRgb(v);
@@ -1161,7 +1091,6 @@
         accGrid.appendChild(chipEl(hex, rgb, txt));
       }
     }
-
     function setBaseFromAny(input){
       const asHex = normHex(input);
       if(asHex){
@@ -1171,22 +1100,18 @@
       const asRgb = parseRgb(input);
       if(asRgb) return updateFromBase(asRgb);
     }
-
     const savedCol = localStorage.getItem(LS_COL) || '#1a73e8';
     hexIn.value = savedCol;
     bgIn.value = localStorage.getItem(LS_BG) || '';
     setBaseFromAny(savedCol);
-
     hexIn.addEventListener('input', ()=>setBaseFromAny(hexIn.value));
     rgbIn.addEventListener('input', ()=>setBaseFromAny(rgbIn.value));
-
     useBg.addEventListener('click', ()=>{
       const bg = normHex(bgIn.value);
       if(bg){ localStorage.setItem(LS_BG, bg); }
       else { localStorage.removeItem(LS_BG); bgIn.value=''; }
       setBaseFromAny(hexIn.value);
     });
-
     copyHex.addEventListener('click', ()=>copyText((hexIn.value||'').trim().toLowerCase()));
     copyRgb.addEventListener('click', ()=>{
       const rgb = parseRgb(rgbIn.value) || hexToRgb(hexIn.value);
@@ -1196,119 +1121,99 @@
       const t = (recText.value || '').split('•')[0].trim();
       if(t) copyText(t);
     });
-
     // ---------- Convert tool ----------
     const pxIn = document.getElementById('pxIn');
     const baseIn = document.getElementById('baseIn');
     const remOut = document.getElementById('remOut');
     const emOut = document.getElementById('emOut');
-
     const mmIn = document.getElementById('mmIn');
     const inIn = document.getElementById('inIn');
-
     const dpiIn = document.getElementById('dpiIn');
     const px2In = document.getElementById('px2In');
     const mmOut = document.getElementById('mmOut');
     const mm2In = document.getElementById('mm2In');
     const pxOut = document.getElementById('pxOut');
-
     const LS_BASE = 'ln_conv_base';
-    const LS_DPI  = 'ln_conv_dpi';
-
+    const LS_DPI = 'ln_conv_dpi';
     baseIn.value = localStorage.getItem(LS_BASE) || '16';
-    dpiIn.value  = localStorage.getItem(LS_DPI) || '96';
-
+    dpiIn.value = localStorage.getItem(LS_DPI) || '96';
     function fmt(x, dp=4){
       if(x === null || !Number.isFinite(x)) return '';
       const s = x.toFixed(dp);
       return s.replace(/\.?0+$/,'');
     }
-
     function updatePx(){
       const px = num(pxIn.value);
       const base = num(baseIn.value);
       if(base && base > 0 && px !== null){
         const v = px / base;
         remOut.value = `${fmt(v, 5)}rem`;
-        emOut.value  = `${fmt(v, 5)}em`;
+        emOut.value = `${fmt(v, 5)}em`;
       } else {
         remOut.value = '';
         emOut.value  = '';
       }
       if(base && base > 0) localStorage.setItem(LS_BASE, String(base));
     }
-
     function updateMmInch(){
       const mm = num(mmIn.value);
       const inch = num(inIn.value);
-
       if(document.activeElement === mmIn){
         if(mm !== null) inIn.value = fmt(mm / 25.4, 6);
       } else if(document.activeElement === inIn){
         if(inch !== null) mmIn.value = fmt(inch * 25.4, 3);
       }
     }
-
     function updatePxMmAtDpi(){
       const dpi = num(dpiIn.value);
       const px = num(px2In.value);
       const mm = num(mm2In.value);
-
       if(dpi && dpi > 0) localStorage.setItem(LS_DPI, String(dpi));
-
       mmOut.value = (dpi && dpi > 0 && px !== null) ? fmt(px * 25.4 / dpi, 4) : '';
       pxOut.value = (dpi && dpi > 0 && mm !== null) ? fmt(mm * dpi / 25.4, 2) : '';
     }
-
     pxIn.addEventListener('input', updatePx);
     baseIn.addEventListener('input', updatePx);
     document.getElementById('base16').addEventListener('click', ()=>{ baseIn.value='16'; updatePx(); });
-
     mmIn.addEventListener('input', updateMmInch);
     inIn.addEventListener('input', updateMmInch);
-
     dpiIn.addEventListener('input', updatePxMmAtDpi);
     px2In.addEventListener('input', updatePxMmAtDpi);
     mm2In.addEventListener('input', updatePxMmAtDpi);
     document.getElementById('dpi96').addEventListener('click', ()=>{ dpiIn.value='96'; updatePxMmAtDpi(); });
-
     document.getElementById('copyPx').addEventListener('click', ()=>copyText(pxIn.value));
     document.getElementById('copyRem').addEventListener('click', ()=>copyText(remOut.value));
     document.getElementById('copyEm').addEventListener('click', ()=>copyText(emOut.value));
-
     document.getElementById('copyMm').addEventListener('click', ()=>copyText(mmIn.value));
     document.getElementById('copyIn').addEventListener('click', ()=>copyText(inIn.value));
-
     document.getElementById('copyPx2').addEventListener('click', ()=>copyText(px2In.value));
     document.getElementById('copyMmOut').addEventListener('click', ()=>copyText(mmOut.value));
     document.getElementById('copyMm2').addEventListener('click', ()=>copyText(mm2In.value));
     document.getElementById('copyPxOut').addEventListener('click', ()=>copyText(pxOut.value));
-
     updatePx();
     updatePxMmAtDpi();
-
     // ---------- Edge Banding Calculator ----------
     function calculateEdgeBanding() {
       const thickness = num(document.getElementById('thickness').value);
       const outerD = num(document.getElementById('outer-diameter').value);
       const innerD = num(document.getElementById('inner-diameter').value);
-      
+     
       const result = document.getElementById('edge-banding-result');
-      
+     
       if (isNaN(thickness) || thickness <= 0 || isNaN(outerD) || isNaN(innerD) || outerD <= innerD) {
         result.textContent = 'Invalid input. Ensure values are positive and outer > inner.';
         result.style.color = 'tomato';
         return;
       }
-      
+     
       const lengthMM = Math.PI * (outerD * outerD - innerD * innerD) / (4 * thickness);
       const lengthM = (lengthMM / 1000).toFixed(2);
       result.textContent = `Length: ${lengthM} meters`;
       result.style.color = '';
+      // Save to recent calculations
+      saveRecentCalc('Edge Banding', result.textContent);
     }
-
     document.getElementById('calculateEdgeBtn')?.addEventListener('click', calculateEdgeBanding);
-
     // ---------- Weight Calculator ----------
     const densities = {
       'mdf-6': { thick: 0.006, dens: 750 },
@@ -1316,7 +1221,6 @@
       'mfc-8': { thick: 0.008, dens: 670 },
       'mfc-18': { thick: 0.018, dens: 670 }
     };
-
     function addMaterialRow() {
       const container = document.getElementById('materials-container');
       const row = document.createElement('div');
@@ -1345,51 +1249,56 @@
       row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
       container.appendChild(row);
     }
-
     function calculateWeight() {
       const rows = document.querySelectorAll('.material-row');
       let totalWeight = 0;
-      
+     
       const result = document.getElementById('weight-result');
-      
+     
       let valid = true;
       rows.forEach(row => {
         const type = row.querySelector('.material-type').value;
         const area = num(row.querySelector('.area').value);
-        
+       
         if (!type || isNaN(area) || area <= 0) {
           valid = false;
           return;
         }
-        
+       
         const { thick, dens } = densities[type];
         const weight = area * thick * dens;
         totalWeight += weight;
       });
-      
+     
       if (!valid) {
         result.textContent = 'Invalid input in one or more rows.';
         result.style.color = 'tomato';
         return;
       }
-      
+     
       result.textContent = `Total Weight: ${totalWeight.toFixed(2)} kg`;
       result.style.color = '';
+      // Save to recent calculations
+      saveRecentCalc('Panel Weight', result.textContent);
     }
-
     document.getElementById('addMaterialBtn')?.addEventListener('click', addMaterialRow);
     document.getElementById('calculateWeightBtn')?.addEventListener('click', calculateWeight);
-
     // Add initial row if none
     if (document.querySelectorAll('.material-row').length === 0) {
       addMaterialRow();
     }
-
     // ---------- Reset ----------
     const resetBtn = document.getElementById('resetBtn');
     resetBtn.addEventListener('click', ()=>{
-      const which = localStorage.getItem('ln_tool') || 'html';
-      if(which === 'html'){
+      const which = localStorage.getItem('ln_tool') || 'dashboard';
+      if(which === 'dashboard'){
+        if(confirm('Reset dashboard?')){
+          localStorage.removeItem('ln_notes');
+          localStorage.removeItem('ln_recent_calcs');
+          loadDashboard();
+          showTool('dashboard');
+        }
+      } else if(which === 'html'){
         if(confirm('Reset HTML editor?')){
           src.value = DEFAULT_HTML;
           renderHtml();
@@ -1437,6 +1346,77 @@
         }
       }
     });
+    // ---------- Dashboard Logic ----------
+    function loadDashboard() {
+      // Greeting
+      const hour = new Date().getHours();
+      let greeting = 'Good evening, Lewis.';
+      if (hour < 12) greeting = 'Good morning, Lewis.';
+      else if (hour < 18) greeting = 'Good afternoon, Lewis.';
+      document.getElementById('greeting').textContent = greeting;
+
+      // Recent Calculations (last 5)
+      const recentCalcs = JSON.parse(localStorage.getItem('ln_recent_calcs') || '[]');
+      const recentList = document.getElementById('recent-calcs');
+      recentList.innerHTML = '';
+      if (recentCalcs.length === 0) {
+        recentList.textContent = 'No recent calculations.';
+      } else {
+        recentCalcs.slice(-5).reverse().forEach(calc => {
+          const div = document.createElement('div');
+          div.textContent = `${calc.timestamp}: ${calc.tool} - ${calc.result}`;
+          recentList.appendChild(div);
+        });
+      }
+
+      // Notes
+      const notesEl = document.getElementById('notes');
+      notesEl.value = localStorage.getItem('ln_notes') || '';
+      notesEl.addEventListener('blur', () => localStorage.setItem('ln_notes', notesEl.value));
+
+      // Calendar (simple current month)
+      const calendarEl = document.getElementById('calendar');
+      calendarEl.innerHTML = '';
+      const now = new Date();
+      const month = now.toLocaleString('default', { month: 'long' });
+      const year = now.getFullYear();
+      const firstDay = new Date(year, now.getMonth(), 1).getDay();
+      const daysInMonth = new Date(year, now.getMonth() + 1, 0).getDate();
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.textAlign = 'center';
+      const headerRow = table.insertRow();
+      ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+        const th = document.createElement('th');
+        th.textContent = day;
+        headerRow.appendChild(th);
+      });
+      let row = table.insertRow();
+      for (let i = 0; i < firstDay; i++) {
+        row.insertCell();
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        if ((firstDay + day - 1) % 7 === 0) row = table.insertRow();
+        const cell = row.insertCell();
+        cell.textContent = day;
+        if (day === now.getDate()) cell.style.fontWeight = 'bold';
+      }
+      const caption = document.createElement('caption');
+      caption.textContent = `${month} ${year}`;
+      table.appendChild(caption);
+      calendarEl.appendChild(table);
+    }
+
+    function saveRecentCalc(tool, result) {
+      const recentCalcs = JSON.parse(localStorage.getItem('ln_recent_calcs') || '[]');
+      recentCalcs.push({
+        tool,
+        result,
+        timestamp: new Date().toLocaleString()
+      });
+      if (recentCalcs.length > 20) recentCalcs.shift(); // Keep last 20
+      localStorage.setItem('ln_recent_calcs', JSON.stringify(recentCalcs));
+    }
   </script>
 </body>
 </html>
