@@ -1,1214 +1,362 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Loose Nickels — Tools</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loose Nickels — Tools</title>
 
-  <!-- Favicon -->
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
-  <!-- Plus Jakarta Sans -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <style>
-    :root{
-      --bg:#0f0f10;
-      --fg:#f3f3f3;
-      --muted:rgba(243,243,243,.62);
-      --hair:rgba(243,243,243,.14);
-      --panel:rgba(255,255,255,.05);
+<style>
+:root{
+  --bg:#0f0f10;
+  --fg:#f3f3f3;
+  --muted:rgba(243,243,243,.6);
+  --hair:rgba(243,243,243,.14);
+  --panel:rgba(255,255,255,.05);
+  --radius:14px;
+  --sans:"Plus Jakarta Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+}
+[data-theme="light"]{
+  --bg:#f7f6f2;
+  --fg:#141414;
+  --muted:rgba(20,20,20,.55);
+  --hair:rgba(20,20,20,.12);
+  --panel:rgba(0,0,0,.04);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--sans);
+  overflow:hidden;
+}
 
-      --radius:14px;
-      --sans:"Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      --mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-    [data-theme="light"]{
-      --bg:#f7f6f2;
-      --fg:#141414;
-      --muted:rgba(20,20,20,.56);
-      --hair:rgba(20,20,20,.12);
-      --panel:rgba(0,0,0,.03);
-    }
+.app{
+  height:100%;
+  display:grid;
+  grid-template-rows:auto 1fr;
+}
 
-    *{ box-sizing:border-box }
-    html,body{ height:100%; margin:0 }
-    body{
-      background:var(--bg);
-      color:var(--fg);
-      font-family:var(--sans);
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      overflow:hidden; /* scroll inside .content */
-    }
+header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px;
+  border-bottom:1px solid var(--hair);
+}
 
-    .app{
-      height:100%;
-      display:grid;
-      grid-template-rows:auto 1fr;
-      min-height:0;
-    }
+.left,.right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
 
-    /* ---------- Header (fix overflow on mobile) ---------- */
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 12px;
-      border-bottom:1px solid var(--hair);
-      min-width:0;
-    }
+.brand{
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
 
-    .left{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:0;
-      flex:1 1 auto;
-      overflow:hidden; /* prevents header pushing past screen */
-    }
-    .right{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex:0 0 auto;
-    }
+button{
+  background:transparent;
+  border:0;
+  color:var(--fg);
+  font-family:var(--sans);
+  font-size:13px;
+  padding:6px 10px;
+  border-radius:999px;
+  cursor:pointer;
+  opacity:.85;
+}
+button:hover{opacity:1;background:var(--panel)}
+button[aria-pressed="true"]{opacity:1;background:var(--panel)}
 
-    .brand{
-      font-size:12px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      color:var(--muted);
-      opacity:.85;
-      user-select:none;
-      white-space:nowrap;
-      flex:0 0 auto;
-    }
+.icon{width:18px;height:18px}
 
-    button{
-      background:transparent;
-      border:0;
-      color:var(--fg);
-      font-family:var(--sans);
-      font-size:13px;
-      padding:6px 10px;
-      border-radius:999px;
-      cursor:pointer;
-      opacity:.86;
-      -webkit-tap-highlight-color: transparent;
-      white-space:nowrap;
-    }
-    button:hover{ opacity:1; background:var(--panel) }
-    button[aria-pressed="true"]{ opacity:1; background:var(--panel) }
+.nav{display:none}
+.hamburger{display:inline-flex}
 
-    .icon{ width:18px; height:18px; display:block; }
+@media(min-width:900px){
+  .nav{display:flex;gap:8px}
+  .hamburger{display:none}
+}
 
-    /* Desktop nav buttons */
-    .nav-desktop{ display:none; }
-    @media (min-width: 900px){
-      .nav-desktop{ display:flex; gap:8px; }
-    }
+.content{
+  height:100%;
+  overflow:auto;
+}
 
-    /* Mobile: show hamburger + compact tool title, hide desktop nav */
-    .hamburger{ display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; }
-    @media (min-width: 900px){
-      .hamburger{ display:none; }
-    }
+.tool{
+  display:none;
+  height:100%;
+}
+.tool.active{display:block}
 
-    /* HTML view toggles on mobile only */
-    .mobile-only{ display:inline-flex; }
-    @media (min-width: 900px){
-      .mobile-only{ display:none; }
-    }
+.split{
+  height:100%;
+  display:grid;
+  grid-template-columns:1fr;
+}
+@media(min-width:900px){
+  .split{grid-template-columns:1fr 1fr}
+}
 
-    /* On narrow screens, ensure left side can shrink without breaking header */
-    .spacer{
-      flex:1 1 auto;
-      min-width:0;
-    }
+.pane{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+}
+textarea{
+  flex:1;
+  width:100%;
+  border:0;
+  resize:none;
+  background:transparent;
+  color:var(--fg);
+  font-family:var(--mono);
+  font-size:13px;
+  padding:14px;
+}
+iframe{flex:1;border:0;background:#fff}
 
-    /* ---------- Content & tool sizing (fix textarea height + scroll) ---------- */
-    .content{
-      height:100%;
-      min-height:0;
-      overflow:auto;
-      -webkit-overflow-scrolling: touch;
-    }
+.wrap{
+  padding:14px;
+  display:grid;
+  gap:14px;
+}
+.card{
+  border:1px solid var(--hair);
+  background:var(--panel);
+  border-radius:var(--radius);
+  padding:12px;
+  display:grid;
+  gap:10px;
+}
+.row{
+  display:grid;
+  gap:10px;
+}
+@media(min-width:700px){
+  .row{grid-template-columns:1fr 1fr}
+}
+label{
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.input{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  border:1px solid var(--hair);
+  border-radius:12px;
+  padding:10px;
+}
+.input input{
+  flex:1;
+  border:0;
+  background:transparent;
+  color:var(--fg);
+  font-family:var(--mono);
+}
+.mini{
+  font-size:12px;
+  border:1px solid var(--hair);
+  border-radius:999px;
+  padding:6px 8px;
+}
+.note{
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.5;
+}
 
-    .tool{
-      height:100%;
-      min-height:0;
-      display:none;
-    }
-    .tool.active{ display:block; }
-
-    /* ---------- HTML tool ---------- */
-    .split{
-      height:100%;
-      min-height:0;
-      display:grid;
-      grid-template-columns:1fr;
-    }
-    @media (min-width:900px){
-      .split{ grid-template-columns:1fr 1fr; }
-    }
-    .pane{
-      min-height:0;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-    }
-    textarea{
-      flex:1 1 auto;
-      height:100%;
-      width:100%;
-      min-height:0;
-      border:0;
-      outline:none;
-      resize:none;
-      padding:14px;
-      background:transparent;
-      color:var(--fg);
-      font-family:var(--mono);
-      font-size:13px;
-      line-height:1.55;
-    }
-    iframe{
-      flex:1 1 auto;
-      height:100%;
-      border:0;
-      background:#fff;
-      min-height:0;
-    }
-    .hidden{ display:none !important; }
-
-    /* ---------- Shared cards ---------- */
-    .wrap{
-      padding:14px;
-      display:grid;
-      gap:12px;
-    }
-    .card{
-      border:1px solid var(--hair);
-      background:var(--panel);
-      border-radius:var(--radius);
-      padding:12px;
-      display:grid;
-      gap:10px;
-    }
-    .row{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
-    }
-    @media (min-width:700px){
-      .row{ grid-template-columns: 1fr 1fr; }
-    }
-    .field label{
-      display:block;
-      font-size:11px;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin:0 0 6px;
-    }
-    .input{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      border:1px solid var(--hair);
-      border-radius:12px;
-      padding:10px 10px;
-      background:transparent;
-    }
-    .input input{
-      width:100%;
-      border:0;
-      outline:none;
-      background:transparent;
-      color:var(--fg);
-      font-family:var(--mono);
-      font-size:13px;
-    }
-    .mini{
-      font-family:var(--sans);
-      font-size:12px;
-      padding:6px 8px;
-      border:1px solid var(--hair);
-      background:transparent;
-      border-radius:999px;
-      opacity:.88;
-      cursor:pointer;
-    }
-    .mini:hover{ opacity:1; background:var(--panel) }
-
-    .note{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.55;
-    }
-
-    /* ---------- Colours tool ---------- */
-    .colors-top{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-    @media (min-width:900px){
-      .colors-top{ grid-template-columns: 1.25fr .75fr; }
-    }
-
-    .swatch{
-      border:1px solid var(--hair);
-      border-radius:14px;
-      overflow:hidden;
-      min-height:132px;
-      display:grid;
-      grid-template-rows: 1fr auto;
-      background:#111;
-    }
-    .swatch-top{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:14px;
-      font-weight:600;
-      letter-spacing:-.01em;
-    }
-    .swatch-bottom{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:10px 12px;
-      border-top:1px solid rgba(127,127,127,.18);
-      font-size:12px;
-      font-family:var(--mono);
-      opacity:.9;
-      gap:10px;
-    }
-    .badges{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-    .badge{
-      font-size:11px;
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid rgba(127,127,127,.25);
-      background:rgba(255,255,255,.08);
-      opacity:.92;
-      font-family:var(--sans);
-      white-space:nowrap;
-    }
-    [data-theme="light"] .badge{ background:rgba(0,0,0,.04); }
-
-    .grid5{
-      display:grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap:10px;
-    }
-    .chip{
-      border:1px solid var(--hair);
-      border-radius:14px;
-      overflow:hidden;
-      background:var(--panel);
-      min-height:84px;
-      display:grid;
-      grid-template-rows: 1fr auto;
-      cursor:pointer;
-    }
-    .chip .c{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:600;
-      font-size:12px;
-    }
-    .chip .meta{
-      padding:8px 10px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      border-top:1px solid rgba(127,127,127,.18);
-      font-family:var(--mono);
-      font-size:11px;
-      opacity:.9;
-    }
-    .dim{ opacity:.55; }
-
-    /* ---------- Drawer menu ---------- */
-    .drawer{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.35);
-      display:none;
-      align-items:flex-start;
-      justify-content:flex-end;
-      padding:10px;
-      z-index:50;
-    }
-    [data-theme="light"] .drawer{ background:rgba(0,0,0,.20); }
-
-    .drawer.open{ display:flex; }
-
-    .drawer-panel{
-      width:min(320px, 92vw);
-      border:1px solid var(--hair);
-      background:var(--bg);
-      border-radius:16px;
-      overflow:hidden;
-    }
-    .drawer-head{
-      padding:12px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      border-bottom:1px solid var(--hair);
-    }
-    .drawer-head .t{
-      font-size:12px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      color:var(--muted);
-    }
-    .drawer-body{
-      padding:10px;
-      display:grid;
-      gap:8px;
-    }
-    .drawer-body button{
-      width:100%;
-      text-align:left;
-      border-radius:12px;
-      padding:10px 12px;
-      border:1px solid var(--hair);
-      opacity:1;
-    }
-    .drawer-body button:hover{ background:var(--panel); }
-  </style>
+/* drawer */
+.drawer{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.35);
+  display:none;
+  justify-content:flex-end;
+  padding:10px;
+}
+.drawer.open{display:flex}
+.drawer-panel{
+  width:min(320px,90vw);
+  background:var(--bg);
+  border:1px solid var(--hair);
+  border-radius:16px;
+  padding:12px;
+  display:grid;
+  gap:8px;
+}
+</style>
 </head>
 
 <body>
-  <div class="app">
-    <header>
-      <div class="left">
-        <button class="hamburger" id="menuBtn" aria-label="Menu">
-          <svg class="icon" viewBox="0 0 24 24" fill="none">
-            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-        </button>
-
-        <div class="brand">Loose Nickels</div>
-
-        <div class="nav-desktop">
-          <button id="toolHtml" aria-pressed="true">HTML</button>
-          <button id="toolColors" aria-pressed="false">Colours</button>
-          <button id="toolConvert" aria-pressed="false">Convert</button>
-        </div>
-
-        <button class="mobile-only" id="htmlEditBtn" aria-pressed="true">Editor</button>
-        <button class="mobile-only" id="htmlPrevBtn" aria-pressed="false">Preview</button>
-
-        <div class="spacer"></div>
-
-        <button id="resetBtn">Reset</button>
-      </div>
-
-      <div class="right">
-        <button id="themeBtn" aria-label="Toggle theme">
-          <svg class="icon" id="themeIcon" viewBox="0 0 24 24" fill="none"></svg>
-        </button>
-      </div>
-    </header>
-
-    <div class="content" id="content">
-      <!-- HTML TOOL -->
-      <section class="tool active" id="htmlTool">
-        <div class="split">
-          <section class="pane" id="editorPane">
-            <textarea id="src" spellcheck="false"></textarea>
-          </section>
-
-          <section class="pane" id="previewPane">
-            <iframe id="preview" sandbox="allow-scripts allow-forms allow-modals"></iframe>
-          </section>
-        </div>
-      </section>
-
-      <!-- COLOURS TOOL -->
-      <section class="tool" id="colorsTool">
-        <div class="wrap">
-          <div class="colors-top">
-            <div class="card">
-              <div class="row">
-                <div class="field">
-                  <label>Hex</label>
-                  <div class="input">
-                    <input id="hexIn" placeholder="#1a73e8" />
-                    <button class="mini" id="copyHex" type="button">Copy</button>
-                  </div>
-                </div>
-
-                <div class="field">
-                  <label>RGB</label>
-                  <div class="input">
-                    <input id="rgbIn" placeholder="rgb(26, 115, 232)" />
-                    <button class="mini" id="copyRgb" type="button">Copy</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="field">
-                  <label>Text recommendation</label>
-                  <div class="input">
-                    <input id="recText" readonly />
-                    <button class="mini" id="copyRec" type="button">Copy</button>
-                  </div>
-                </div>
-
-                <div class="field">
-                  <label>Custom background for contrast</label>
-                  <div class="input">
-                    <input id="bgIn" placeholder="#ffffff (optional)" />
-                    <button class="mini" id="useBg" type="button">Use</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="note" id="contrastNote"></div>
-            </div>
-
-            <div class="swatch" id="swatch">
-              <div class="swatch-top" id="swatchTop">Preview</div>
-              <div class="swatch-bottom">
-                <span id="swatchMeta">#000000</span>
-                <div class="badges" id="badges"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="field">
-              <label>Tints & shades</label>
-              <div class="grid5" id="tintsGrid"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="field">
-              <label>Accompanying colours</label>
-              <div class="grid5" id="accGrid"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- CONVERTER TOOL -->
-      <section class="tool" id="convertTool">
-        <div class="wrap">
-          <div class="card">
-            <div class="field"><label>px ↔ rem / em</label></div>
-
-            <div class="row">
-              <div class="field">
-                <label>Pixels (px)</label>
-                <div class="input">
-                  <input id="pxIn" inputmode="decimal" placeholder="16" />
-                  <button class="mini" id="copyPx" type="button">Copy</button>
-                </div>
-              </div>
-
-              <div class="field">
-                <label>Base font-size (px)</label>
-                <div class="input">
-                  <input id="baseIn" inputmode="decimal" placeholder="16" />
-                  <button class="mini" id="base16" type="button">16</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="field">
-                <label>rem</label>
-                <div class="input">
-                  <input id="remOut" readonly />
-                  <button class="mini" id="copyRem" type="button">Copy</button>
-                </div>
-              </div>
-
-              <div class="field">
-                <label>em</label>
-                <div class="input">
-                  <input id="emOut" readonly />
-                  <button class="mini" id="copyEm" type="button">Copy</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="note">
-              <b>rem</b> is relative to the <b>root</b> font-size (usually <code>html { font-size: … }</code>).<br>
-              <b>em</b> is relative to the <b>current element</b> font-size and can <b>compound</b> when nested.
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="field"><label>mm ↔ inches</label></div>
-            <div class="row">
-              <div class="field">
-                <label>Millimetres (mm)</label>
-                <div class="input">
-                  <input id="mmIn" inputmode="decimal" placeholder="25.4" />
-                  <button class="mini" id="copyMm" type="button">Copy</button>
-                </div>
-              </div>
-              <div class="field">
-                <label>Inches (in)</label>
-                <div class="input">
-                  <input id="inIn" inputmode="decimal" placeholder="1" />
-                  <button class="mini" id="copyIn" type="button">Copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="note">1 inch = 25.4mm</div>
-          </div>
-
-          <div class="card">
-            <div class="field"><label>px ↔ mm (at DPI)</label></div>
-            <div class="row">
-              <div class="field">
-                <label>DPI</label>
-                <div class="input">
-                  <input id="dpiIn" inputmode="decimal" placeholder="96" />
-                  <button class="mini" id="dpi96" type="button">96</button>
-                </div>
-              </div>
-              <div class="field">
-                <label>Pixels (px)</label>
-                <div class="input">
-                  <input id="px2In" inputmode="decimal" placeholder="100" />
-                  <button class="mini" id="copyPx2" type="button">Copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="field">
-                <label>Millimetres (mm)</label>
-                <div class="input">
-                  <input id="mmOut" readonly />
-                  <button class="mini" id="copyMmOut" type="button">Copy</button>
-                </div>
-              </div>
-              <div class="field">
-                <label>Millimetres (mm)</label>
-                <div class="input">
-                  <input id="mm2In" inputmode="decimal" placeholder="10" />
-                  <button class="mini" id="copyMm2" type="button">Copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="field">
-              <label>px result</label>
-              <div class="input">
-                <input id="pxOut" readonly />
-                <button class="mini" id="copyPxOut" type="button">Copy</button>
-              </div>
-            </div>
-            <div class="note">Useful for print specs or exporting at a known DPI.</div>
-          </div>
-        </div>
-      </section>
+<div class="app">
+<header>
+  <div class="left">
+    <button class="hamburger" id="menuBtn">☰</button>
+    <div class="brand">Loose Nickels</div>
+    <div class="nav">
+      <button data-tool="html">HTML</button>
+      <button data-tool="colors">Colours</button>
+      <button data-tool="convert">Convert</button>
+      <button data-tool="weight">Weight</button>
     </div>
   </div>
+  <div class="right">
+    <button id="themeBtn">◐</button>
+  </div>
+</header>
 
-  <!-- Mobile drawer -->
-  <div class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
-      <div class="drawer-head">
-        <div class="t">Tools</div>
-        <button id="closeDrawer" type="button">Close</button>
-      </div>
-      <div class="drawer-body">
-        <button id="mHtml" type="button">HTML</button>
-        <button id="mColors" type="button">Colours</button>
-        <button id="mConvert" type="button">Convert</button>
-      </div>
+<div class="content" id="content">
+
+<section class="tool active" id="html">
+  <div class="split">
+    <div class="pane">
+      <textarea id="htmlSrc"></textarea>
+    </div>
+    <div class="pane">
+      <iframe id="htmlPrev"></iframe>
     </div>
   </div>
-
-  <script>
-    // ---------- Helpers ----------
-    const clamp = (n,a,b)=>Math.min(b,Math.max(a,n));
-    const num = (v)=> {
-      const x = parseFloat(String(v).replace(/,/g,'').trim());
-      return Number.isFinite(x) ? x : null;
-    };
-    async function copyText(t){ try{ await navigator.clipboard.writeText(String(t)); } catch {} }
-
-    // ---------- Theme ----------
-    const root = document.documentElement;
-    const themeBtn = document.getElementById('themeBtn');
-    const themeIcon = document.getElementById('themeIcon');
-
-    const sun = `
-      <path d="M12 18a6 6 0 1 0 0-12a6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="1.6"/>
-      <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5
-               M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6L17 17
-               M7 7L5.4 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    `;
-    const moon = `
-      <path d="M20 14.2A7.6 7.6 0 0 1 9.8 4
-               a6.7 6.7 0 1 0 10.2 10.2Z"
-            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-    `;
-
-    function setTheme(mode){
-      if(mode === 'light'){
-        root.setAttribute('data-theme','light');
-        themeIcon.innerHTML = moon;
-      } else {
-        root.removeAttribute('data-theme');
-        themeIcon.innerHTML = sun;
-      }
-      localStorage.setItem('ln_theme', mode);
-    }
-    setTheme(localStorage.getItem('ln_theme') === 'light' ? 'light' : 'dark');
-    themeBtn.addEventListener('click', ()=>setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
-
-    // ---------- Drawer ----------
-    const drawer = document.getElementById('drawer');
-    const menuBtn = document.getElementById('menuBtn');
-    const closeDrawer = document.getElementById('closeDrawer');
-
-    function openDrawer(){
-      drawer.classList.add('open');
-      drawer.setAttribute('aria-hidden','false');
-    }
-    function shutDrawer(){
-      drawer.classList.remove('open');
-      drawer.setAttribute('aria-hidden','true');
-    }
-    menuBtn?.addEventListener('click', openDrawer);
-    closeDrawer.addEventListener('click', shutDrawer);
-    drawer.addEventListener('click', (e)=>{ if(e.target === drawer) shutDrawer(); });
-
-    // ---------- Tool switching ----------
-    const content = document.getElementById('content');
-
-    const btnHtml = document.getElementById('toolHtml');
-    const btnColors = document.getElementById('toolColors');
-    const btnConvert = document.getElementById('toolConvert');
-
-    const mHtml = document.getElementById('mHtml');
-    const mColors = document.getElementById('mColors');
-    const mConvert = document.getElementById('mConvert');
-
-    const htmlTool = document.getElementById('htmlTool');
-    const colorsTool = document.getElementById('colorsTool');
-    const convertTool = document.getElementById('convertTool');
-
-    const htmlEditBtn = document.getElementById('htmlEditBtn');
-    const htmlPrevBtn = document.getElementById('htmlPrevBtn');
-
-    function setPressed(el, v){ if(el) el.setAttribute('aria-pressed', String(v)); }
-
-    function showTool(which){
-      const isHtml = which === 'html';
-      const isColors = which === 'colors';
-      const isConvert = which === 'convert';
-
-      htmlTool.classList.toggle('active', isHtml);
-      colorsTool.classList.toggle('active', isColors);
-      convertTool.classList.toggle('active', isConvert);
-
-      setPressed(btnHtml, isHtml);
-      setPressed(btnColors, isColors);
-      setPressed(btnConvert, isConvert);
-
-      // Only show Editor/Preview on HTML tool (mobile)
-      if(htmlEditBtn && htmlPrevBtn){
-        htmlEditBtn.style.display = isHtml ? '' : 'none';
-        htmlPrevBtn.style.display = isHtml ? '' : 'none';
-      }
-
-      content.scrollTop = 0;
-      localStorage.setItem('ln_tool', which);
-      updateHtmlLayout();
-      shutDrawer();
-    }
-
-    btnHtml?.addEventListener('click', ()=>showTool('html'));
-    btnColors?.addEventListener('click', ()=>showTool('colors'));
-    btnConvert?.addEventListener('click', ()=>showTool('convert'));
-
-    mHtml.addEventListener('click', ()=>showTool('html'));
-    mColors.addEventListener('click', ()=>showTool('colors'));
-    mConvert.addEventListener('click', ()=>showTool('convert'));
-
-    showTool(localStorage.getItem('ln_tool') || 'html');
-
-    // ---------- HTML tool ----------
-    const src = document.getElementById('src');
-    const frame = document.getElementById('preview');
-    const editorPane = document.getElementById('editorPane');
-    const previewPane = document.getElementById('previewPane');
-
-    const DEFAULT_HTML = `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello</title>
-</head>
-<body>
-  <h1>Hello</h1>
-  <p>Paste HTML above.</p>
-</body>
-</html>`;
-
-    src.value = localStorage.getItem('ln_html') || DEFAULT_HTML;
-
-    function renderHtml(){
-      frame.srcdoc = src.value;
-      localStorage.setItem('ln_html', src.value);
-    }
-    src.addEventListener('input', renderHtml);
-    renderHtml();
-
-    function isDesktop(){ return window.matchMedia('(min-width: 900px)').matches; }
-
-    function setHtmlView(which){
-      if(isDesktop()){
-        editorPane.classList.remove('hidden');
-        previewPane.classList.remove('hidden');
-        setPressed(htmlEditBtn, false);
-        setPressed(htmlPrevBtn, false);
-        localStorage.setItem('ln_html_view','split');
-        return;
-      }
-      const isEditor = which === 'editor';
-      editorPane.classList.toggle('hidden', !isEditor);
-      previewPane.classList.toggle('hidden', isEditor);
-      setPressed(htmlEditBtn, isEditor);
-      setPressed(htmlPrevBtn, !isEditor);
-      localStorage.setItem('ln_html_view', which);
-    }
-
-    function updateHtmlLayout(){
-      const active = (localStorage.getItem('ln_tool') || 'html') === 'html';
-      if(!active) return;
-      if(isDesktop()){
-        setHtmlView('split');
-      } else {
-        const pref = localStorage.getItem('ln_html_view') || 'editor';
-        setHtmlView(pref === 'preview' ? 'preview' : 'editor');
-      }
-    }
-
-    htmlEditBtn.addEventListener('click', ()=>setHtmlView('editor'));
-    htmlPrevBtn.addEventListener('click', ()=>setHtmlView('preview'));
-    window.addEventListener('resize', updateHtmlLayout);
-    updateHtmlLayout();
-
-    // ---------- Colours tool ----------
-    const hexIn = document.getElementById('hexIn');
-    const rgbIn = document.getElementById('rgbIn');
-    const bgIn = document.getElementById('bgIn');
-    const useBg = document.getElementById('useBg');
-
-    const copyHex = document.getElementById('copyHex');
-    const copyRgb = document.getElementById('copyRgb');
-    const recText = document.getElementById('recText');
-    const copyRec = document.getElementById('copyRec');
-
-    const swatchTop = document.getElementById('swatchTop');
-    const swatchMeta = document.getElementById('swatchMeta');
-    const badges = document.getElementById('badges');
-    const contrastNote = document.getElementById('contrastNote');
-    const tintsGrid = document.getElementById('tintsGrid');
-    const accGrid = document.getElementById('accGrid');
-
-    const LS_COL = 'ln_color_base';
-    const LS_BG  = 'ln_color_bg';
-
-    function normHex(h){
-      h = (h || '').trim().toLowerCase();
-      if(!h) return null;
-      if(h.startsWith('rgb')) return null;
-      if(h[0] !== '#') h = '#' + h;
-      const m3 = h.match(/^#([0-9a-f]{3})$/i);
-      if(m3){
-        const s = m3[1];
-        return '#' + s[0]+s[0] + s[1]+s[1] + s[2]+s[2];
-      }
-      const m6 = h.match(/^#([0-9a-f]{6})$/i);
-      if(m6) return '#' + m6[1];
-      return null;
-    }
-    function hexToRgb(hex){
-      const h = normHex(hex);
-      if(!h) return null;
-      const n = parseInt(h.slice(1), 16);
-      return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
-    }
-    function rgbToHex(r,g,b){
-      const to2 = (x)=> clamp(Math.round(x),0,255).toString(16).padStart(2,'0');
-      return '#' + to2(r) + to2(g) + to2(b);
-    }
-    function parseRgb(s){
-      s = (s || '').trim().toLowerCase();
-      if(!s) return null;
-      const m = s.match(/rgb\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)/i)
-            || s.match(/^([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})$/i);
-      if(!m) return null;
-      return {
-        r: clamp(parseInt(m[1],10),0,255),
-        g: clamp(parseInt(m[2],10),0,255),
-        b: clamp(parseInt(m[3],10),0,255),
-      };
-    }
-    const fmtRgb = ({r,g,b}) => `rgb(${r}, ${g}, ${b})`;
-
-    function srgbToLin(c){
-      c/=255;
-      return (c<=0.04045) ? (c/12.92) : Math.pow((c+0.055)/1.055, 2.4);
-    }
-    function relLum({r,g,b}){
-      const R=srgbToLin(r), G=srgbToLin(g), B=srgbToLin(b);
-      return 0.2126*R + 0.7152*G + 0.0722*B;
-    }
-    function contrast(a,b){
-      const L1=relLum(a), L2=relLum(b);
-      const hi=Math.max(L1,L2), lo=Math.min(L1,L2);
-      return (hi+0.05)/(lo+0.05);
-    }
-    function wcagLabel(r){
-      if(r>=7) return 'AAA';
-      if(r>=4.5) return 'AA';
-      if(r>=3) return 'AA Large';
-      return 'Fail';
-    }
-    function mix(a,b,t){
-      return {
-        r: Math.round(a.r + (b.r-a.r)*t),
-        g: Math.round(a.g + (b.g-a.g)*t),
-        b: Math.round(a.b + (b.b-a.b)*t),
-      };
-    }
-    function bestTextOn(bg){
-      const white={r:255,g:255,b:255}, black={r:0,g:0,b:0};
-      const cw=contrast(bg,white), cb=contrast(bg,black);
-      return (cw>=cb)
-        ? { rgb:white, label:`#ffffff • ${cw.toFixed(2)}:1 (${wcagLabel(cw)})` }
-        : { rgb:black, label:`#000000 • ${cb.toFixed(2)}:1 (${wcagLabel(cb)})` };
-    }
-    function setBadges(items){
-      badges.innerHTML='';
-      for(const it of items){
-        const b=document.createElement('span');
-        b.className='badge';
-        b.textContent=it;
-        badges.appendChild(b);
-      }
-    }
-    function chipEl(hex, bgRgb, textRgb){
-      const el=document.createElement('div');
-      el.className='chip';
-      const c=document.createElement('div');
-      c.className='c';
-      c.style.background=hex;
-      c.style.color=rgbToHex(textRgb.r,textRgb.g,textRgb.b);
-      c.textContent='Aa';
-      const m=document.createElement('div');
-      m.className='meta';
-      const left=document.createElement('span');
-      left.textContent=hex;
-      const ratio=contrast(bgRgb,textRgb);
-      const lab=wcagLabel(ratio);
-      const right=document.createElement('span');
-      right.textContent=`${ratio.toFixed(2)} ${lab}`;
-      if(lab === 'Fail') right.className='dim';
-      m.appendChild(left); m.appendChild(right);
-      el.appendChild(c); el.appendChild(m);
-      el.addEventListener('click', ()=>copyText(hex));
-      return el;
-    }
-
-    function rgbToHsl({r,g,b}){
-      r/=255; g/=255; b/=255;
-      const max=Math.max(r,g,b), min=Math.min(r,g,b);
-      let h=0,s=0,l=(max+min)/2;
-      if(max!==min){
-        const d=max-min;
-        s = l>0.5 ? d/(2-max-min) : d/(max+min);
-        switch(max){
-          case r: h=(g-b)/d + (g<b?6:0); break;
-          case g: h=(b-r)/d + 2; break;
-          case b: h=(r-g)/d + 4; break;
-        }
-        h*=60;
-      }
-      return {h,s,l};
-    }
-    function hslToRgb({h,s,l}){
-      const C=(1-Math.abs(2*l-1))*s;
-      const hp=(h%360)/60;
-      const X=C*(1-Math.abs((hp%2)-1));
-      let r1=0,g1=0,b1=0;
-      if(0<=hp && hp<1){ r1=C; g1=X; }
-      else if(1<=hp && hp<2){ r1=X; g1=C; }
-      else if(2<=hp && hp<3){ g1=C; b1=X; }
-      else if(3<=hp && hp<4){ g1=X; b1=C; }
-      else if(4<=hp && hp<5){ r1=X; b1=C; }
-      else { r1=C; b1=X; }
-      const m=l-C/2;
-      return { r:Math.round((r1+m)*255), g:Math.round((g1+m)*255), b:Math.round((b1+m)*255) };
-    }
-
-    function updateFromBase(baseRgb){
-      const baseHex = rgbToHex(baseRgb.r,baseRgb.g,baseRgb.b).toLowerCase();
-      const baseRgbStr = fmtRgb(baseRgb);
-
-      hexIn.value = baseHex;
-      rgbIn.value = baseRgbStr;
-      localStorage.setItem(LS_COL, baseHex);
-
-      const bgHex = normHex(bgIn.value) || localStorage.getItem(LS_BG) || null;
-      const bgRgb = bgHex ? hexToRgb(bgHex) : baseRgb;
-
-      const onBase = bestTextOn(baseRgb);
-      recText.value = onBase.label;
-
-      swatchTop.style.background = baseHex;
-      swatchTop.style.color = rgbToHex(onBase.rgb.r,onBase.rgb.g,onBase.rgb.b);
-      swatchTop.textContent = 'Loose Nickels';
-      swatchMeta.textContent = `${baseHex}  •  ${baseRgbStr}`;
-
-      const white={r:255,g:255,b:255}, black={r:0,g:0,b:0};
-      const cW=contrast(baseRgb,white), cB=contrast(baseRgb,black);
-      const badgeItems = [
-        `on #fff: ${cW.toFixed(2)} (${wcagLabel(cW)})`,
-        `on #000: ${cB.toFixed(2)} (${wcagLabel(cB)})`,
-      ];
-      if(bgHex){
-        const chosen = bestTextOn(bgRgb);
-        badgeItems.push(`bg ${bgHex}: ${wcagLabel(contrast(bgRgb, chosen.rgb))}`);
-      }
-      setBadges(badgeItems);
-
-      const baseRatio = contrast(baseRgb, onBase.rgb);
-      contrastNote.textContent =
-        `Best text on ${baseHex} is ${rgbToHex(onBase.rgb.r,onBase.rgb.g,onBase.rgb.b)} ` +
-        `with contrast ${baseRatio.toFixed(2)}:1 (${wcagLabel(baseRatio)} for normal text).`;
-
-      tintsGrid.innerHTML='';
-      const w={r:255,g:255,b:255}, k={r:0,g:0,b:0};
-      const steps=[0.82,0.64,0.46,0.28,0.10];
-      const steps2=[0.10,0.28,0.46,0.64,0.82];
-
-      for(const t of steps){
-        const rgb=mix(baseRgb,w,t);
-        const hex=rgbToHex(rgb.r,rgb.g,rgb.b).toLowerCase();
-        const txt=bestTextOn(rgb).rgb;
-        tintsGrid.appendChild(chipEl(hex, rgb, txt));
-      }
-      for(const t of steps2){
-        const rgb=mix(baseRgb,k,t);
-        const hex=rgbToHex(rgb.r,rgb.g,rgb.b).toLowerCase();
-        const txt=bestTextOn(rgb).rgb;
-        tintsGrid.appendChild(chipEl(hex, rgb, txt));
-      }
-
-      accGrid.innerHTML='';
-      const hsl = rgbToHsl(baseRgb);
-      const variants = [
-        { h:(hsl.h+180)%360, s:hsl.s, l:hsl.l },
-        { h:(hsl.h+150)%360, s:hsl.s, l:hsl.l },
-        { h:(hsl.h+210)%360, s:hsl.s, l:hsl.l },
-        { h:(hsl.h+30)%360,  s:hsl.s, l:hsl.l },
-        { h:(hsl.h+330)%360, s:hsl.s, l:hsl.l },
-        { h:(hsl.h+120)%360, s:hsl.s, l:hsl.l },
-        { h:(hsl.h+240)%360, s:hsl.s, l:hsl.l },
-        { h:(hsl.h+180)%360, s:Math.min(1,hsl.s*0.72), l:clamp(hsl.l*1.02,0,1) },
-        { h:hsl.h,           s:Math.min(1,hsl.s*0.55), l:clamp(hsl.l*1.05,0,1) },
-        { h:hsl.h,           s:hsl.s, l:clamp(hsl.l*0.72,0,1) },
-      ];
-      for(const v of variants.slice(0,10)){
-        const rgb=hslToRgb(v);
-        const hex=rgbToHex(rgb.r,rgb.g,rgb.b).toLowerCase();
-        const txt=bestTextOn(rgb).rgb;
-        accGrid.appendChild(chipEl(hex, rgb, txt));
-      }
-    }
-
-    function setBaseFromAny(input){
-      const asHex = normHex(input);
-      if(asHex){
-        const rgb = hexToRgb(asHex);
-        if(rgb) return updateFromBase(rgb);
-      }
-      const asRgb = parseRgb(input);
-      if(asRgb) return updateFromBase(asRgb);
-    }
-
-    const savedCol = localStorage.getItem(LS_COL) || '#1a73e8';
-    hexIn.value = savedCol;
-    bgIn.value = localStorage.getItem(LS_BG) || '';
-    setBaseFromAny(savedCol);
-
-    hexIn.addEventListener('input', ()=>setBaseFromAny(hexIn.value));
-    rgbIn.addEventListener('input', ()=>setBaseFromAny(rgbIn.value));
-
-    useBg.addEventListener('click', ()=>{
-      const bg = normHex(bgIn.value);
-      if(bg){ localStorage.setItem(LS_BG, bg); }
-      else { localStorage.removeItem(LS_BG); bgIn.value=''; }
-      setBaseFromAny(hexIn.value);
-    });
-
-    copyHex.addEventListener('click', ()=>copyText((hexIn.value||'').trim().toLowerCase()));
-    copyRgb.addEventListener('click', ()=>{
-      const rgb = parseRgb(rgbIn.value) || hexToRgb(hexIn.value);
-      if(rgb) copyText(fmtRgb(rgb));
-    });
-    copyRec.addEventListener('click', ()=>{
-      const t = (recText.value || '').split('•')[0].trim();
-      if(t) copyText(t);
-    });
-
-    // ---------- Convert tool ----------
-    const pxIn = document.getElementById('pxIn');
-    const baseIn = document.getElementById('baseIn');
-    const remOut = document.getElementById('remOut');
-    const emOut = document.getElementById('emOut');
-
-    const mmIn = document.getElementById('mmIn');
-    const inIn = document.getElementById('inIn');
-
-    const dpiIn = document.getElementById('dpiIn');
-    const px2In = document.getElementById('px2In');
-    const mmOut = document.getElementById('mmOut');
-    const mm2In = document.getElementById('mm2In');
-    const pxOut = document.getElementById('pxOut');
-
-    const LS_BASE = 'ln_conv_base';
-    const LS_DPI  = 'ln_conv_dpi';
-
-    baseIn.value = localStorage.getItem(LS_BASE) || '16';
-    dpiIn.value  = localStorage.getItem(LS_DPI) || '96';
-
-    function fmt(x, dp=4){
-      if(x === null || !Number.isFinite(x)) return '';
-      const s = x.toFixed(dp);
-      return s.replace(/\.?0+$/,'');
-    }
-
-    function updatePx(){
-      const px = num(pxIn.value);
-      const base = num(baseIn.value);
-      if(base && base > 0 && px !== null){
-        const v = px / base;
-        remOut.value = `${fmt(v, 5)}rem`;
-        emOut.value  = `${fmt(v, 5)}em`;
-      } else {
-        remOut.value = '';
-        emOut.value  = '';
-      }
-      if(base && base > 0) localStorage.setItem(LS_BASE, String(base));
-    }
-
-    function updateMmInch(){
-      const mm = num(mmIn.value);
-      const inch = num(inIn.value);
-
-      if(document.activeElement === mmIn){
-        if(mm !== null) inIn.value = fmt(mm / 25.4, 6);
-      } else if(document.activeElement === inIn){
-        if(inch !== null) mmIn.value = fmt(inch * 25.4, 3);
-      }
-    }
-
-    function updatePxMmAtDpi(){
-      const dpi = num(dpiIn.value);
-      const px = num(px2In.value);
-      const mm = num(mm2In.value);
-
-      if(dpi && dpi > 0) localStorage.setItem(LS_DPI, String(dpi));
-
-      mmOut.value = (dpi && dpi > 0 && px !== null) ? fmt(px * 25.4 / dpi, 4) : '';
-      pxOut.value = (dpi && dpi > 0 && mm !== null) ? fmt(mm * dpi / 25.4, 2) : '';
-    }
-
-    pxIn.addEventListener('input', updatePx);
-    baseIn.addEventListener('input', updatePx);
-    document.getElementById('base16').addEventListener('click', ()=>{ baseIn.value='16'; updatePx(); });
-
-    mmIn.addEventListener('input', updateMmInch);
-    inIn.addEventListener('input', updateMmInch);
-
-    dpiIn.addEventListener('input', updatePxMmAtDpi);
-    px2In.addEventListener('input', updatePxMmAtDpi);
-    mm2In.addEventListener('input', updatePxMmAtDpi);
-    document.getElementById('dpi96').addEventListener('click', ()=>{ dpiIn.value='96'; updatePxMmAtDpi(); });
-
-    document.getElementById('copyPx').addEventListener('click', ()=>copyText(pxIn.value));
-    document.getElementById('copyRem').addEventListener('click', ()=>copyText(remOut.value));
-    document.getElementById('copyEm').addEventListener('click', ()=>copyText(emOut.value));
-
-    document.getElementById('copyMm').addEventListener('click', ()=>copyText(mmIn.value));
-    document.getElementById('copyIn').addEventListener('click', ()=>copyText(inIn.value));
-
-    document.getElementById('copyPx2').addEventListener('click', ()=>copyText(px2In.value));
-    document.getElementById('copyMmOut').addEventListener('click', ()=>copyText(mmOut.value));
-    document.getElementById('copyMm2').addEventListener('click', ()=>copyText(mm2In.value));
-    document.getElementById('copyPxOut').addEventListener('click', ()=>copyText(pxOut.value));
-
-    updatePx();
-    updatePxMmAtDpi();
-
-    // ---------- Reset ----------
-    const resetBtn = document.getElementById('resetBtn');
-    resetBtn.addEventListener('click', ()=>{
-      const which = localStorage.getItem('ln_tool') || 'html';
-      if(which === 'html'){
-        if(confirm('Reset HTML editor?')){
-          src.value = DEFAULT_HTML;
-          renderHtml();
-          showTool('html');
-        }
-      } else if(which === 'colors'){
-        if(confirm('Reset colour tool?')){
-          localStorage.removeItem(LS_COL);
-          localStorage.removeItem(LS_BG);
-          hexIn.value = '#1a73e8';
-          rgbIn.value = '';
-          bgIn.value = '';
-          setBaseFromAny(hexIn.value);
-          showTool('colors');
-        }
-      } else {
-        if(confirm('Reset converter tool?')){
-          pxIn.value = '';
-          baseIn.value = '16';
-          mmIn.value = '';
-          inIn.value = '';
-          dpiIn.value = '96';
-          px2In.value = '';
-          mm2In.value = '';
-          localStorage.setItem(LS_BASE,'16');
-          localStorage.setItem(LS_DPI,'96');
-          updatePx();
-          updatePxMmAtDpi();
-          showTool('convert');
-        }
-      }
-    });
-  </script>
+</section>
+
+<section class="tool" id="convert">
+<div class="wrap">
+
+<div class="card">
+<label>px ↔ rem / em</label>
+<div class="row">
+  <div class="input"><input id="px" placeholder="16"></div>
+  <div class="input"><input id="base" placeholder="16"></div>
+</div>
+<div class="row">
+  <div class="input"><input id="rem" readonly></div>
+  <div class="input"><input id="em" readonly></div>
+</div>
+<div class="note">
+rem = relative to root font-size.  
+em = relative to current element.
+</div>
+</div>
+
+<div class="card">
+<label>mm ↔ inches</label>
+<div class="row">
+  <div class="input"><input id="mm" placeholder="25.4"></div>
+  <div class="input"><input id="inch" placeholder="1"></div>
+</div>
+</div>
+
+<div class="card">
+<label>Edgeband roll length</label>
+<div class="row">
+  <div class="input"><input id="ebT" placeholder="0.8"></div>
+  <div class="input"><input id="ebDo" placeholder="200"></div>
+</div>
+<div class="row">
+  <div class="input"><input id="ebDi" placeholder="76"></div>
+  <div class="input"><input id="ebOut" readonly></div>
+</div>
+<div class="note">meters on roll</div>
+</div>
+
+</div>
+</section>
+
+<section class="tool" id="weight">
+<div class="wrap">
+<div class="card">
+<label>Panel weight</label>
+<div id="rows"></div>
+<button id="addRow">Add line</button>
+<div class="note" id="totalKg"></div>
+</div>
+</div>
+</section>
+
+</div>
+</div>
+
+<div class="drawer" id="drawer">
+<div class="drawer-panel">
+<button data-tool="html">HTML</button>
+<button data-tool="colors">Colours</button>
+<button data-tool="convert">Convert</button>
+<button data-tool="weight">Weight</button>
+<button id="closeDrawer">Close</button>
+</div>
+</div>
+
+<script>
+const tools=[...document.querySelectorAll('.tool')];
+document.querySelectorAll('[data-tool]').forEach(b=>{
+  b.onclick=()=>{
+    tools.forEach(t=>t.classList.remove('active'));
+    document.getElementById(b.dataset.tool).classList.add('active');
+    drawer.classList.remove('open');
+  };
+});
+
+menuBtn.onclick=()=>drawer.classList.add('open');
+closeDrawer.onclick=()=>drawer.classList.remove('open');
+
+themeBtn.onclick=()=>{
+  document.documentElement.toggleAttribute('data-theme','light');
+};
+
+const src=document.getElementById('htmlSrc');
+const prev=document.getElementById('htmlPrev');
+src.value='<!doctype html><h1>Hello</h1>';
+src.oninput=()=>prev.srcdoc=src.value;
+prev.srcdoc=src.value;
+
+// converters
+function n(v){return parseFloat(v)||0;}
+px.oninput=base.oninput=()=>{
+  rem.value=(n(px.value)/n(base.value)||0).toFixed(4)+'rem';
+  em.value=rem.value.replace('rem','em');
+};
+mm.oninput=()=>inch.value=(n(mm.value)/25.4).toFixed(4);
+inch.oninput=()=>mm.value=(n(inch.value)*25.4).toFixed(2);
+
+// edgeband
+function eb(){
+  const L=(Math.PI/4)*(n(ebDo.value)**2-n(ebDi.value)**2)/n(ebT.value)/1000;
+  ebOut.value=L?L.toFixed(2):'';
+}
+ebT.oninput=ebDo.oninput=ebDi.oninput=eb;
+
+// weight
+const densities={
+  'MDF 6':750,'MDF 18':750,'MDF 22':750,
+  'MFC 8':700,'MFC 18':700
+};
+function addRow(){
+  const d=document.createElement('div');
+  d.className='row';
+  d.innerHTML=`
+  <select>
+    ${Object.keys(densities).map(k=>`<option>${k}</option>`).join('')}
+  </select>
+  <input placeholder="m²">
+  <span>kg</span>`;
+  rows.appendChild(d);
+}
+addRow();
+addRow();
+</script>
 </body>
 </html>
