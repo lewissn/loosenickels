@@ -399,6 +399,35 @@
       outline: none;
       box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px rgba(100,180,255,0.4);
     }
+
+    /* Additional premium styling */
+    .card {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: box-shadow 0.2s ease;
+    }
+    [data-theme="light"] .card {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .wrap {
+      padding: 20px;
+      gap: 16px;
+    }
+    .note, .result {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    button, .mini {
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    button:active, .mini:active {
+      transform: scale(0.98);
+    }
+    textarea:focus {
+      box-shadow: inset 0 0 0 1px var(--fg);
+    }
   </style>
 </head>
 <body>
@@ -461,10 +490,6 @@
           <div class="card">
             <div class="field"><label>Calendar</label></div>
             <div id="calendar" class="note"></div>
-          </div>
-          <div class="card">
-            <div class="field"><label>Daily Quote</label></div>
-            <div id="quote" class="note">Loading quote...</div>
           </div>
         </div>
       </section>
@@ -1372,7 +1397,7 @@
       else if (hour < 18) greeting = 'Good afternoon, Lewis.';
       document.getElementById('greeting').textContent = greeting;
 
-      // Weather
+      // Weather with forecast
       fetchWeather();
 
       // Recent Calculations (last 5)
@@ -1472,6 +1497,7 @@
         const cell = row.insertCell();
         cell.textContent = day;
         if (day === now.getDate()) {
+          cell.style.fontWeight = 'bold';
           cell.style.color = '#fac05e';
         }
       }
@@ -1479,9 +1505,6 @@
       caption.textContent = `${month} ${year}`;
       table.appendChild(caption);
       calendarEl.appendChild(table);
-
-      // Daily Quote
-      fetchQuote();
     }
 
     async function fetchWeather() {
@@ -1490,24 +1513,17 @@
         const response = await fetch('https://wttr.in/Bishops+Stortford?format=j1');
         const data = await response.json();
         const current = data.current_condition[0];
-        const temp = current.temp_C;
-        const condition = current.weatherDesc[0].value;
-        const humidity = current.humidity;
-        const wind = current.winddir16Point + ' ' + current.windspeedKmph + ' km/h';
-        weatherEl.innerHTML = `Temperature: ${temp}°C<br>Condition: ${condition}<br>Humidity: ${humidity}%<br>Wind: ${wind}`;
+        const forecast = data.weather;
+        let weatherHtml = `Current: ${current.temp_C}°C, ${current.weatherDesc[0].value}<br>Humidity: ${current.humidity}%<br>Wind: ${current.winddir16Point} ${current.windspeedKmph} km/h<br><br>Forecast:`;
+        forecast.forEach((day, index) => {
+          if (index > 0) { // Skip today for forecast
+            const date = new Date(day.date).toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' });
+            weatherHtml += `<br>${date}: High ${day.maxtempC}°C, Low ${day.mintempC}°C, ${day.hourly[0].weatherDesc[0].value}`;
+          }
+        });
+        weatherEl.innerHTML = weatherHtml;
       } catch (error) {
         weatherEl.textContent = 'Unable to fetch weather.';
-      }
-    }
-
-    async function fetchQuote() {
-      const quoteEl = document.getElementById('quote');
-      try {
-        const response = await fetch('https://api.quotable.io/random');
-        const data = await response.json();
-        quoteEl.textContent = `"${data.content}" — ${data.author}`;
-      } catch (error) {
-        quoteEl.textContent = 'Unable to fetch quote.';
       }
     }
 
