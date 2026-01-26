@@ -1558,38 +1558,69 @@
     }
 
     function fetchWeather() {
-      const weatherEl = document.getElementById('weather');
-      fetch('https://wttr.in/Southend-on-Sea?format=j1')
-        .then(response => response.json())
-        .then(data => {
-          const current = data.current_condition[0];
-          let html = `
-            <div class="forecast-row">
-              <span>${getWeatherIcon(current.weatherDesc[0].value)}</span>
-              <span>Current: ${current.temp_C}°C, ${current.weatherDesc[0].value}</span>
-            </div>
-            <div class="forecast-row">
-              <span>Humidity: ${current.humidity}%</span>
-              <span>Wind: ${current.winddir16Point} ${current.windspeedKmph} km/h</span>
-            </div>
-            <br>Forecast:`;
-          data.weather.forEach((day, index) => {
-            if (index > 0 && index < 7) { // Next 6 days
-              const date = new Date(day.date).toLocaleDateString('default', { weekday: 'short' });
-              const maxTemp = day.maxtempC;
-              const minTemp = day.mintempC;
-              const desc = day.hourly[0].weatherDesc[0].value;
-              html += `
-                <div class="forecast-row">
-                  <span>${getWeatherIcon(desc)}</span>
-                  <span>${date}: ${desc}, High ${maxTemp}°C, Low ${minTemp}°C</span>
-                </div>`;
-            }
-          });
-          weatherEl.innerHTML = html;
-        })
-        .catch(() => weatherEl.textContent = 'Unable to fetch weather.');
+  const weatherEl = document.getElementById('weather');
+
+  const locations = [
+    'Southend-on-Sea,UK',
+    'Southend-on-Sea',
+    'Southend,UK',
+    'Southend'
+  ];
+
+  const tryFetch = async (i = 0) => {
+    if (i >= locations.length) {
+      weatherEl.textContent = 'Unable to fetch weather.';
+      return;
     }
+
+    const loc = encodeURIComponent(locations[i]);
+    const url = `https://wttr.in/${loc}?format=j1`;
+
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      const current = data.current_condition?.[0];
+      const days = data.weather || [];
+
+      if (!current) throw new Error('No current_condition');
+
+      let html = `
+        <div class="forecast-row">
+          <span>${getWeatherIcon(current.weatherDesc[0].value)}</span>
+          <span>Current: ${current.temp_C}°C, ${current.weatherDesc[0].value}</span>
+        </div>
+        <div class="forecast-row">
+          <span>Humidity: ${current.humidity}%</span>
+          <span>Wind: ${current.winddir16Point} ${current.windspeedKmph} km/h</span>
+        </div>
+        <br>Forecast:`;
+
+      days.forEach((day, index) => {
+        if (index > 0 && index < 7) {
+          const date = new Date(day.date).toLocaleDateString('default', { weekday: 'short' });
+          const maxTemp = day.maxtempC;
+          const minTemp = day.mintempC;
+          const desc = day.hourly?.[0]?.weatherDesc?.[0]?.value || '';
+          html += `
+            <div class="forecast-row">
+              <span>${getWeatherIcon(desc)}</span>
+              <span>${date}: ${desc}, High ${maxTemp}°C, Low ${minTemp}°C</span>
+            </div>`;
+        }
+      });
+
+      weatherEl.innerHTML = html;
+    } catch {
+      tryFetch(i + 1);
+    }
+  };
+
+  weatherEl.textContent = 'Loading weather...';
+  tryFetch(0);
+}
+
 
     function getWeatherIcon(condition) {
       condition = condition.toLowerCase();
