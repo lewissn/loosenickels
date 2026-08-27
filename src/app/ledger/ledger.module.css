@@ -12,10 +12,18 @@
   padding-top: var(--rail);
 }
 
+/* No overflow container on wide screens.
+
+   `overflow-x: auto` makes this element the sticky containing block for
+   the header inside it, so `top: var(--rail)` stuck the header 52px below
+   the *scroller's* top edge rather than the viewport's — pushing it down
+   over the first row and hiding LN–OB–0001, the first record in the
+   archive, on the page whose whole job is listing every record.
+
+   The table only overflows below the width at which the header stops
+   being sticky anyway, so the scroller is scoped to exactly there. */
 .scroller {
-  overflow-x: auto;
   border-block: 1px solid var(--rule);
-  -webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -173,6 +181,14 @@
 }
 
 @media (max-width: 60rem) {
+  /* Below this the table is wider than the viewport and has to scroll, and
+     the header gives up being sticky — a sticky header inside a horizontal
+     scroller is the arrangement that caused the overlap above. */
+  .scroller {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .table thead th {
     position: static;
   }

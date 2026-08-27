@@ -33,6 +33,23 @@ export type PlateSystem = (plate: PlateContext) => void;
 const rgba = ([r, g, b]: [number, number, number], a: number): string =>
   `rgba(${r}, ${g}, ${b}, ${a})`;
 
+/**
+ * How much heavier to draw, given the size of the plate.
+ *
+ * Line weight was fixed at one pixel regardless of frame. That is right on
+ * a 130px thumbnail, where the drawing reads as dense and solid, and wrong
+ * on a 650px hero, where the same lines cover five times the area and the
+ * plate looks like it failed to load. Raising the opacity instead — which
+ * was the previous attempt, twice — only made the thumbnails muddy while
+ * leaving the heroes thin.
+ *
+ * Returns 1 at about 200px and 2.1 at about 900px.
+ */
+function strokeScale(w: number, h: number): number {
+  const size = Math.min(w, h);
+  return Math.max(1, Math.min(2.1, 0.55 + size / 460));
+}
+
 /* ---- Shared chrome ------------------------------------------------------
    Every plate carries the same registration marks, in the same places, at
    the same weight. It is the one element common to all eight systems and
@@ -41,11 +58,12 @@ const rgba = ([r, g, b]: [number, number, number], a: number): string =>
 export function registration(plate: PlateContext): void {
   const { ctx, w, h, ink } = plate;
   const inset = Math.min(w, h) * 0.045;
-  const arm = Math.min(10, Math.min(w, h) * 0.035);
+  const arm = Math.min(14, Math.min(w, h) * 0.035);
+  const k = strokeScale(w, h);
 
   ctx.save();
   ctx.strokeStyle = rgba(ink, 0.42);
-  ctx.lineWidth = 1;
+  ctx.lineWidth = k;
 
   for (const [x, y] of [
     [inset, inset],
@@ -104,10 +122,12 @@ const contour: PlateSystem = (plate) => {
   };
 
   /* Centre lines first, so the outline sits over them. */
+  const k = strokeScale(w, h);
+
   ctx.save();
   ctx.strokeStyle = rgba(ink, 0.26);
-  ctx.lineWidth = 1;
-  ctx.setLineDash([6, 3, 1.5, 3]);
+  ctx.lineWidth = k;
+  ctx.setLineDash([6 * k, 3 * k, 1.5 * k, 3 * k]);
   ctx.beginPath();
   ctx.moveTo(cx, h * 0.08);
   ctx.lineTo(cx, h * 0.92);
@@ -117,11 +137,13 @@ const contour: PlateSystem = (plate) => {
   ctx.restore();
 
   ctx.save();
-  const steps = 7;
+  /* Section lines scale with the frame: seven is a measured drawing at
+     thumbnail size and a sparse contour map at hero size. */
+  const steps = Math.round(7 * Math.min(1.9, Math.max(1, k)));
   for (let i = steps; i >= 1; i -= 1) {
     const scale = i / steps;
-    ctx.strokeStyle = rgba(env, 0.3 + (1 - scale) * 0.5);
-    ctx.lineWidth = i === steps ? 1.9 : 1.15;
+    ctx.strokeStyle = rgba(env, 0.34 + (1 - scale) * 0.5);
+    ctx.lineWidth = (i === steps ? 1.9 : 1.15) * k;
     outline(scale * 0.94 + 0.06);
     ctx.stroke();
   }
@@ -130,7 +152,7 @@ const contour: PlateSystem = (plate) => {
   /* Dimension ticks along the lower edge, as on a catalogue drawing. */
   ctx.save();
   ctx.strokeStyle = rgba(ink, 0.4);
-  ctx.lineWidth = 1;
+  ctx.lineWidth = k;
   const baseline = h * 0.9;
   const left = cx - radius * 1.1;
   const right = cx + radius * 1.1;
@@ -138,8 +160,8 @@ const contour: PlateSystem = (plate) => {
   ctx.moveTo(left, baseline);
   ctx.lineTo(right, baseline);
   for (const x of [left, right]) {
-    ctx.moveTo(x, baseline - 4);
-    ctx.lineTo(x, baseline + 4);
+    ctx.moveTo(x, baseline - 4 * k);
+    ctx.lineTo(x, baseline + 4 * k);
   }
   ctx.stroke();
   ctx.restore();
@@ -152,7 +174,10 @@ const contour: PlateSystem = (plate) => {
 
 const topography: PlateSystem = (plate) => {
   const { ctx, w, h, seed, ink, env } = plate;
-  const cell = Math.max(5, Math.min(w, h) / 46);
+  const k = strokeScale(w, h);
+  /* The contour interval stays proportional to the frame, so a hero plate
+     carries more terrain rather than the same terrain stretched. */
+  const cell = Math.max(5, Math.min(w, h) / (46 * Math.min(1.5, k)));
   const cols = Math.ceil(w / cell) + 1;
   const rows = Math.ceil(h / cell) + 1;
 
@@ -167,8 +192,8 @@ const topography: PlateSystem = (plate) => {
   for (let i = 1; i < levels; i += 1) {
     const level = i / levels;
     const index = i % 5 === 0;
-    ctx.strokeStyle = rgba(env, index ? 0.72 : 0.4);
-    ctx.lineWidth = index ? 1.6 : 0.95;
+    ctx.strokeStyle = rgba(env, index ? 0.75 : 0.45);
+    ctx.lineWidth = (index ? 1.6 : 0.95) * k;
 
     ctx.beginPath();
     for (const s of isoLines(field, cols, rows, level, cell, cell)) {
@@ -197,7 +222,7 @@ const topography: PlateSystem = (plate) => {
   ctx.save();
   ctx.fillStyle = rgba(ink, 0.7);
   ctx.beginPath();
-  ctx.arc(px, py, 2.4, 0, Math.PI * 2);
+  ctx.arc(px, py, 2.4 * k, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 };
@@ -208,7 +233,8 @@ const topography: PlateSystem = (plate) => {
 
 const isobar: PlateSystem = (plate) => {
   const { ctx, w, h, seed, ink, env } = plate;
-  const cell = Math.max(6, Math.min(w, h) / 34);
+  const k = strokeScale(w, h);
+  const cell = Math.max(6, Math.min(w, h) / (34 * Math.min(1.5, k)));
   const cols = Math.ceil(w / cell) + 1;
   const rows = Math.ceil(h / cell) + 1;
 
@@ -219,8 +245,8 @@ const isobar: PlateSystem = (plate) => {
   ctx.save();
   const levels = 9;
   for (let i = 1; i < levels; i += 1) {
-    ctx.strokeStyle = rgba(env, 0.5);
-    ctx.lineWidth = 1.15;
+    ctx.strokeStyle = rgba(env, 0.55);
+    ctx.lineWidth = 1.15 * k;
     ctx.beginPath();
     for (const s of isoLines(field, cols, rows, i / levels, cell, cell)) {
       ctx.moveTo(s.x1, s.y1);
@@ -238,7 +264,7 @@ const isobar: PlateSystem = (plate) => {
 
   ctx.save();
   ctx.strokeStyle = rgba(ink, 0.55);
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 1.6 * k;
   ctx.beginPath();
   ctx.moveTo(lx - r, ly);
   ctx.lineTo(lx + r, ly);
@@ -300,19 +326,20 @@ const rule: PlateSystem = (plate) => {
   const to = w * (0.72 + next() * 0.16);
 
   ctx.save();
+  const k = strokeScale(w, h);
   ctx.strokeStyle = rgba(ink, 0.52);
-  ctx.lineWidth = 1.15;
+  ctx.lineWidth = 1.15 * k;
   ctx.beginPath();
   ctx.moveTo(from, y);
   ctx.lineTo(to, y);
   ctx.stroke();
 
-  ctx.strokeStyle = rgba(oxide, 0.75);
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = rgba(oxide, 0.8);
+  ctx.lineWidth = 1.4 * k;
   const tick = from + (to - from) * (0.2 + next() * 0.6);
   ctx.beginPath();
-  ctx.moveTo(tick, y - 5);
-  ctx.lineTo(tick, y + 5);
+  ctx.moveTo(tick, y - 5 * k);
+  ctx.lineTo(tick, y + 5 * k);
   ctx.stroke();
   ctx.restore();
 };
@@ -372,7 +399,7 @@ const lattice: PlateSystem = (plate) => {
 
   ctx.save();
   ctx.strokeStyle = rgba(env, 0.55);
-  ctx.lineWidth = 0.95;
+  ctx.lineWidth = 0.95 * strokeScale(w, h);
   ctx.beginPath();
   for (let i = 0; i < points.length; i += 1) {
     for (let j = i + 1; j < points.length; j += 1) {
@@ -409,9 +436,11 @@ const diagram: PlateSystem = (plate) => {
   const top = h * 0.14;
   const bottom = h * 0.84;
 
+  const k = strokeScale(w, h);
+
   ctx.save();
   ctx.strokeStyle = rgba(ink, 0.55);
-  ctx.lineWidth = 1.15;
+  ctx.lineWidth = 1.15 * k;
   ctx.beginPath();
   ctx.moveTo(left, top);
   ctx.lineTo(left, bottom);
@@ -419,6 +448,7 @@ const diagram: PlateSystem = (plate) => {
   ctx.stroke();
 
   ctx.strokeStyle = rgba(ink, 0.34);
+  ctx.lineWidth = k;
   ctx.beginPath();
   for (let i = 1; i <= 4; i += 1) {
     const y = bottom - ((bottom - top) * i) / 5;
@@ -494,7 +524,7 @@ const diagram: PlateSystem = (plate) => {
       ctx.stroke();
     }
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 2.2 * k, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -512,9 +542,9 @@ const diagram: PlateSystem = (plate) => {
       const c = (sy - m * sx) / n;
 
       ctx.save();
-      ctx.strokeStyle = rgba(oxide, 0.6);
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = rgba(oxide, 0.65);
+      ctx.lineWidth = 1.2 * k;
+      ctx.setLineDash([5 * k, 4 * k]);
       ctx.beginPath();
       ctx.moveTo(left, m * left + c);
       ctx.lineTo(right, m * right + c);
