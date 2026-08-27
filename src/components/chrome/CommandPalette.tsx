@@ -1,5 +1,5 @@
-import { archive, DEPARTMENTS, format } from "@/lib/archive";
-import { Palette, type PaletteRecord, type PaletteDestination } from "./Palette";
+import { archive } from "@/lib/archive";
+import { Palette, type PaletteDestination } from "./Palette";
 
 /**
  * Server half of the enquiry surface.
@@ -15,25 +15,10 @@ import { Palette, type PaletteRecord, type PaletteDestination } from "./Palette"
  * handler and the interface above it does not change.
  */
 export async function CommandPalette() {
-  const [entries, collections] = await Promise.all([
-    archive.entries({ order: "recently-accessioned" }),
+  const [records, collections] = await Promise.all([
+    archive.searchable(),
     archive.collections(),
   ]);
-
-  const records: PaletteRecord[] = entries.map((entry) => ({
-    id: entry.id,
-    display: format(entry.id),
-    dept: entry.dept,
-    department: DEPARTMENTS[entry.dept].name,
-    slug: entry.slug,
-    title: entry.title,
-    summary: entry.summary,
-    place: entry.place
-      ? [entry.place.name, entry.place.region].filter(Boolean).join(", ")
-      : undefined,
-    collections: entry.collections,
-    date: entry.date,
-  }));
 
   const destinations: PaletteDestination[] = [
     { href: "/archive", label: "The Archive", note: "Every record, by department" },

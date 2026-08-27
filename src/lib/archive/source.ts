@@ -1,3 +1,5 @@
+import { byAccession } from "./accession";
+import type { MatchField, SearchableRecord } from "./search";
 import type {
   AccessionId,
   Collection,
@@ -65,7 +67,7 @@ export interface SearchHit {
   /** Lower is better. */
   score: number;
   /** Which field matched, for display in the search surface. */
-  field: "title" | "summary" | "accession" | "place" | "tag" | "collection" | "body";
+  field: MatchField;
   /** The matched text, for highlighting. */
   excerpt?: string;
 }
@@ -97,6 +99,15 @@ export interface ArchiveSource {
   search(query: string, limit?: number): Promise<SearchHit[]>;
 
   /**
+   * The searchable projection of the whole archive.
+   *
+   * Exists so the enquiry surface can score records in the browser without
+   * a component ever importing content. The interface owes the client a
+   * shape, not a file.
+   */
+  searchable(): Promise<SearchableRecord[]>;
+
+  /**
    * Random discovery is a first-class navigation mode, not a novelty, so
    * it belongs in the source rather than in a component.
    *
@@ -125,10 +136,16 @@ export function orderEntries<T extends EntrySummary>(
       return sorted.sort(compareByDate);
     case "reverse-chronological":
       return sorted.sort((a, b) => compareByDate(b, a));
+    /* Registry order, not alphabetical. Sorting the accession number as a
+       string puts the departments in the order AU, DR, FN, OB … which is
+       an order the institution uses nowhere else: every other surface
+       lists them Objects, Places, Field Notes, Photographs, Thoughts,
+       Sounds, Experiments, Research. A register that disagrees with its
+       own institution about the shape of it is not a register. */
     case "accession":
-      return sorted.sort((a, b) => a.id.localeCompare(b.id));
+      return sorted.sort((a, b) => byAccession(a.id, b.id));
     case "recently-accessioned":
-      return sorted.sort((a, b) => b.id.localeCompare(a.id));
+      return sorted.sort((a, b) => byAccession(b.id, a.id));
   }
 }
 

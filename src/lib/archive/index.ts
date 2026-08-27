@@ -24,3 +24,5 @@ export type {
   SearchHit,
 } from "./source";
 export { haversine, mulberry32, orderEntries } from "./source";
+export { runSearch, scoreRecord, toSearchable, normalise } from "./search";
+export type { SearchableRecord, Match, MatchField } from "./search";

@@ -17,7 +17,10 @@ export default async function LedgerPage() {
     archive.stats(),
   ]);
 
-  const rows: LedgerRow[] = entries.map((entry) => ({
+  /* Entries arrive in registry order, so the index is the register's own
+     sequence and the client never has to know the departmental order. */
+  const rows: LedgerRow[] = entries.map((entry, seq) => ({
+    seq,
     id: entry.id,
     display: format(entry.id),
     slug: entry.slug,

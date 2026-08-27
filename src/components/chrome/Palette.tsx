@@ -2,22 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useViewTransition } from "@/lib/motion/ViewTransitions";
-import type { DepartmentCode } from "@/lib/archive";
+import { runSearch, normalise, type SearchableRecord } from "@/lib/archive/search";
 import styles from "./Palette.module.css";
 
-export interface PaletteRecord {
-  id: string;
-  /** Accession number in display form. */
-  display: string;
-  dept: DepartmentCode;
-  department: string;
-  slug: string;
-  title: string;
-  summary?: string;
-  place?: string;
-  collections: string[];
-  date: string;
-}
+/* The enquiry surface searches a payload that is already in the browser
+   rather than asking the server, so results appear between one keystroke
+   and the next with no loading state to design around. The scoring itself
+   is the shared implementation in lib/archive/search — this component does
+   not have opinions about relevance. */
+export type PaletteRecord = SearchableRecord;
 
 export interface PaletteDestination {
   href: string;
@@ -33,50 +26,6 @@ interface Row {
   note?: string;
   meta: string;
   score: number;
-}
-
-function normalise(value: string): string {
-  return value.toLowerCase().replace(/[–—]/g, "-");
-}
-
-/* Fields are weighted rather than concatenated. An accession number typed
-   in full always wins; a title beats a place; a place beats a tag. Ordering
-   results by where the match occurred is the difference between a search
-   that feels considered and one that feels like a filter. */
-function scoreRecord(record: PaletteRecord, needle: string): Row | null {
-  const row = (score: number, note?: string): Row => ({
-    key: record.id,
-    href: `/archive/record/${record.slug}`,
-    id: record.display,
-    title: record.title,
-    note,
-    meta: record.department,
-    score,
-  });
-
-  const id = normalise(record.id);
-  if (id.includes(needle)) return row(id.startsWith(needle) ? 0 : 1, record.summary);
-
-  const title = normalise(record.title);
-  if (title.startsWith(needle)) return row(2, record.summary);
-  if (title.includes(needle)) return row(3, record.summary);
-
-  if (record.place && normalise(record.place).includes(needle)) {
-    return row(4, record.place);
-  }
-
-  if (normalise(record.department).includes(needle)) {
-    return row(5, record.summary);
-  }
-
-  const collection = record.collections.find((c) => normalise(c).includes(needle));
-  if (collection) return row(6, collection.replace(/-/g, " "));
-
-  if (record.summary && normalise(record.summary).includes(needle)) {
-    return row(7, record.summary);
-  }
-
-  return null;
 }
 
 export function Palette({
@@ -96,9 +45,9 @@ export function Palette({
   const origin = useRef<HTMLElement | null>(null);
 
   const { rows, kind } = useMemo(() => {
-    const needle = normalise(query.trim());
+    const trimmed = query.trim();
 
-    if (needle.length === 0) {
+    if (trimmed.length === 0) {
       return {
         kind: "destinations" as const,
         rows: destinations.map<Row>((d, i) => ({
@@ -112,12 +61,17 @@ export function Palette({
       };
     }
 
-    const matched = records
-      .map((record) => scoreRecord(record, needle))
-      .filter((row): row is Row => row !== null)
-      .sort((a, b) => a.score - b.score || a.title.localeCompare(b.title))
-      .slice(0, 12);
+    const matched = runSearch(records, trimmed).map<Row>((match) => ({
+      key: match.record.id,
+      href: `/archive/record/${match.record.slug}`,
+      id: match.record.display,
+      title: match.record.title,
+      note: match.excerpt,
+      meta: match.record.department,
+      score: match.score,
+    }));
 
+    const needle = normalise(trimmed);
     const places = destinations
       .filter((d) => normalise(d.label).includes(needle))
       .map<Row>((d) => ({
@@ -171,8 +125,29 @@ export function Palette({
     if (open) {
       root.setAttribute("data-locked", "");
       record?.setAttribute("inert", "");
-      /* Focus after paint, so the field is genuinely on screen first. */
-      requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
+
+      /* Focus synchronously.
+
+         The field cannot be focused while the panel is still computed as
+         `visibility: hidden`, which is why this used to wait for an
+         animation frame. But a frame is the best case: under load it is
+         several, and the measured gap between pressing the shortcut and
+         the caret arriving was over two hundred milliseconds. A command
+         palette that drops the first thing you type is a broken command
+         palette.
+
+         Reading `offsetWidth` forces the pending style and layout to
+         flush, so `data-open` has taken effect and the field is focusable
+         on this tick. The frame callback stays only as a fallback for any
+         engine that still refuses. */
+      const field = input.current;
+      if (field) {
+        void field.offsetWidth;
+        field.focus({ preventScroll: true });
+        if (document.activeElement !== field) {
+          requestAnimationFrame(() => field.focus({ preventScroll: true }));
+        }
+      }
     } else {
       root.removeAttribute("data-locked");
       record?.removeAttribute("inert");

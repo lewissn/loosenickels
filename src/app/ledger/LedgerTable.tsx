@@ -5,6 +5,8 @@ import Link from "next/link";
 import styles from "./ledger.module.css";
 
 export interface LedgerRow {
+  /** Position in registry order, assigned by the source. */
+  seq: number;
   id: string;
   display: string;
   slug: string;
@@ -40,10 +42,16 @@ export function LedgerTable({ rows }: { rows: LedgerRow[] }) {
   const sorted = useMemo(() => {
     const collator = new Intl.Collator("en-GB", { numeric: true });
     const ordered = [...rows].sort((a, b) => {
-      const value = collator.compare(a[column], b[column]);
-      /* Ties fall back to accession order, so the register never shuffles
+      /* The accession column sorts by registry position rather than by the
+         text of the number. Departments run in charter order, not
+         alphabetically, and the string does not encode that. */
+      const value =
+        column === "id"
+          ? a.seq - b.seq
+          : collator.compare(a[column], b[column]);
+      /* Ties fall back to registry order, so the register never shuffles
          rows that compare equal. */
-      return value !== 0 ? value : collator.compare(a.id, b.id);
+      return value !== 0 ? value : a.seq - b.seq;
     });
     return descending ? ordered.reverse() : ordered;
   }, [column, descending, rows]);

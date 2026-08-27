@@ -10,6 +10,7 @@ import {
   type EntrySummary,
   type ResearchPaper,
 } from "./schema";
+import { runSearch, toSearchable } from "./search";
 import {
   haversine,
   mulberry32,
@@ -64,80 +65,12 @@ function select(q: EntryQuery = {}): EntrySummary[] {
 }
 
 /* ---- Search -------------------------------------------------------------
-   Deliberately more capable than an archive this size requires. Fields are
-   weighted so that an accession number typed in full always wins, a title
-   match beats a body match, and a place name is worth more than a tag. */
+   Delegated. The scorer lives in ./search so that the enquiry surface in
+   the browser runs exactly the same code over exactly the same shape;
+   two implementations is how the archive ended up unable to find a record
+   by its own tags. */
 
-const FIELD_WEIGHT: Record<SearchHit["field"], number> = {
-  accession: 0,
-  title: 1,
-  place: 2,
-  collection: 3,
-  summary: 4,
-  tag: 5,
-  body: 6,
-};
-
-function normalise(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    /* En-dashes in displayed accession numbers must match hyphens typed. */
-    .replace(/[–—]/g, "-");
-}
-
-function excerptAround(text: string, needle: string): string {
-  const at = normalise(text).indexOf(needle);
-  if (at < 0) return text.slice(0, 120);
-  const from = Math.max(0, at - 40);
-  const to = Math.min(text.length, at + needle.length + 80);
-  return `${from > 0 ? "…" : ""}${text.slice(from, to).trim()}${to < text.length ? "…" : ""}`;
-}
-
-function searchEntry(e: Entry, needle: string): SearchHit | null {
-  const summary = toSummary(e);
-  const hit = (field: SearchHit["field"], excerpt?: string): SearchHit => ({
-    entry: summary,
-    score: FIELD_WEIGHT[field],
-    field,
-    excerpt,
-  });
-
-  if (normalise(e.id).includes(needle)) return hit("accession", e.id);
-  if (normalise(e.title).includes(needle)) return hit("title", e.title);
-
-  if (e.place) {
-    const where = [e.place.name, e.place.region, e.place.country]
-      .filter(Boolean)
-      .join(", ");
-    if (normalise(where).includes(needle)) return hit("place", where);
-  }
-
-  const collection = e.collections.find((c) => normalise(c).includes(needle));
-  if (collection) return hit("collection", collection.replace(/-/g, " "));
-
-  if (e.summary && normalise(e.summary).includes(needle)) {
-    return hit("summary", excerptAround(e.summary, needle));
-  }
-
-  const tag = e.tags.find((t) => normalise(t).includes(needle));
-  if (tag) return hit("tag", tag);
-
-  for (const block of e.body) {
-    const text =
-      "text" in block
-        ? block.text
-        : block.type === "list"
-          ? block.items.join(" ")
-          : "";
-    if (text && normalise(text).includes(needle)) {
-      return hit("body", excerptAround(text, needle));
-    }
-  }
-
-  return null;
-}
+const SEARCHABLE = PUBLIC.map(toSearchable);
 
 /* ---- Adjacency ----------------------------------------------------------
    What the archive considers nearby when nothing was explicitly linked:
@@ -243,16 +176,24 @@ export const localSource: ArchiveSource = {
     } satisfies ArchiveStats;
   },
 
-  async search(query, limit = 8) {
-    const needle = normalise(query.trim());
-    if (needle.length < 2) return [];
+  async search(query, limit = 12) {
+    const byId = new Map(PUBLIC.map((e) => [e.id, e]));
+    return runSearch(SEARCHABLE, query, limit).flatMap((match) => {
+      const entry = byId.get(match.record.id);
+      if (!entry) return [];
+      return [
+        {
+          entry: toSummary(entry),
+          score: match.score,
+          field: match.field,
+          excerpt: match.excerpt,
+        } satisfies SearchHit,
+      ];
+    });
+  },
 
-    return PUBLIC.map((e) => searchEntry(e, needle))
-      .filter((hit): hit is SearchHit => hit !== null)
-      .sort(
-        (a, b) => a.score - b.score || a.entry.id.localeCompare(b.entry.id),
-      )
-      .slice(0, limit);
+  async searchable() {
+    return SEARCHABLE;
   },
 
   async random(seed, query) {
