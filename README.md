@@ -226,8 +226,8 @@ brew install xcodegen
 cd ios && xcodegen && open Accession.xcodeproj
 ```
 
-It has never been compiled — see `ios/README.md`, which is honest about what
-that means, and where to put your Team ID first.
+It compiles, and `LN-PH-0001` was filed from a phone — see `ios/README.md`
+for what the first build cost, and where to put your Team ID.
 
 ---
 
@@ -253,6 +253,15 @@ GitHub Pages, from `.github/workflows/deploy-pages.yml` on every push to
   day and the pool, run by the build and again by the browser, so it turns
   over daily without the site being rebuilt. `revalidate` would do nothing
   here and is not used.
+
+**Pages must be set to build from GitHub Actions**, under Settings → Pages →
+Build and deployment → Source. Left on *Deploy from a branch*, GitHub runs its
+own Jekyll build alongside this workflow, and the two race to publish the same
+site. Jekyll wins, and what it publishes is `README.md` rendered as the home
+page — so `/` returns 200 and every other route 404s, with both workflows
+reporting success. That cost an evening. The build also drops a `.nojekyll`
+into `out/`, because Jekyll ignores anything underscore-prefixed and Next.js
+emits `_next/`.
 
 `CNAME` holds `www.loosenickels.com` and is copied into the build output, so
 it is live rather than inert. The brief said `loosenickels.co.uk`; the domain

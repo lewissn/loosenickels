@@ -57,13 +57,25 @@ jobs:
           git config user.email "noreply@loosenickels.com"
           git add src/content/records
           git commit -m "Digitise: dimensions, capture time and placeholders"
-          git push
+          # Records arrive from a phone, two commits at a time, so main can
+          # move underneath this run. The build below reads the working tree
+          # rather than the remote, so a push that cannot be landed costs
+          # only the stored digitisation, which is redone next time. Failing
+          # the deploy over it would take the site down instead.
+          git pull --rebase --autostash origin main && git push \
+            || echo "::warning::Digitisation could not be recorded. Building and deploying anyway; it will be redone on the next push."
 
       - name: Build static website
         run: npm run build
 
       - name: Preserve custom domain
-        run: cp CNAME out/CNAME
+        run: |
+          cp CNAME out/CNAME
+          # Next.js emits _next/, and Jekyll drops anything underscore-prefixed.
+          # Inert while Pages publishes this artifact directly, and the
+          # difference between a site and a blank page if it is ever pointed
+          # back at a branch.
+          touch out/.nojekyll
 
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
