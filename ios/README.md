@@ -10,11 +10,21 @@ about — position, the accuracy of that position, altitude, weather, the
 moment the photograph was taken — arrives on its own. What is left to
 type is a title.
 
-**This has never been compiled.** It was written without a Mac. The
-record shape it produces has been validated against the site's own schema
-end to end, and the slug algorithm has been tested against the schema's
-pattern, but the Swift itself has not been through a compiler. Expect to
-fix something on the first build.
+**It compiles, and it has filed a record.** Written without a Mac, it
+went through a compiler for the first time on 27 August 2026 and needed
+exactly one correction: `Accession.pattern` was a bare `/…/` regex
+literal, which Swift 5 will not parse without an opt-in flag. Extended
+delimiters — `#/…/#` — work as they stand. Nothing else was wrong; the
+remaining 1,300 lines built clean, without warnings.
+
+It has since run in the simulator and on a phone, and accessioned
+`LN-PH-0001` into this repository — photograph, position, reverse
+geocode and record, in a single pass.
+
+Two things remain unexercised. **WeatherKit** needs its entitlement
+registered before it will return anything, so no record has yet carried a
+weather line. And the app has only ever *created*: nothing here reads or
+updates an existing record.
 
 ---
 

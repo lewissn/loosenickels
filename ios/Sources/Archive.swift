@@ -133,7 +133,7 @@ struct Record: Codable {
             /* Sorted and indented, because these land in a git repository
                and a record whose diff is unreadable is a record nobody
                will ever correct. */
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
             var data = try encoder.encode(self)
             data.append(0x0A) // The repository's files end in a newline.
             return data
@@ -144,7 +144,7 @@ struct Record: Codable {
 // MARK: - Accession numbers
 
 enum Accession {
-    static let pattern = /^LN-(OB|PL|FN|PH|TH|AU|XP|DR)-([0-9]{4})$/
+    static let pattern = #/^LN-(OB|PL|FN|PH|TH|AU|XP|DR)-([0-9]{4})$/#
 
     /// `LN-OB-0007`
     static func format(_ dept: Department, _ sequence: Int) -> String {

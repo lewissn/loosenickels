@@ -53,7 +53,7 @@ struct Repository: Codable, Equatable {
 enum GitHubError: LocalizedError {
     case noToken
     case alreadyExists(String)
-    case unauthorised
+    case unauthorised(Int, String)
     case notFound(String)
     case http(Int, String)
     case malformedResponse
@@ -64,8 +64,16 @@ enum GitHubError: LocalizedError {
             return "No access token. Add one in Settings."
         case .alreadyExists(let path):
             return "\(path) already exists. The archive declined to overwrite it."
-        case .unauthorised:
-            return "GitHub rejected the token. Check it has Contents: read and write on this repository."
+        /* 401 and 403 are different problems wearing the same coat: the
+           first means the token itself did not read as a credential, the
+           second means it did and was not allowed to do this. Reporting
+           them as one thing sends you to the wrong settings page. */
+        case .unauthorised(401, let message):
+            return "GitHub did not recognise the token. It has most likely expired, been revoked, or been pasted incompletely. \(message)"
+        case .unauthorised(403, let message):
+            return "The token is valid but not allowed to do this. Check it grants Contents: read and write on this repository. \(message)"
+        case .unauthorised(let code, let message):
+            return "GitHub rejected the token (\(code)). \(message)"
         case .notFound(let path):
             return "GitHub could not find \(path). Check the owner, repository and branch in Settings."
         case .http(let code, let message):
@@ -125,17 +133,18 @@ struct GitHub {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw GitHubError.malformedResponse }
 
+        let message = (try? JSONDecoder().decode(ErrorBody.self, from: data))?.message ?? ""
+
         switch http.statusCode {
         case 200..<300:
             return data
         case 401, 403:
-            throw GitHubError.unauthorised
+            throw GitHubError.unauthorised(http.statusCode, message)
         case 404:
             throw GitHubError.notFound(path)
         case 409, 422:
             throw GitHubError.alreadyExists(path)
         default:
-            let message = (try? JSONDecoder().decode(ErrorBody.self, from: data))?.message ?? ""
             throw GitHubError.http(http.statusCode, message)
         }
     }
