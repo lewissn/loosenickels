@@ -3,7 +3,7 @@ import { archive, DEPARTMENTS, format } from "@/lib/archive";
 import { Plate } from "@/components/plate/Plate";
 import { Readout } from "@/components/chrome/Readout";
 import { Reveal } from "@/components/primitives/Reveal";
-import { plateName } from "@/lib/motion/names";
+import { RecordLink } from "@/components/archive/RecordLink";
 import { monthYear } from "@/lib/util/time";
 import styles from "./page.module.css";
 
@@ -45,29 +45,32 @@ export default async function Home() {
                 →
               </span>
             </Link>
-            <Link href="/random" className={styles.entrance} prefetch={false}>
+            {/* A plain anchor: /random is a route handler that redirects to
+                whichever record it drew, and must reach the server. */}
+            <a href="/random" className={styles.entrance}>
               Draw at random
               <span className={styles.arrow} aria-hidden="true">
                 →
               </span>
-            </Link>
+            </a>
           </Reveal>
         </div>
 
         {featured && department && (
-          <div className={styles.exhibit} data-dept={featured.dept}>
+          <div
+            className={styles.exhibit}
+            data-dept={featured.dept}
+            data-record={featured.id}
+          >
             <Reveal as="wipe" delay={120}>
-              <Link
+              <RecordLink
                 href={`/archive/record/${featured.slug}`}
+                id={featured.id}
                 className={styles.frame}
                 aria-label={`On display: ${featured.title}, ${format(featured.id)}`}
               >
-                <Plate
-                  id={featured.id}
-                  dept={featured.dept}
-                  viewTransitionName={plateName(featured.id)}
-                />
-              </Link>
+                <Plate id={featured.id} dept={featured.dept} />
+              </RecordLink>
             </Reveal>
 
             <Reveal delay={420} className={styles.caption} distance={8}>

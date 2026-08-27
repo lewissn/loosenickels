@@ -74,6 +74,11 @@ const Context = createContext<ViewTransitionContext | null>(null);
 function supportsViewTransitions(): boolean {
   if (typeof document === "undefined") return false;
   if (!(document as Document & StartViewTransition).startViewTransition) return false;
+  /* A transition started while the document is hidden is aborted by the
+     browser as an invalid state — a background tab, a minimised window, a
+     headless capture. There is nothing to animate for a reader who is not
+     looking, so the navigation simply happens. */
+  if (document.visibilityState !== "visible") return false;
   return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
@@ -149,22 +154,95 @@ export function ViewTransitionProvider({ children }: { children: ReactNode }) {
         return painted;
       });
 
-      /* A navigation that never completes — an aborted prefetch, a route
-         that throws — must not leave the page permanently frozen under a
-         transition snapshot. */
-      const guard = window.setTimeout(() => {
-        transition.skipTransition();
+      /* Cleanup must not depend on the transition ending well.
+         `finished` is the happy path and it is not guaranteed to settle:
+         a transition aborted before it starts — the commonest cause is
+         the document not being visible at the moment of the click —
+         rejects `ready` and can leave `finished` pending forever.
+
+         That matters more than it sounds. `data-transition` on the root
+         element suppresses every reveal on the site while a navigation is
+         in flight, so a single aborted transition would leave the
+         attribute set and silently disable reveal animations for the rest
+         of the session, with nothing visibly broken to point at.
+
+         So: three independent releases, all idempotent. Whichever fires
+         first wins and the others become no-ops. */
+      let released = false;
+      const finish = () => {
+        if (released) return;
+        released = true;
+        window.clearTimeout(guard);
+        /* The update callback may still be holding the transition open. */
         pending.current?.();
         pending.current = null;
-      }, 3000);
-
-      transition.finished.finally(() => {
-        window.clearTimeout(guard);
         release();
-      });
+      };
+
+      const guard = window.setTimeout(finish, 3000);
+
+      /* Aborted before it began. The DOM update still lands; there is
+         simply no animation to keep the name alive for. */
+      transition.ready.catch(finish);
+      transition.finished.then(finish, finish);
     },
     [release, router],
   );
+
+  /* =======================================================================
+     Every internal link goes through the transition.
+
+     The alternative — a bespoke link component used at each call site —
+     was tried and is how this came to ship with the transition machinery
+     fully built and connected to nothing: one component was converted,
+     several dozen plain links were not, and the feature was silently
+     absent from most of the site.
+
+     Intercepting at the document means a link cannot be forgotten. Links
+     that want more than a route change (a record carrying its plate) call
+     `navigate` themselves and mark the event handled; this listener sees
+     `defaultPrevented` and stands aside.
+
+     Everything that is not an ordinary left-click on a same-origin link
+     is left completely alone: modified clicks, downloads, targeted links,
+     hash links and external links all behave exactly as they would if
+     none of this existed.
+     ======================================================================= */
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const anchor = (event.target as Element | null)?.closest?.("a");
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href || anchor.hasAttribute("download")) return;
+      if (anchor.target && anchor.target !== "_self") return;
+      /* Explicitly opted out — /random must reach the server to be drawn. */
+      if (anchor.dataset.noTransition !== undefined) return;
+
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      /* A hash on the current page is a scroll, not a navigation. */
+      if (url.pathname === window.location.pathname && url.hash) return;
+      if (url.href === window.location.href) return;
+
+      event.preventDefault();
+      navigate(url.pathname + url.search, { kind: "lateral" });
+    };
+
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [navigate]);
 
   return (
     <Context.Provider value={{ navigate, transitioning }}>

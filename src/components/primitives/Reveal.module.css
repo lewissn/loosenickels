@@ -122,6 +122,29 @@
   will-change: auto;
 }
 
+/* =========================================================================
+   Arriving by a view transition
+
+   While a navigation is in flight the transition is the motion, and a
+   reveal running underneath it is a second animation competing with the
+   first. Worse, the browser snapshots the destination the moment it
+   renders: an element part-way through a reveal is photographed part-way
+   through a reveal, and the transition interpolates towards a half-faded
+   page.
+
+   So during a transition, reveals are simply already resolved. They go
+   back to animating for anything scrolled to afterwards.
+   ========================================================================= */
+
+:global(:root[data-transition]) .reveal,
+:global(:root[data-transition]) .reveal[data-state="waiting"],
+:global(:root[data-transition]) .reveal[data-state="shown"] {
+  opacity: 1;
+  transform: none;
+  clip-path: none;
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal[data-state="waiting"],

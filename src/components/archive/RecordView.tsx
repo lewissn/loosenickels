@@ -306,10 +306,7 @@ function Related({
       <div className={styles.relatedGrid}>
         {shown.map((entry, i) => (
           <Reveal key={entry.id} delay={i * 60}>
-            {/* Nothing in this strip claims a transition name: the record
-                above it already holds one, and a name may only be used
-                once per document. */}
-            <RecordCard entry={entry} terse continuous={false} />
+            <RecordCard entry={entry} terse />
           </Reveal>
         ))}
       </div>

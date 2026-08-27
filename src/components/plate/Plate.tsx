@@ -142,6 +142,8 @@ export function Plate({
     <div
       ref={holder}
       data-dept={dept}
+      /* Marks this as the element a navigation should carry with it. */
+      data-plate=""
       className={[styles.plate, compact ? styles.compact : "", className]
         .filter(Boolean)
         .join(" ")}

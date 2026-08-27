@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { DEPARTMENTS, format, type EntrySummary } from "@/lib/archive";
 import { Plate } from "@/components/plate/Plate";
-import { plateName } from "@/lib/motion/names";
+import { RecordLink } from "./RecordLink";
 import { monthYear } from "@/lib/util/time";
 import styles from "./RecordCard.module.css";
 
@@ -9,12 +8,6 @@ interface RecordCardProps {
   entry: EntrySummary;
   /** Suppresses the summary line where the layout is already dense. */
   terse?: boolean;
-  /**
-   * Whether this card should carry the plate's transition name. Only one
-   * element per document may claim a given name, so an index that shows a
-   * record twice must name it once.
-   */
-  continuous?: boolean;
 }
 
 /**
@@ -24,19 +17,17 @@ interface RecordCardProps {
  * the system: they have no plate, no frame and no caption block, and in a
  * page of plates they are what stops the grid becoming a grid.
  */
-export function RecordCard({
-  entry,
-  terse = false,
-  continuous = true,
-}: RecordCardProps) {
+export function RecordCard({ entry, terse = false }: RecordCardProps) {
   const href = `/archive/record/${entry.slug}`;
   const department = DEPARTMENTS[entry.dept];
 
   if (entry.dept === "TH") {
     return (
-      <article className={styles.thought} data-dept="TH">
+      <article className={styles.thought} data-dept="TH" data-record={entry.id}>
         <p className={styles.thoughtText}>
-          <Link href={href}>{entry.title}</Link>
+          <RecordLink href={href} id={entry.id}>
+            {entry.title}
+          </RecordLink>
         </p>
         <p className={styles.thoughtMeta}>
           <em>Thought</em>
@@ -52,7 +43,7 @@ export function RecordCard({
     : null;
 
   return (
-    <article className={styles.card} data-dept={entry.dept}>
+    <article className={styles.card} data-dept={entry.dept} data-record={entry.id}>
       <span className={styles.frame}>
         {entry.thumbnail ? (
           /* Real media, once it exists, always takes precedence over the
@@ -65,20 +56,11 @@ export function RecordCard({
             height={entry.thumbnail.height}
             loading="lazy"
             decoding="async"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              ...(continuous ? { viewTransitionName: plateName(entry.id) } : {}),
-            }}
+            data-plate=""
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
-          <Plate
-            id={entry.id}
-            dept={entry.dept}
-            compact
-            viewTransitionName={continuous ? plateName(entry.id) : undefined}
-          />
+          <Plate id={entry.id} dept={entry.dept} compact />
         )}
       </span>
 
@@ -86,9 +68,9 @@ export function RecordCard({
         <span className={styles.id}>{format(entry.id)}</span>
         <span className={styles.dept}>{department.singular}</span>
         <h3 className={styles.title}>
-          <Link href={href} className={styles.reach}>
+          <RecordLink href={href} id={entry.id} className={styles.reach}>
             {entry.title}
-          </Link>
+          </RecordLink>
         </h3>
         {!terse && entry.summary && (
           <p className={styles.summary}>{entry.summary}</p>

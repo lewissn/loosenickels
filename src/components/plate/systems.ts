@@ -358,13 +358,17 @@ const waveform: PlateSystem = (plate) => {
 const lattice: PlateSystem = (plate) => {
   const { ctx, w, h, seed, ink, env } = plate;
   const next = rng(seed);
-  const count = 26 + Math.floor(next() * 16);
+  /* Nodes per unit area rather than per plate, so a lattice at hero size
+     is a lattice and not a handful of dots in a large empty box. */
+  const count = Math.round(
+    Math.min(120, Math.max(24, (w * h) / 5200)) + next() * 14,
+  );
   const points = Array.from({ length: count }, () => ({
     x: w * (0.08 + next() * 0.84),
     y: h * (0.1 + next() * 0.8),
   }));
 
-  const reach = Math.min(w, h) * 0.26;
+  const reach = Math.min(w, h) * (0.26 * Math.sqrt(34 / count) + 0.06);
 
   ctx.save();
   ctx.strokeStyle = rgba(env, 0.55);
@@ -427,19 +431,68 @@ const diagram: PlateSystem = (plate) => {
   ctx.stroke();
   ctx.restore();
 
+  /* Minor ticks between the majors. Without them the axes read as two
+     bare lines at any size above a thumbnail. */
+  ctx.save();
+  ctx.strokeStyle = rgba(ink, 0.14);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 1; i < 20; i += 1) {
+    if (i % 4 === 0) continue;
+    const y = bottom - ((bottom - top) * i) / 20;
+    ctx.moveTo(left - 2, y);
+    ctx.lineTo(left + 2, y);
+    const x = left + ((right - left) * i) / 20;
+    ctx.moveTo(x, bottom - 2);
+    ctx.lineTo(x, bottom + 2);
+  }
+  ctx.stroke();
+
+  /* Gridlines on the majors, very faint. A figure this size with nothing
+     between its axes and its data reads as an empty chart. */
+  ctx.strokeStyle = rgba(ink, 0.08);
+  ctx.beginPath();
+  for (let i = 1; i <= 4; i += 1) {
+    const y = bottom - ((bottom - top) * i) / 5;
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+
   const slope = (next() - 0.35) * 0.9;
-  const points = Array.from({ length: 15 + Math.floor(next() * 10) }, () => {
+  /* The sample scales with the width of the plot. A fixed count is right
+     at thumbnail size and looks like a rounding error at full width. */
+  const sampleSize = Math.round(
+    Math.min(64, Math.max(14, (right - left) / 22)) + next() * 8,
+  );
+  const points = Array.from({ length: sampleSize }, () => {
     const t = next();
     const spread = (next() - 0.5) * 0.34;
     return {
       x: left + t * (right - left),
       y: bottom - (0.2 + t * slope + spread + 0.3) * (bottom - top) * 0.82,
+      error: next() < 0.28 ? 3 + next() * 9 : 0,
     };
   }).filter((p) => p.y > top && p.y < bottom);
 
   ctx.save();
   ctx.fillStyle = rgba(env, 0.85);
+  ctx.strokeStyle = rgba(env, 0.4);
+  ctx.lineWidth = 1;
   for (const p of points) {
+    /* Roughly one point in four carries an error bar. Real measurements
+       have uncertainty and a scatter that admits none looks invented. */
+    if (p.error > 0) {
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - p.error);
+      ctx.lineTo(p.x, p.y + p.error);
+      ctx.moveTo(p.x - 2.5, p.y - p.error);
+      ctx.lineTo(p.x + 2.5, p.y - p.error);
+      ctx.moveTo(p.x - 2.5, p.y + p.error);
+      ctx.lineTo(p.x + 2.5, p.y + p.error);
+      ctx.stroke();
+    }
     ctx.beginPath();
     ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
     ctx.fill();

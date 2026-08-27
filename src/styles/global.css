@@ -176,11 +176,6 @@ ol {
    numbers) claim their own view-transition-name and are exempt from this.
    ========================================================================= */
 
-::view-transition-group(root) {
-  animation-duration: var(--d-considered);
-  animation-timing-function: var(--e-inout);
-}
-
 ::view-transition-old(root) {
   animation: ln-route-out var(--d-base) var(--e-exit) both;
 }
@@ -204,21 +199,24 @@ ol {
   }
 }
 
-/* A plate carried between routes moves as one object: no cross-fade of the
-   two snapshots, just a single continuous transform of its group. */
-::view-transition-group(.ln-plate),
-::view-transition-group(.ln-title) {
+/* Any element that is named for a navigation — in practice the plate of
+   the record being opened — travels on the cinematic curve while the page
+   around it resolves on the shorter one. The plate is therefore still
+   moving after the new page has settled, which is what makes it read as
+   one object being carried across rather than two pages being swapped.
+
+   Targeted with `*` rather than by name. Names are minted per record
+   (`plate-LN-OB-0001`) so no static stylesheet can enumerate them, and
+   `view-transition-class`, which exists for exactly this, is too recent to
+   depend on. `root` is excluded by the more specific rule above it. */
+::view-transition-group(*) {
   animation-duration: var(--d-cinematic);
   animation-timing-function: var(--e-inout);
 }
 
-::view-transition-old(.ln-plate),
-::view-transition-new(.ln-plate) {
-  animation: none;
-  mix-blend-mode: normal;
-  height: 100%;
-  overflow: clip;
-  object-fit: cover;
+::view-transition-group(root) {
+  animation-duration: var(--d-considered);
+  animation-timing-function: var(--e-inout);
 }
 
 /* The institutional rail persists across every route and must not animate. */

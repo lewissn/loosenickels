@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useViewTransition } from "@/lib/motion/ViewTransitions";
 import type { DepartmentCode } from "@/lib/archive";
 import styles from "./Palette.module.css";
 
@@ -86,7 +86,7 @@ export function Palette({
   records: PaletteRecord[];
   destinations: PaletteDestination[];
 }) {
-  const router = useRouter();
+  const { navigate } = useViewTransition();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
@@ -195,7 +195,12 @@ export function Palette({
 
   const go = (href: string) => {
     setOpen(false);
-    router.push(href);
+    /* /random is a route handler and has to reach the server. */
+    if (href === "/random") {
+      window.location.href = href;
+      return;
+    }
+    navigate(href, { kind: "into" });
   };
 
   const onFieldKey = (event: React.KeyboardEvent<HTMLInputElement>) => {

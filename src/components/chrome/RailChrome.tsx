@@ -104,14 +104,9 @@ export function RailChrome({
             {String(holdings).padStart(4, "0")} records
           </span>
 
-          <Link
-            href="/random"
-            className={styles.control}
-            data-secondary="true"
-            prefetch={false}
-          >
+          <a href="/random" className={styles.control} data-secondary="true">
             Random
-          </Link>
+          </a>
 
           <button
             type="button"

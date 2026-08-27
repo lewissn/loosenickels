@@ -191,14 +191,13 @@ export function IndexLayer({
               {item.label}
             </Link>
           ))}
-          <Link
+          <a
             href="/random"
             className={styles.secondaryLink}
-            prefetch={false}
             tabIndex={open ? undefined : -1}
           >
             Random Record
-          </Link>
+          </a>
         </nav>
 
         <div className={styles.readout}>

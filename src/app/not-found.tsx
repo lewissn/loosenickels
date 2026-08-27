@@ -28,9 +28,11 @@ export default function NotFound() {
           <Link href="/ledger" className={styles.route}>
             Consult the ledger
           </Link>
-          <Link href="/random" className={styles.route} prefetch={false}>
+          {/* A plain anchor: /random is a route handler that redirects to
+              whichever record it drew, and must reach the server. */}
+          <a href="/random" className={styles.route}>
             Draw something at random
-          </Link>
+          </a>
           <Link href="/" className={styles.route}>
             Return to the entrance
           </Link>
