@@ -1,0 +1,62 @@
+{
+  "id": "LN-AU-0001",
+  "dept": "AU",
+  "slug": "rain-on-a-polytunnel",
+  "title": "Rain on a polytunnel",
+  "summary": "Six minutes and twelve seconds. The best rain surface in common use and nobody chose it for that.",
+  "date": "2026-09-12",
+  "place": {
+    "name": "Allotment, north of the town",
+    "region": "West Yorkshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.7461,
+      "lon": -2.0186,
+      "precision": 400
+    }
+  },
+  "weather": "Heavy shower, passing, 12 °C",
+  "collections": [
+    "water"
+  ],
+  "tags": [
+    "rain",
+    "recording",
+    "polythene"
+  ],
+  "significance": "personal",
+  "body": [
+    {
+      "type": "p",
+      "text": "Polythene under tension is a drum head about nine metres long, and rain plays it as one. Each drop is individually audible near the recorder and the rest arrives as a wash, so the whole thing has a foreground and a background without anybody arranging it."
+    },
+    {
+      "type": "p",
+      "text": "At 04:15 the shower intensifies and the individual drops stop being distinguishable. At 05:38 it thins again and they come back. This is the only event in the recording and it is enough."
+    },
+    {
+      "type": "measurements",
+      "rows": [
+        [
+          "Duration",
+          "6 min 12 s"
+        ],
+        [
+          "Recorder",
+          "Handheld, XY pair"
+        ],
+        [
+          "Position",
+          "Approx. 1.2 m below the apex, inside"
+        ],
+        [
+          "Interventions",
+          "None"
+        ]
+      ]
+    }
+  ],
+  "related": [
+    "LN-FN-0001"
+  ]
+}

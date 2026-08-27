@@ -1,0 +1,118 @@
+{
+  "id": "LN-DR-0001",
+  "dept": "DR",
+  "slug": "on-the-silhouette-of-a-single-field-boundary",
+  "title": "On the silhouette of a single field boundary",
+  "question": "Which tree along this hedgerow has the best silhouette, and can that be established without simply deciding?",
+  "finding": "The seventh tree. Established by a method the archive believes to be sound and would not defend under serious questioning.",
+  "summary": "Nineteen trees, photographed against the same sky within forty minutes, ranked by a criterion agreed before any of them were looked at.",
+  "date": "2026-12-14",
+  "acquired": "2026-12-14",
+  "place": {
+    "name": "Field boundary, west of the lane",
+    "region": "West Yorkshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.7502,
+      "lon": -2.0243,
+      "precision": 200,
+      "elevation": 268
+    }
+  },
+  "weather": "Flat overcast — chosen deliberately, 3 °C",
+  "collections": [
+    "unreasonably-good-trees"
+  ],
+  "tags": [
+    "trees",
+    "method",
+    "winter",
+    "silhouette"
+  ],
+  "significance": "considerable",
+  "method": [
+    "Photograph each tree from due south at 35 mm equivalent, from a distance adjusted so the crown fills the frame height.",
+    "Work only under unbroken overcast, so that every subject is lit identically and no tree benefits from having been visited at a better hour.",
+    "Reduce each exposure to a one-bit mask. Discard all information except the outline.",
+    "Score on three criteria agreed in advance: enclosed sky, branch order, and asymmetry about the vertical.",
+    "Do not look at the photographs as photographs until scoring is complete."
+  ],
+  "body": [
+    {
+      "type": "lede",
+      "text": "Nineteen ash and two oak stand along four hundred metres of boundary. In winter, with no leaf, they are as close to a controlled comparison as anything the archive is likely to be given."
+    },
+    {
+      "type": "p",
+      "text": "The difficulty with a question of this kind is not gathering the evidence. It is that the answer is obvious within about four seconds of arriving, and everything that follows is at risk of being an elaborate justification of that first impression. The method was therefore designed principally to make it possible to be wrong."
+    },
+    {
+      "type": "p",
+      "text": "Enclosed sky is the proportion of the bounding box that is sky fully surrounded by branch. It rewards trees that hold their structure in a way that makes shapes rather than a mass. Branch order counts bifurcations along the longest path from trunk to tip, which rewards trees that resolve rather than trees that are merely large. Asymmetry is measured about the vertical axis, and is included because a perfectly symmetrical tree is a poor silhouette and everybody knows it."
+    },
+    {
+      "type": "measurements",
+      "rows": [
+        [
+          "Subjects",
+          "21 (19 ash, 2 oak)"
+        ],
+        [
+          "Exposures",
+          "63"
+        ],
+        [
+          "Elapsed",
+          "38 min"
+        ],
+        [
+          "Enclosed sky, tree 07",
+          "0.212"
+        ],
+        [
+          "Enclosed sky, mean",
+          "0.126"
+        ],
+        [
+          "Branch order, tree 07",
+          "9"
+        ],
+        [
+          "Branch order, mean",
+          "6.8"
+        ],
+        [
+          "Asymmetry, tree 07",
+          "0.31"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Tree seven leads on all three criteria, which is not what was hoped for. A split result would have required adjudication and adjudication would have been more interesting. As it stands the method agrees with the four-second impression, and the archive is left unable to distinguish between having designed a good method and having designed a method that produces the answer it started with."
+    },
+    {
+      "type": "note",
+      "text": "Tree seven is also one of the nine recorded as holding a full crown in LN–FN–0004. It is unlikely to remain so and the survey should be understood in that light."
+    },
+    {
+      "type": "quote",
+      "text": "The best silhouette on the boundary belongs to a tree that is probably dying. This was not among the criteria and has not been allowed to affect the score."
+    }
+  ],
+  "footnotes": [
+    {
+      "marker": "1",
+      "text": "Trees 12 and 18 are the oaks. Both score poorly on enclosed sky and both were included specifically so that the ash would have something to beat."
+    },
+    {
+      "marker": "2",
+      "text": "The one-bit reduction was performed at a fixed threshold rather than an adaptive one, on the grounds that an adaptive threshold would have been a second, undeclared judgement."
+    }
+  ],
+  "related": [
+    "LN-FN-0004",
+    "LN-PL-0004"
+  ],
+  "remark": "Concluded. To be repeated when tree seven is gone."
+}

@@ -1,0 +1,45 @@
+{
+  "id": "LN-PH-0002",
+  "dept": "PH",
+  "slug": "six-windows",
+  "title": "Six windows",
+  "summary": "A wall with six windows, of which two are real. Photographed straight on, because it deserved to be.",
+  "date": "2026-06-02",
+  "place": {
+    "name": "Mill elevation, Hebden Bridge",
+    "region": "West Yorkshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.7395,
+      "lon": -2.0089,
+      "precision": 30
+    }
+  },
+  "collections": [
+    "evidence-of-people",
+    "buildings-i-would-live-in"
+  ],
+  "tags": [
+    "architecture",
+    "windows",
+    "brick"
+  ],
+  "significance": "undetermined",
+  "body": [
+    {
+      "type": "p",
+      "text": "Four of the six are blind: built as openings, bricked flush at some later date, and then — this is the part worth the photograph — painted to look like windows, including the glazing bars and a suggestion of reflection."
+    },
+    {
+      "type": "p",
+      "text": "Somebody was paid to do that. Somebody stood on a ladder in the north of England and painted a picture of a window onto a wall, at a height where it would only ever be seen from an angle, and did a competent job of it."
+    },
+    {
+      "type": "p",
+      "text": "The paint is failing on two of them and the brick is coming through, which means there is now a window painted onto a wall in the process of turning back into a wall."
+    }
+  ],
+  "related": [
+    "LN-DR-0003"
+  ]
+}

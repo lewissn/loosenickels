@@ -137,7 +137,16 @@ export default async function AboutPage() {
               </div>
               <div className={styles.line}>
                 <dt>Departments</dt>
-                <dd>{DEPARTMENT_LIST.length}</dd>
+                {/* Occupied against defined. The archive declines to round
+                    the second number down to flatter the first. */}
+                <dd>
+                  {
+                    DEPARTMENT_LIST.filter(
+                      (d) => stats.byDepartment[d.code] > 0,
+                    ).length
+                  }{" "}
+                  of {DEPARTMENT_LIST.length}
+                </dd>
               </div>
               <div className={styles.line}>
                 <dt>Collections</dt>

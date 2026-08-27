@@ -1,0 +1,54 @@
+{
+  "id": "LN-OB-0002",
+  "dept": "OB",
+  "slug": "sliding-bevel-rosewood-and-brass",
+  "title": "Sliding bevel, rosewood and brass",
+  "summary": "A tool worn smooth in one place by a thumb that was not the archive's.",
+  "date": "2026-06-19",
+  "acquired": "2026-06-19",
+  "place": {
+    "name": "House clearance, Hebden Bridge",
+    "region": "West Yorkshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.7422,
+      "lon": -2.0141,
+      "precision": 900
+    }
+  },
+  "material": "Rosewood stock, brass fittings, steel blade",
+  "dimensions": "Stock 230 mm; blade 250 mm",
+  "source": "Acquired for £4 from a table at the front of a house clearance.",
+  "collections": [
+    "evidence-of-people",
+    "things-that-will-outlive-me"
+  ],
+  "tags": [
+    "tool",
+    "woodwork",
+    "wear"
+  ],
+  "significance": "personal",
+  "body": [
+    {
+      "type": "p",
+      "text": "The blade still moves. The wing nut still holds. Nothing about the tool requires attention, which is more than can be said for most things of its age."
+    },
+    {
+      "type": "p",
+      "text": "On the upper edge of the stock, about a third of the way along, the rosewood is worn perhaps a millimetre below the surrounding surface, polished, and slightly darker. It is exactly where a right thumb would sit while the left hand set the angle. Somebody did this several thousand times."
+    },
+    {
+      "type": "note",
+      "text": "The archive has been unable to establish who, and has not tried especially hard, on the grounds that the wear is the more interesting record."
+    },
+    {
+      "type": "p",
+      "text": "There are no maker's marks. There is a set of initials scratched into the underside of the stock, in a hand that was not concerned about being neat, reading either J.W.H. or J.W.B."
+    }
+  ],
+  "related": [
+    "LN-TH-0003",
+    "LN-OB-0004"
+  ]
+}

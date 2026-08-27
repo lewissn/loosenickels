@@ -1,0 +1,25 @@
+{
+  "id": "LN-TH-0004",
+  "dept": "TH",
+  "slug": "the-second-visit",
+  "title": "Nowhere is properly seen on the first visit.",
+  "date": "2026-03-30",
+  "tags": [
+    "places",
+    "attention"
+  ],
+  "collections": [
+    "roads-worth-taking"
+  ],
+  "significance": "personal",
+  "body": [
+    {
+      "type": "p",
+      "text": "The first visit is spent establishing where things are. Only on the second is there any capacity left over for noticing what they are like."
+    },
+    {
+      "type": "p",
+      "text": "This is an argument for going back to the same six places indefinitely rather than to sixty places once, and the archive is aware that it is a convenient argument for somebody who does not travel very far."
+    }
+  ]
+}

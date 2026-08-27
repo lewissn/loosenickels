@@ -13,10 +13,20 @@
   --ground-raised:  #edeae1;
   --ground-vitrine: #eeebe3;
 
+  /* The ink ladder has a floor. `faint` carries real text — accession
+     numbers, column headings, the standing labels — almost always at
+     micro size, so it holds 4.5:1 against the ground and nothing quieter
+     is allowed to carry a word. `ghost` is for marks rather than text:
+     registration crosses, rules, a plate's furniture. It holds 3:1.
+
+     This compresses the gap between `muted` and `faint` more than is
+     comfortable. That is the correct trade: an archive whose labels
+     cannot be read at arm's length has failed at the one thing it is
+     for. */
   --ink:            #1a1915;
   --ink-muted:      #57544a;
-  --ink-faint:      #8a8578;
-  --ink-ghost:      #a9a496;
+  --ink-faint:      #666359;
+  --ink-ghost:      #837f74;
 
   --rule:           rgb(26 25 21 / 0.16);
   --rule-faint:     rgb(26 25 21 / 0.075);
@@ -168,8 +178,8 @@
 
   --ink:            #e4e0d4;
   --ink-muted:      #948f80;
-  --ink-faint:      #66625a;
-  --ink-ghost:      #4a4740;
+  --ink-faint:      #807d77;
+  --ink-ghost:      #64625c;
 
   --rule:           rgb(228 224 212 / 0.17);
   --rule-faint:     rgb(228 224 212 / 0.08);

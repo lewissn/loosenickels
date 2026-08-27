@@ -1,0 +1,73 @@
+{
+  "id": "LN-FN-0001",
+  "dept": "FN",
+  "slug": "rain-arriving-from-the-west",
+  "title": "Rain arriving from the west, 14:20",
+  "summary": "Watched for eleven minutes from a dry position, which is the only correct way to watch it.",
+  "date": "2026-09-12",
+  "place": {
+    "name": "Blackden Edge",
+    "region": "Derbyshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.3806,
+      "lon": -1.8422,
+      "precision": 80,
+      "elevation": 545
+    }
+  },
+  "weather": "Squally, veering south-westerly, 12 °C",
+  "collections": [
+    "water",
+    "excellent-light"
+  ],
+  "tags": [
+    "weather",
+    "moorland",
+    "rain"
+  ],
+  "significance": "personal",
+  "body": [
+    {
+      "type": "lede",
+      "text": "From a high enough position you do not experience weather so much as receive advance notice of it."
+    },
+    {
+      "type": "p",
+      "text": "The front was visible for about eleven minutes before it arrived: a grey wall standing on the far side of the valley with the light going out underneath it in a line that moved across the ground at roughly the speed of a car. Everything it passed over stopped being a colour and became a shade."
+    },
+    {
+      "type": "p",
+      "text": "There is a particular sound just before, where the wind changes its mind about direction and the grass all turns over at once. Then there is about four seconds of nothing. Then it is raining and has been raining for some time."
+    },
+    {
+      "type": "measurements",
+      "rows": [
+        [
+          "First sighting",
+          "14:09"
+        ],
+        [
+          "Arrival",
+          "14:20"
+        ],
+        [
+          "Estimated frontal speed",
+          "approx. 42 km h⁻¹"
+        ],
+        [
+          "Duration of the pause",
+          "approx. 4 s"
+        ],
+        [
+          "Shelter",
+          "Adequate"
+        ]
+      ]
+    }
+  ],
+  "related": [
+    "LN-PL-0001",
+    "LN-AU-0001"
+  ]
+}

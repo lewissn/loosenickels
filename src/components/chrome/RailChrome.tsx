@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import type { DepartmentCode } from "@/lib/archive";
+import type { DepartmentCode } from "@/lib/archive/schema";
 import { IndexLayer } from "./IndexLayer";
 import styles from "./Rail.module.css";
 

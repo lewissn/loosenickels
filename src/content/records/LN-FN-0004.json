@@ -1,0 +1,83 @@
+{
+  "id": "LN-FN-0004",
+  "dept": "FN",
+  "slug": "the-ash-is-going",
+  "title": "The ash is going",
+  "summary": "Sixty-one trees counted along one lane. Nine still holding a full crown. Recorded now because it will not be possible later.",
+  "date": "2026-07-06",
+  "place": {
+    "name": "The lane to Wistman's Wood",
+    "region": "Devon",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 50.5776,
+      "lon": -3.9631,
+      "precision": 500,
+      "elevation": 380
+    }
+  },
+  "weather": "Warm, close, 21 °C",
+  "collections": [
+    "unreasonably-good-trees",
+    "things-that-will-outlive-me"
+  ],
+  "tags": [
+    "ash",
+    "dieback",
+    "trees",
+    "survey"
+  ],
+  "significance": "considerable",
+  "body": [
+    {
+      "type": "lede",
+      "text": "It is a strange thing to make a record whose only certain use is to show, later, what was there."
+    },
+    {
+      "type": "p",
+      "text": "Counted on foot along 2.1 km of lane, both sides, every ash of trunk diameter greater than about 150 mm. Sixty-one trees. Nine with a crown the archive would describe as full. Twenty-two with visible dieback in the upper third. Thirty with substantial crown loss or already standing dead."
+    },
+    {
+      "type": "measurements",
+      "rows": [
+        [
+          "Transect length",
+          "2.1 km"
+        ],
+        [
+          "Ash counted",
+          "61"
+        ],
+        [
+          "Full crown",
+          "9"
+        ],
+        [
+          "Partial dieback",
+          "22"
+        ],
+        [
+          "Severe or dead",
+          "30"
+        ],
+        [
+          "Survey time",
+          "1 h 50 min"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "A small number of trees appear to be resisting. Whether this is tolerance or luck cannot be determined from a lane in Devon on a Tuesday, and the archive has recorded their positions in case it matters."
+    },
+    {
+      "type": "note",
+      "text": "To be repeated annually while there is anything to repeat it on."
+    }
+  ],
+  "related": [
+    "LN-TH-0003",
+    "LN-DR-0001"
+  ],
+  "remark": "Open survey. Second count due July 2027."
+}

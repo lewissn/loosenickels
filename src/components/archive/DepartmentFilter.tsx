@@ -25,12 +25,18 @@ export function DepartmentFilter({
         <span className={styles.count}>{String(total).padStart(3, "0")}</span>
       </Link>
 
-      {DEPARTMENT_LIST.map((department) => (
+      {/* Empty departments are not offered. The scheme is complete on the
+          About page; this row is only the part of it that holds records.
+          A department the reader is currently standing in stays listed
+          even if it has been emptied, so the page never unlists itself. */}
+      {DEPARTMENT_LIST.filter(
+        (department) =>
+          counts[department.code] > 0 || active === department.code,
+      ).map((department) => (
         <Link
           key={department.code}
           href={`/archive/${department.slug}`}
           className={styles.item}
-          data-empty={counts[department.code] === 0}
           aria-current={active === department.code ? "page" : undefined}
         >
           {department.name}

@@ -1,0 +1,48 @@
+{
+  "id": "LN-OB-0003",
+  "dept": "OB",
+  "slug": "bottle-glass-sea-worn",
+  "title": "Bottle glass, sea-worn",
+  "summary": "Green, frosted, edges entirely gone. Approximately forty years in the water, at a guess nobody has checked.",
+  "date": "2026-03-22",
+  "acquired": "2026-03-22",
+  "place": {
+    "name": "Shingle below the cliff, Dunwich",
+    "region": "Suffolk",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 52.2771,
+      "lon": 1.6294,
+      "precision": 120,
+      "elevation": 2
+    }
+  },
+  "material": "Soda-lime glass",
+  "dimensions": "28 × 22 × 6 mm",
+  "mass": "6 g",
+  "weather": "Bright, hard easterly, 6 °C",
+  "collections": [
+    "water",
+    "excellent-light"
+  ],
+  "tags": [
+    "glass",
+    "coast",
+    "erosion"
+  ],
+  "significance": "negligible",
+  "body": [
+    {
+      "type": "p",
+      "text": "The coast here retreats by about a metre a year, and has been doing so for long enough that a town, eight churches and a harbour are now some distance offshore and below. Against that, a fragment of a bottle is not much of a loss."
+    },
+    {
+      "type": "p",
+      "text": "It is nonetheless the correct green. Held up, it is the colour of the sea about two hundred metres out on a day with no cloud, which is a colour the sea is not often willing to be."
+    }
+  ],
+  "related": [
+    "LN-PL-0003",
+    "LN-PH-0001"
+  ]
+}

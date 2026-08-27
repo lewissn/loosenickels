@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { format, haversine, type DepartmentCode } from "@/lib/archive";
+import { type DepartmentCode } from "@/lib/archive/schema";
+import { format } from "@/lib/archive/accession";
+import { haversine } from "@/lib/archive/source";
 import { formatCoordinates } from "@/lib/util/time";
 import styles from "./SurveyPlot.module.css";
 

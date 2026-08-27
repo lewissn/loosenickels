@@ -1,0 +1,34 @@
+{
+  "id": "LN-TH-0003",
+  "dept": "TH",
+  "slug": "things-that-will-outlive-me",
+  "title": "Almost everything I own will still exist when I do not.",
+  "date": "2026-10-19",
+  "collections": [
+    "things-that-will-outlive-me"
+  ],
+  "tags": [
+    "objects",
+    "time"
+  ],
+  "significance": "considerable",
+  "body": [
+    {
+      "type": "p",
+      "text": "The stone, certainly. The bevel, which has already outlived at least one owner and shows no sign of taking the hint. The staple. The glass, which has been in the process of outliving people for forty years already and has barely started."
+    },
+    {
+      "type": "p",
+      "text": "This is normally raised as a melancholy observation and the archive does not experience it as one. The alternative — owning only things that fail before you do — sounds considerably worse."
+    },
+    {
+      "type": "note",
+      "text": "The collection of that name was opened on the day this was written and was not planned in advance."
+    }
+  ],
+  "related": [
+    "LN-OB-0001",
+    "LN-OB-0002",
+    "LN-OB-0005"
+  ]
+}

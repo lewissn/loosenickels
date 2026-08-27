@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEPARTMENTS, seedOf, format, type DepartmentCode } from "@/lib/archive";
+import { DEPARTMENTS, type DepartmentCode } from "@/lib/archive/schema";
+import { seedOf, format } from "@/lib/archive/accession";
 import { PLATE_SYSTEMS, registration, type PlateContext } from "./systems";
 import styles from "./Plate.module.css";
 

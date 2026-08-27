@@ -15,7 +15,14 @@ export async function Rail() {
     archive.collections(),
   ]);
 
-  const departments: IndexDepartment[] = DEPARTMENT_LIST.map((department) => ({
+  /* A department appears in the index once it holds something, and not
+     before. The full scheme is a matter of record on the About page; the
+     navigation is a statement of what is actually here. An institution
+     that advertises eight departments and can only show you four has told
+     you something about itself it did not mean to. */
+  const departments: IndexDepartment[] = DEPARTMENT_LIST.filter(
+    (department) => stats.byDepartment[department.code] > 0,
+  ).map((department) => ({
     code: department.code,
     name: department.name,
     slug: department.slug,

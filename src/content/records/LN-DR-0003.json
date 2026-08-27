@@ -1,0 +1,91 @@
+{
+  "id": "LN-DR-0003",
+  "dept": "DR",
+  "slug": "a-census-of-windows",
+  "title": "A census of the windows of a mill elevation",
+  "question": "How many windows does this building have?",
+  "finding": "Between 96 and 214, depending entirely on what is meant by the word window. The archive declines to choose.",
+  "summary": "A question with an obvious answer, asked carefully enough that the obvious answer stops being available.",
+  "date": "2026-06-02",
+  "place": {
+    "name": "Mill, south elevation",
+    "region": "West Yorkshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.7395,
+      "lon": -2.0089,
+      "precision": 30
+    }
+  },
+  "collections": [
+    "evidence-of-people",
+    "buildings-i-would-live-in"
+  ],
+  "tags": [
+    "architecture",
+    "counting",
+    "method",
+    "definitions"
+  ],
+  "significance": "contested",
+  "method": [
+    "Photograph the elevation orthogonally in a grid of overlapping frames and rectify.",
+    "Count under each of four definitions, declared before counting begins.",
+    "Do not reconcile the four counts. Reconciling them would require choosing a definition, which is the question."
+  ],
+  "body": [
+    {
+      "type": "lede",
+      "text": "The building has, depending on how the question is meant, ninety-six windows, one hundred and forty-two windows, one hundred and eighty-one windows, or two hundred and fourteen windows."
+    },
+    {
+      "type": "p",
+      "text": "Definition A counts openings in the wall that currently admit light. Definition B counts openings that were built as openings, including the four that were bricked up and painted to look like windows, and the eleven that were bricked up and not. Definition C counts individual glazed lights, which multiplies the sashes considerably. Definition D counts everything an ordinary person standing in the yard would point at and call a window, established by asking four people and taking the median."
+    },
+    {
+      "type": "measurements",
+      "rows": [
+        [
+          "A — admits light",
+          "96"
+        ],
+        [
+          "B — built as an opening",
+          "142"
+        ],
+        [
+          "C — individual glazed lights",
+          "214"
+        ],
+        [
+          "D — pointed at by a person",
+          "181"
+        ],
+        [
+          "Painted onto brick",
+          "4"
+        ],
+        [
+          "Bricked, unpainted",
+          "11"
+        ],
+        [
+          "Bricked, then painted, now failing",
+          "2"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The interesting number is D. It is not the highest or the lowest, it does not correspond to any structural fact about the building, and it varied by twenty-two between the four respondents. It is nonetheless the number the building actually has, in the sense that matters to almost everybody who will ever look at it."
+    },
+    {
+      "type": "note",
+      "text": "Two of the four painted windows are failing and the brick is coming through. Under definition D they are being counted by fewer people each year, which means the building is losing windows without anything being removed from it."
+    }
+  ],
+  "related": [
+    "LN-PH-0002"
+  ],
+  "remark": "Open. Recount scheduled for 2031."
+}

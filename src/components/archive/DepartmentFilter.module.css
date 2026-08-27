@@ -54,10 +54,6 @@
 
 /* A department holding nothing is still listed. An archive that hides its
    empty shelves is not being straight about its own extent. */
-.item[data-empty="true"] {
-  color: var(--ink-ghost);
-}
-
 .count {
   font-family: var(--f-mono);
   font-size: 0.625rem;

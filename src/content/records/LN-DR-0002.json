@@ -1,0 +1,115 @@
+{
+  "id": "LN-DR-0002",
+  "dept": "DR",
+  "slug": "the-greatest-distance-from-a-road",
+  "title": "The greatest distance from a road",
+  "question": "How far could a person walk from this exact coordinate without crossing a public road?",
+  "finding": "6.4 km, north-west, ending at a fence. The limit is not the roads. The limit is always a fence.",
+  "summary": "A question that sounds like it has a large answer and does not, in a country of this shape.",
+  "date": "2026-10-30",
+  "place": {
+    "name": "Rannoch Moor, from the eastern approach",
+    "region": "Perth and Kinross",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 56.6203,
+      "lon": -4.6511,
+      "precision": 100,
+      "elevation": 320
+    }
+  },
+  "collections": [
+    "roads-worth-taking"
+  ],
+  "tags": [
+    "distance",
+    "roads",
+    "method",
+    "moor"
+  ],
+  "significance": "contested",
+  "method": [
+    "Take the origin as recorded, to the precision recorded and no better.",
+    "Treat as a road anything a car could be driven along without committing an offence. Tracks are not roads. This distinction is doing an enormous amount of work and is the weakest part of the study.",
+    "Walk radially on eight bearings at 45° intervals until a road is met or progress becomes impossible.",
+    "Record the reason for stopping in every case, because the reason turns out to be the actual finding."
+  ],
+  "body": [
+    {
+      "type": "lede",
+      "text": "Britain contains no point more than about seven kilometres from a public road. This is well known and is usually presented as a melancholy fact. It is worth walking one of them to find out whether it feels like one."
+    },
+    {
+      "type": "p",
+      "text": "It does not, particularly. Six kilometres of open ground with nothing crossing it is a considerable amount of ground, and the knowledge that a road exists somewhere beyond the horizon has very little bearing on the experience of being in the middle of it."
+    },
+    {
+      "type": "p",
+      "text": "What does have a bearing is the fences. On six of the eight bearings the walk ended at a stock fence rather than at tarmac, at a mean distance of 3.1 km. Only two bearings terminated at an actual road. The question as posed assumes that roads are what divide up the ground, and in this part of Scotland they are not even close to being the main thing that does."
+    },
+    {
+      "type": "measurements",
+      "rows": [
+        [
+          "Bearing 000°",
+          "2.9 km — fence"
+        ],
+        [
+          "Bearing 045°",
+          "1.8 km — river, impassable"
+        ],
+        [
+          "Bearing 090°",
+          "2.2 km — road"
+        ],
+        [
+          "Bearing 135°",
+          "3.4 km — fence"
+        ],
+        [
+          "Bearing 180°",
+          "4.1 km — fence"
+        ],
+        [
+          "Bearing 225°",
+          "3.0 km — road"
+        ],
+        [
+          "Bearing 270°",
+          "2.6 km — fence"
+        ],
+        [
+          "Bearing 315°",
+          "6.4 km — fence"
+        ],
+        [
+          "Mean, all bearings",
+          "3.3 km"
+        ],
+        [
+          "Total walked",
+          "27.2 km"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The north-westerly bearing is the outlier by a factor of two and is the only one on which the ground genuinely opens. It ends, as recorded, at a fence — a good one, recently maintained, running to the horizon in both directions with no gate visible from the point of contact."
+    },
+    {
+      "type": "note",
+      "text": "The archive walked 1.2 km along the fence looking for a gate before accepting the result. This was not part of the method and has been recorded anyway."
+    }
+  ],
+  "footnotes": [
+    {
+      "marker": "1",
+      "text": "Scotland's access legislation makes the fence a physical obstacle rather than a legal one. In England the finding would have been shorter and considerably more irritating."
+    }
+  ],
+  "related": [
+    "LN-PL-0002",
+    "LN-XP-0001",
+    "LN-TH-0002"
+  ]
+}

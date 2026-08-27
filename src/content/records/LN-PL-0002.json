@@ -1,0 +1,50 @@
+{
+  "id": "LN-PL-0002",
+  "dept": "PL",
+  "slug": "a-road-with-no-apparent-destination",
+  "title": "A road with no apparent destination",
+  "summary": "Metalled, kerbed, gated at both ends, 1.4 km long, and connecting nothing to nothing.",
+  "date": "2026-04-17",
+  "place": {
+    "name": "Orford Ness",
+    "region": "Suffolk",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 52.0846,
+      "lon": 1.5432,
+      "precision": 200,
+      "elevation": 3
+    }
+  },
+  "weather": "Haze, no wind, 11 °C",
+  "collections": [
+    "roads-worth-taking",
+    "evidence-of-people",
+    "unidentified"
+  ],
+  "tags": [
+    "road",
+    "military",
+    "shingle"
+  ],
+  "significance": "contested",
+  "body": [
+    {
+      "type": "p",
+      "text": "It was built to a standard well beyond what the traffic could have required, which is the usual sign. Both ends now stop at a gate, and beyond each gate the shingle simply continues."
+    },
+    {
+      "type": "p",
+      "text": "The Ness was a weapons research establishment for most of the twentieth century and a great deal of what is on it was built to move something heavy from one building to another building, both of which have since been taken down. The road is what is left of a relationship between two absent things."
+    },
+    {
+      "type": "quote",
+      "text": "The buildings are being allowed to fall down. This is the policy and not a failure of the policy.",
+      "attribution": "Site notice, paraphrased"
+    }
+  ],
+  "related": [
+    "LN-OB-0003",
+    "LN-DR-0002"
+  ]
+}

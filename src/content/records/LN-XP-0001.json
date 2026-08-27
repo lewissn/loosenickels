@@ -1,0 +1,35 @@
+{
+  "id": "LN-XP-0001",
+  "dept": "XP",
+  "slug": "the-survey-plot",
+  "title": "The survey plot",
+  "summary": "Every placed record in the archive, drawn to a graticule, with no basemap of any kind.",
+  "date": "2026-11-02",
+  "collections": [
+    "roads-worth-taking"
+  ],
+  "tags": [
+    "interactive",
+    "cartography",
+    "geography"
+  ],
+  "significance": "undetermined",
+  "body": [
+    {
+      "type": "lede",
+      "text": "A map with nothing on it except the things the archive has been to."
+    },
+    {
+      "type": "p",
+      "text": "There is no coastline, no relief, no road network and no place name that the archive did not itself record. What remains is a scatter of points and a graticule, which turns out to be enough: the cluster in the Pennines is obvious, the outliers are obvious, and the very large empty area to the west is the Irish Sea and requires no label to say so."
+    },
+    {
+      "type": "p",
+      "text": "Removing the basemap was originally an economy. It has been retained because the result is more honest \u2014 a map of where the archive has been, rather than a map of the country with a few pins in it."
+    }
+  ],
+  "related": [
+    "LN-TH-0002",
+    "LN-DR-0002"
+  ]
+}

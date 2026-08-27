@@ -1,0 +1,47 @@
+{
+  "id": "LN-FN-0003",
+  "dept": "FN",
+  "slug": "low-water",
+  "title": "Low water",
+  "summary": "Third dry August in four years. The archive is trying not to draw a conclusion from this and is not managing it.",
+  "date": "2026-08-30",
+  "place": {
+    "name": "Langsett Reservoir, north shore",
+    "region": "South Yorkshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.4901,
+      "lon": -1.6913,
+      "precision": 60,
+      "elevation": 244
+    }
+  },
+  "weather": "Clear, 24 °C, no cloud in any direction",
+  "collections": [
+    "water",
+    "evidence-of-people"
+  ],
+  "tags": [
+    "drought",
+    "reservoir",
+    "drawdown"
+  ],
+  "significance": "contested",
+  "body": [
+    {
+      "type": "p",
+      "text": "The tide line — which is not a tide line, but there is no better word for it — is about four metres below the tree line, and between the two there is a band of pale silt, cracked into plates roughly the size of a hand."
+    },
+    {
+      "type": "p",
+      "text": "Things in the exposed ground, in order of appearance: a gatepost. A quantity of barbed wire. Two horseshoes. The road. A traffic cone, which had clearly been thrown in and was not of historical interest but has been noted anyway in the interest of an honest record."
+    },
+    {
+      "type": "note",
+      "text": "The exposure is entertaining and the reason for the exposure is not. Both are true at once and the archive has no plan for reconciling them."
+    }
+  ],
+  "related": [
+    "LN-PL-0001"
+  ]
+}

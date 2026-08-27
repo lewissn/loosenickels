@@ -1,0 +1,43 @@
+{
+  "id": "LN-AU-0002",
+  "dept": "AU",
+  "slug": "lathe-running-down",
+  "title": "Lathe, running down",
+  "summary": "Forty-one seconds from cut-off to stop, most of it below the range in which a note has a name.",
+  "date": "2026-06-19",
+  "place": {
+    "name": "Workshop",
+    "region": "West Yorkshire",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 53.7418,
+      "lon": -2.0128,
+      "precision": 1200
+    }
+  },
+  "collections": [
+    "machines",
+    "evidence-of-people"
+  ],
+  "tags": [
+    "machinery",
+    "recording",
+    "workshop"
+  ],
+  "significance": "undetermined",
+  "body": [
+    {
+      "type": "p",
+      "text": "A 1948 machine with a considerable amount of rotating mass and no brake. When the power goes off it takes forty-one seconds to stop, and it does not do so smoothly: there are two points at which the pitch drops noticeably faster, which are presumably bearings, and one point near the end where it very briefly speeds up, which is not."
+    },
+    {
+      "type": "note",
+      "text": "The archive has been unable to account for the acceleration and has stopped trying to. It happens every time."
+    }
+  ],
+  "related": [
+    "LN-OB-0002",
+    "LN-OB-0004"
+  ],
+  "remark": "Unexplained. Reproducible."
+}

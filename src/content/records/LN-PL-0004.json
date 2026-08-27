@@ -1,0 +1,73 @@
+{
+  "id": "LN-PL-0004",
+  "dept": "PL",
+  "slug": "the-darkest-place-so-far",
+  "title": "The darkest place so far",
+  "summary": "Bortle 2. Measured, not estimated. The Milky Way casts a shadow if you are patient and the moon is elsewhere.",
+  "date": "2026-11-21",
+  "place": {
+    "name": "Forest Drive, above Kielder",
+    "region": "Northumberland",
+    "country": "United Kingdom",
+    "coordinates": {
+      "lat": 55.2216,
+      "lon": -2.5443,
+      "precision": 300,
+      "elevation": 371
+    }
+  },
+  "weather": "Clear, hard frost, −4 °C",
+  "collections": [
+    "excellent-light",
+    "things-found-in-woods"
+  ],
+  "tags": [
+    "dark-sky",
+    "night",
+    "forest"
+  ],
+  "significance": "considerable",
+  "body": [
+    {
+      "type": "p",
+      "text": "Sky brightness measured at 21.84 magnitudes per square arcsecond, at 23:40, with the moon down and no cloud. This is close to the practical limit for the United Kingdom and is a very long way from a street light."
+    },
+    {
+      "type": "p",
+      "text": "It takes about twenty-five minutes for the eye to become useful and about forty for it to become good. Nothing much can be done to hurry this and there is no reason to."
+    },
+    {
+      "type": "measurements",
+      "rows": [
+        [
+          "Sky brightness",
+          "21.84 mag arcsec⁻²"
+        ],
+        [
+          "Bortle class",
+          "2"
+        ],
+        [
+          "Air temperature",
+          "−4 °C"
+        ],
+        [
+          "Nearest permanent light",
+          "approx. 6.1 km"
+        ],
+        [
+          "Time to full adaptation",
+          "approx. 40 min"
+        ]
+      ]
+    },
+    {
+      "type": "note",
+      "text": "This record will be superseded the moment somewhere darker is visited, and the archive is actively hoping to lose it."
+    }
+  ],
+  "related": [
+    "LN-DR-0001",
+    "LN-AU-0001"
+  ]
+}
