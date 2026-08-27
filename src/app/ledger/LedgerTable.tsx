@@ -110,7 +110,7 @@ export function LedgerTable({ rows }: { rows: LedgerRow[] }) {
                 <td className={styles.entry}>
                   <Link href={`/archive/record/${row.slug}`}>{row.title}</Link>
                 </td>
-                <td>{row.date.replace(/-/g, ".")}</td>
+                <td className={styles.date}>{row.date.replace(/-/g, ".")}</td>
                 <td className={styles.significance} data-value={row.significance}>
                   {row.significance}
                 </td>

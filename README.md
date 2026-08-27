@@ -61,6 +61,26 @@ Add an object to the relevant file in `src/content/entries/`. It is typed as
 
 ---
 
+## Looking at it
+
+`tools/shot.mjs` screenshots any page at any viewport, driving Chrome over
+the DevTools protocol.
+
+```bash
+node tools/shot.mjs ./shots http://localhost:3000 390 844 home=/ ledger=/ledger
+```
+
+Width and height are CSS pixels; height `0` captures the full page. It
+waits on `document.fonts.ready` rather than guessing at a delay.
+
+Do not use Chrome's `--screenshot` flag for this. On Windows it will not
+lay out narrower than 500px: ask for 390 and it renders at 500 and crops
+the image to 390, so every "mobile" capture is a wider layout with a slice
+taken off the side — which looks exactly like an overflow bug and is not
+one. That cost an afternoon.
+
+---
+
 ## Structure
 
 ```
