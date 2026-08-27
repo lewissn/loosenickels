@@ -26,20 +26,38 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 const CHROME_CANDIDATES = [
+  /* Set CHROME_PATH to override everything below — which is what CI and
+     any container will want to do. */
+  process.env.CHROME_PATH,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-  "/usr/bin/google-chrome",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-];
+  "/usr/bin/google-chrome",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+  "/opt/pw-browsers/chromium/chrome-linux/chrome",
+].filter(Boolean);
 
 const PORT = 9222 + Math.floor(Math.random() * 400);
 
 function findChrome() {
   const found = CHROME_CANDIDATES.find((p) => existsSync(p));
-  if (!found) throw new Error("No Chrome or Edge found.");
+  if (!found) {
+    throw new Error(
+      "No Chrome or Edge found. Set CHROME_PATH to a browser binary.",
+    );
+  }
   return found;
 }
+
+/* Chrome's sandbox cannot start as root, which is the normal state inside
+   a container. Dropping it anywhere else would be a real weakening, so it
+   is dropped only where it could not have worked. */
+const SANDBOX_ARGS =
+  process.platform === "linux" && process.getuid?.() === 0
+    ? ["--no-sandbox", "--disable-dev-shm-usage"]
+    : [];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -127,6 +145,7 @@ async function main() {
     findChrome(),
     [
       "--headless=new",
+      ...SANDBOX_ARGS,
       "--disable-gpu",
       "--hide-scrollbars",
       "--no-first-run",

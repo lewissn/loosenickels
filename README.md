@@ -37,7 +37,7 @@ interface, `ArchiveSource`, and no page imports a content file directly.
 src/lib/archive/
   schema.ts        The contract. Plain serialisable JSON, Postgres-shaped.
   source.ts        The ArchiveSource interface + shared query helpers.
-  local-source.ts  The current implementation, backed by files in src/content.
+  local-source.ts  The current implementation, backed by src/content/records.
   index.ts         Exports `archive` — the single binding everything reads.
   accession.ts     Accession numbers: parse, format, mint, seed.
 ```
@@ -46,18 +46,37 @@ To move the archive onto a database, write a second `ArchiveSource` and
 change one line in `src/lib/archive/index.ts`. No component changes. The
 methods are already `async` for exactly this reason.
 
-`src/content/entries/index.ts` is the registry: it validates every record
-through zod at module load and **fails the build** on a malformed record, a
-duplicate accession number or slug, or a cross-reference to a record that was
-never accessioned. That file is the other thing a database migration would
-replace.
+`src/content/entries/index.ts` is the registry: it reads every JSON file in
+`src/content/records`, validates it through zod at module load, and **fails
+the build** on a malformed record, a duplicate accession number or slug, or a
+cross-reference to a record that was never accessioned. It names the offending
+file. That is the other thing a database migration would replace.
 
-### Adding a record today
+That validation matters more than it looks. Records no longer come only from
+someone with a compiler open — most now arrive from a phone. The registry is
+the single thing standing between a fat-fingered upload and a broken archive,
+and it is deliberately loud.
 
-Add an object to the relevant file in `src/content/entries/`. It is typed as
-`EntryInput`; the schema will tell you what is missing. Accession numbers run
-`LN-XX-0000` — hyphens in storage, en-dashes only in display, handled by
-`format()`.
+### Adding a record
+
+One JSON file per accession number, in `src/content/records`, named for the
+number it carries:
+
+```
+src/content/records/LN-OB-0006.json
+```
+
+That naming is not decoration, it is the minting mechanism. Anything listing
+the directory sees every number that has been used, and creating a file that
+already exists fails rather than overwriting — so two records cannot quietly
+claim the same accession. Sequences run per department and are never reused,
+including after a withdrawal.
+
+Accession numbers use hyphens in storage and en-dashes only in display,
+handled by `format()`. `src/lib/archive/schema.ts` is the contract; the build
+will tell you what is missing.
+
+In practice records arrive from the phone rather than by hand — see `ios/`.
 
 ---
 
@@ -92,7 +111,9 @@ src/
     places/               The survey plot
     plate/                Generative plates
     primitives/           Reveal, Masthead — the reusable pieces
-  content/                Records, collections, research papers
+  content/
+    records/              One JSON file per accession number
+    collections/          Curated groupings
   lib/
     archive/              Schema and source (above)
     motion/               View transitions, reveal observer, transition names
@@ -170,24 +191,63 @@ colours from the cascade so it follows day and night).
 
 ---
 
+## Digitisation
+
+`tools/ingest.mjs` reads every image a record references and writes back what
+the record cannot know about itself: its true pixel dimensions, the moment it
+was captured, and a placeholder small enough to inline.
+
+```bash
+node tools/ingest.mjs           # writes
+node tools/ingest.mjs --check   # reports, exits non-zero if anything is outstanding
+```
+
+The file is the authority on dimensions, so a device that reports its own
+badly is simply corrected. EXIF orientation is resolved before measuring, so a
+rotated photograph is not recorded with its aspect inverted.
+
+It runs in front of the Pages build rather than as a workflow of its own,
+because a push made with `GITHUB_TOKEN` does not trigger further workflows —
+a separate job would commit the digitisation and then never deploy it.
+
+---
+
+## The capture app
+
+`ios/` is a SwiftUI app that files a record into this repository from a phone:
+photograph, position, the accuracy of that position, altitude, weather, and
+capture time, all gathered without being typed. It writes through the GitHub
+contents API and the site rebuilds. No server anywhere.
+
+It has never been compiled — see `ios/README.md`, which is honest about what
+that means and how to build it.
+
+---
+
 ## Not yet built
 
-- **Media pipeline.** The schema carries `width`, `height`, `focal`,
-  `placeholder` and EXIF `captured`; nothing generates them yet. Photographs
-  dropped in today need those fields filled by hand.
 - **Audio playback.** Sound records carry `duration` and `peaks` in the
   schema and render a generated waveform plate. There is no player.
-- **`/admin`.** Architected for, not built. The intended split is: brutally
-  practical to publish, extravagantly impractical to read.
+- **`/admin`.** Architected for, not built, and largely superseded by the
+  phone. The intended split was: brutally practical to publish,
+  extravagantly impractical to read.
 
 ---
 
 ## Deployment
 
-Vercel. `/random` is the only dynamic route; the home page revalidates hourly
-so the record on display turns over daily. Everything else is static.
+GitHub Pages, from `.github/workflows/deploy-pages.yml` on every push to
+`main`. The whole site is a static export — `output: "export"` in
+`next.config.ts` — so there is nothing dynamic at runtime:
 
-`CNAME` in the repo root is left over from GitHub Pages and is inert on
-Vercel. The domain in the brief (`loosenickels.co.uk`) and the one in `CNAME`
-(`www.loosenickels.com`) do not match — canonical URLs and metadata still
-need pointing at whichever is real.
+- `/random` is a static page that draws a record in the browser and replaces
+  itself.
+- The record on display on the home page is chosen by a pure function of the
+  day and the pool, run by the build and again by the browser, so it turns
+  over daily without the site being rebuilt. `revalidate` would do nothing
+  here and is not used.
+
+`CNAME` holds `www.loosenickels.com` and is copied into the build output, so
+it is live rather than inert. The brief said `loosenickels.co.uk`; the domain
+in use is the `.com`. Nothing points at the `.co.uk` and nothing should until
+that is decided.
