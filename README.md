@@ -219,8 +219,15 @@ photograph, position, the accuracy of that position, altitude, weather, and
 capture time, all gathered without being typed. It writes through the GitHub
 contents API and the site rebuilds. No server anywhere.
 
+The Xcode project is generated rather than committed:
+
+```bash
+brew install xcodegen
+cd ios && xcodegen && open Accession.xcodeproj
+```
+
 It has never been compiled — see `ios/README.md`, which is honest about what
-that means and how to build it.
+that means, and where to put your Team ID first.
 
 ---
 

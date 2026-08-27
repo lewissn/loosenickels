@@ -20,43 +20,57 @@ fix something on the first build.
 
 ## Building it
 
-There is no `.xcodeproj` here, because a hand-written one is more likely
-to be broken than useful. Make a fresh project and add these files.
+The Xcode project is generated rather than committed. `project.yml` is
+the source of truth; the `.xcodeproj` is disposable and gitignored.
 
-1. **Xcode → New Project → iOS → App.**
-   - Product Name: `Accession`
-   - Interface: SwiftUI, Language: Swift
-   - Minimum deployment: **iOS 17.0**
-2. Delete the `ContentView.swift` and `AccessionApp.swift` Xcode
-   generated — the ones here replace them.
-3. Drag everything in `ios/Sources` into the project. Tick *Copy items if
-   needed* is not necessary if you would rather they stay in the repo.
-4. **Signing & Capabilities** → select your team. A development build on
-   a paid developer account is good for a year before it needs
-   reinstalling.
-5. Add these to the target's **Info** tab, or to `Info.plist`:
+```bash
+brew install xcodegen     # once
+cd ios
+xcodegen                  # writes Accession.xcodeproj
+open Accession.xcodeproj
+```
 
-   | Key | Value |
-   | --- | --- |
-   | `NSLocationWhenInUseUsageDescription` | The archive records where a thing was found, and how accurately it is able to say so. |
-   | `NSCameraUsageDescription` | For photographing what is being accessioned. |
-   | `NSPhotoLibraryUsageDescription` | For filing a photograph that has already been taken. |
+Before the first run, put your Team ID in `project.yml` —
+`DEVELOPMENT_TEAM`, near the top of the target's settings. Xcode →
+Settings → Accounts → your account → the Team ID column. You can instead
+pick a team on the Signing & Capabilities tab, but that choice is lost
+the next time the project is regenerated.
 
-6. Build to the phone.
+Then build to the phone. A development build on a paid developer account
+is good for a year before it needs reinstalling; a free account gives you
+seven days.
 
-Swift 5 language mode is assumed — the default for a new project. Swift 6
-strict concurrency will want annotations this code does not carry.
+The spec sets iOS 17 as the minimum, iPhone only, portrait, Swift 5
+language mode, and writes the three usage strings the app needs —
+location, camera and photo library — into a generated `Info.plist`.
 
-### WeatherKit is optional
+Swift 5 is deliberate. Swift 6 strict concurrency wants annotations this
+code does not carry.
+
+### Without XcodeGen
+
+If you would rather not install it: **Xcode → New Project → iOS → App**,
+named `Accession`, SwiftUI, minimum iOS 17.0. Delete the generated
+`ContentView.swift` and `AccessionApp.swift`, drag everything in
+`Sources` in, set your team, and add these to the target's **Info** tab:
+
+| Key | Value |
+| --- | --- |
+| `NSLocationWhenInUseUsageDescription` | The archive records where a thing was found, and how accurately it is able to say so. |
+| `NSCameraUsageDescription` | For photographing what is being accessioned. |
+| `NSPhotoLibraryUsageDescription` | For filing a photograph that has already been taken. |
+
+### WeatherKit is deliberately off
 
 The weather line fills itself in from WeatherKit, which needs the
-capability enabled on the target *and* the App ID registered for
-WeatherKit on the developer portal. It takes about thirty minutes to
-propagate.
+entitlement on the target *and* the App ID registered for WeatherKit on
+the developer portal. Until the App ID is configured the entitlement
+fails to sign — so it is commented out in `project.yml` rather than
+blocking the very first build over a single optional field.
 
-Until that is done, the app works exactly as it otherwise would and
+Until it is switched on the app works exactly as it otherwise would and
 simply leaves the weather off the record. Get everything else running
-first; the weather is the one part that can wait.
+first, then uncomment the `entitlements:` block and regenerate.
 
 ---
 

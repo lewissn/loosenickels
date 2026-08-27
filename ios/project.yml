@@ -1,0 +1,93 @@
+# XcodeGen spec for the capture app.
+#
+#   brew install xcodegen
+#   cd ios && xcodegen
+#
+# Generates Accession.xcodeproj from the sources next to this file. The
+# project is disposable — regenerate it rather than editing it, and keep
+# any change you want to survive in here.
+#
+# The one thing to set before generating is DEVELOPMENT_TEAM, below.
+
+name: Accession
+
+options:
+  bundleIdPrefix: com.loosenickels
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  # A generated project has no business being in the repository.
+  generateEmptyDirectories: false
+
+settings:
+  base:
+    # Swift 6 strict concurrency wants annotations this code does not
+    # carry. Nothing here needs the newer language mode.
+    SWIFT_VERSION: "5.0"
+
+targets:
+  Accession:
+    type: application
+    platform: iOS
+
+    sources:
+      - path: Sources
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.loosenickels.accession
+        PRODUCT_NAME: Accession
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+
+        # iPhone only. Nothing here wants a larger canvas.
+        TARGETED_DEVICE_FAMILY: "1"
+
+        CODE_SIGN_STYLE: Automatic
+
+        # ---------------------------------------------------------------
+        # Put your ten-character Apple Developer Team ID here. Xcode →
+        # Settings → Accounts → your account → the Team ID column.
+        #
+        # Leaving it empty still generates a working project; Xcode will
+        # ask for a team on the Signing & Capabilities tab, but that
+        # choice is lost the next time this file is regenerated.
+        # ---------------------------------------------------------------
+        DEVELOPMENT_TEAM: ""
+
+        # WeatherKit is deliberately NOT enabled here. The entitlement
+        # fails to sign until the App ID is registered for WeatherKit on
+        # the developer portal, which would block the very first build
+        # for a field the app is written to do without.
+        #
+        # Once the App ID is configured, uncomment the entitlements line
+        # further down and regenerate.
+
+    # entitlements:
+    #   path: Accession.entitlements
+    #   properties:
+    #     com.apple.developer.weatherkit: true
+
+    info:
+      path: Accession/Info.plist
+      properties:
+        CFBundleDisplayName: Accession
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+
+        # Without this the app runs letterboxed in a compatibility mode.
+        UILaunchScreen: {}
+
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+
+        # The archive records where a thing was found and how accurately
+        # it is able to say so, photographs what it takes in, and files
+        # photographs already taken. Hence three.
+        NSLocationWhenInUseUsageDescription: >-
+          The archive records where a thing was found, and how accurately it
+          is able to say so.
+        NSCameraUsageDescription: >-
+          For photographing what is being accessioned.
+        NSPhotoLibraryUsageDescription: >-
+          For filing a photograph that has already been taken.

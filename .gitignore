@@ -7,3 +7,9 @@ build/
 next-env.d.ts
 .env*.local
 .DS_Store
+
+# The Xcode project is generated from ios/project.yml. Regenerate it with
+# `cd ios && xcodegen` rather than committing it.
+ios/*.xcodeproj/
+ios/Accession/Info.plist
+ios/*.entitlements
