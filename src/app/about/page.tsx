@@ -163,16 +163,14 @@ export default async function AboutPage() {
           <div className={styles.block}>
             <p className={styles.blockLabel}>Commands</p>
             <dl>
+              {/* One row. Two shortcuts open the same thing, and listing
+                  "Enquiries" twice reads as an error in the register. */}
               <div className={styles.line}>
                 <dt>Enquiries</dt>
                 <dd>
                   <span className={styles.key}>⌘</span>{" "}
                   <span className={styles.key}>K</span>
-                </dd>
-              </div>
-              <div className={styles.line}>
-                <dt>Enquiries</dt>
-                <dd>
+                  <span className={styles.orElse}>or</span>
                   <span className={styles.key}>/</span>
                 </dd>
               </div>

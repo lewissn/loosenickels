@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { format, haversine, type DepartmentCode } from "@/lib/archive";
 import { formatCoordinates } from "@/lib/util/time";
@@ -127,7 +127,31 @@ function degreeLabel(value: number, axis: "lat" | "lon"): string {
 export function SurveyPlot({ records }: { records: PlottedRecord[] }) {
   const [selected, setSelected] = useState<string | null>(null);
   const svg = useRef<SVGSVGElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
   const { project, lines, metresPerUnit, view } = useProjection(records);
+
+  /* User units per rendered pixel.
+     Everything inside the viewBox scales with the frame, which is right for
+     the graticule and the markers and wrong for anything a person has to
+     read or hit: at phone width the degree labels resolved to about six
+     pixels. Multiplying by this keeps type and touch targets at a constant
+     size on screen no matter what size the plot is drawn at. */
+  const [unit, setUnit] = useState(1);
+
+  useEffect(() => {
+    const node = frame.current;
+    if (!node) return;
+    const measure = () => {
+      const { width, height } = node.getBoundingClientRect();
+      if (width < 2 || height < 2) return;
+      /* preserveAspectRatio="meet" fits by whichever axis binds first. */
+      setUnit(Math.max(view.w / width, view.h / height));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [view.w, view.h]);
 
   const home = project(INSTITUTE.lat, INSTITUTE.lon);
   const active = records.find((r) => r.id === selected) ?? null;
@@ -154,7 +178,7 @@ export function SurveyPlot({ records }: { records: PlottedRecord[] }) {
 
   return (
     <div className={styles.plot}>
-      <div className={styles.canvas}>
+      <div className={styles.canvas} ref={frame}>
         <svg
           ref={svg}
           className={styles.svg}
@@ -185,8 +209,13 @@ export function SurveyPlot({ records }: { records: PlottedRecord[] }) {
                     x2={view.w}
                     y2={y}
                   />
-                  {major && (
-                    <text className={styles.graticuleLabel} x={8} y={y - 5}>
+                  {major && y > 26 * unit && y < view.h - 30 * unit && (
+                    <text
+                      className={styles.graticuleLabel}
+                      x={7 * unit}
+                      y={y - 5 * unit}
+                      style={{ fontSize: `${10 * unit}px` }}
+                    >
                       {degreeLabel(lat, "lat")}
                     </text>
                   )}
@@ -205,11 +234,12 @@ export function SurveyPlot({ records }: { records: PlottedRecord[] }) {
                     x2={x}
                     y2={view.h}
                   />
-                  {major && (
+                  {major && x > 64 * unit && (
                     <text
                       className={styles.graticuleLabel}
-                      x={x + 5}
-                      y={view.h - 8}
+                      x={x + 5 * unit}
+                      y={view.h - 8 * unit}
+                      style={{ fontSize: `${10 * unit}px` }}
                     >
                       {degreeLabel(lon, "lon")}
                     </text>
@@ -233,7 +263,12 @@ export function SurveyPlot({ records }: { records: PlottedRecord[] }) {
           <g aria-hidden="true">
             <circle className={styles.home} cx={home.x} cy={home.y} r={5} />
             <circle className={styles.home} cx={home.x} cy={home.y} r={1.5} />
-            <text className={styles.homeLabel} x={home.x + 10} y={home.y + 3}>
+            <text
+              className={styles.homeLabel}
+              x={home.x + 10 * unit}
+              y={home.y + 3 * unit}
+              style={{ fontSize: `${8.5 * unit}px` }}
+            >
               The institute
             </text>
           </g>
@@ -263,13 +298,25 @@ export function SurveyPlot({ records }: { records: PlottedRecord[] }) {
                 )}
                 {/* An invisible disc gives the marker a target far larger
                     than the cross it draws. */}
-                <circle className={styles.markerHalo} cx={x} cy={y} r={16} />
+                {/* At least 22 rendered pixels of radius, so a survey
+                    cross drawn for a pointer is still a thumb target. */}
+                <circle
+                  className={styles.markerHalo}
+                  cx={x}
+                  cy={y}
+                  r={Math.max(16, 22 * unit)}
+                />
                 <path
                   className={styles.markerCross}
                   d={`M${x - 7} ${y} H${x - 2.5} M${x + 2.5} ${y} H${x + 7} M${x} ${y - 7} V${y - 2.5} M${x} ${y + 2.5} V${y + 7}`}
                 />
                 <circle className={styles.markerDot} cx={x} cy={y} r={1.6} />
-                <text className={styles.markerLabel} x={x + 11} y={y - 8}>
+                <text
+                  className={styles.markerLabel}
+                  x={x + 11 * unit}
+                  y={y - 8 * unit}
+                  style={{ fontSize: `${9.5 * unit}px` }}
+                >
                   {format(record.id)}
                 </text>
               </g>
