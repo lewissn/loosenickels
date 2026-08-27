@@ -36,6 +36,19 @@ export function RecordMedia({
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          /* The placeholder sits behind the photograph at the same crop,
+             so the frame carries the tonality of the image from the first
+             paint and never stands empty. Half a kilobyte, inline, and it
+             is covered completely the moment the real file arrives. */
+          ...(image.placeholder
+            ? {
+                backgroundImage: `url("${image.placeholder}")`,
+                backgroundSize: "cover",
+                backgroundPosition: image.focal
+                  ? `${image.focal[0] * 100}% ${image.focal[1] * 100}%`
+                  : "center",
+              }
+            : null),
           objectPosition: image.focal
             ? `${image.focal[0] * 100}% ${image.focal[1] * 100}%`
             : "center",
