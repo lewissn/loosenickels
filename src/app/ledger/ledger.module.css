@@ -1,0 +1,179 @@
+/* =========================================================================
+   The ledger
+
+   The accession register, as a register: every record, one line each, set
+   in the monospace at a density nothing else on the site approaches.
+
+   This is the archive's other face. The mosaic is how the institution
+   presents itself; the ledger is what it actually keeps.
+   ========================================================================= */
+
+.page {
+  padding-top: var(--rail);
+}
+
+.scroller {
+  overflow-x: auto;
+  border-block: 1px solid var(--rule);
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  min-width: 54rem;
+  border-collapse: collapse;
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  font-variant-numeric: tabular-nums;
+}
+
+.table thead th {
+  position: sticky;
+  top: var(--rail);
+  z-index: 2;
+  background: var(--ground);
+  padding: var(--s-3) var(--s-4);
+  text-align: left;
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--ink);
+  white-space: nowrap;
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  transition: color var(--d-quick) var(--e-out);
+}
+
+.sort:hover,
+.sort:focus-visible {
+  color: var(--ink);
+}
+
+.sort[data-active="true"] {
+  color: var(--oxide);
+}
+
+.caret {
+  font-size: 0.6em;
+  opacity: 0;
+  transition: opacity var(--d-quick) var(--e-out);
+}
+
+.sort[data-active="true"] .caret {
+  opacity: 1;
+}
+
+.row {
+  border-bottom: 1px solid var(--rule-faint);
+  transition: background-color var(--d-instant) linear;
+}
+
+.row:hover {
+  background: var(--wash);
+}
+
+.row td {
+  padding: var(--s-3) var(--s-4);
+  vertical-align: baseline;
+  color: var(--ink-muted);
+}
+
+.id {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.row:hover .id {
+  color: var(--oxide);
+}
+
+/* The title is the only column not set in the monospace: it is the only
+   column that is prose. */
+.entry {
+  font-family: var(--f-editorial);
+  font-size: var(--t-body);
+  letter-spacing: 0;
+  line-height: 1.3;
+  color: var(--ink);
+  min-width: 18rem;
+}
+
+.entry a {
+  position: relative;
+}
+
+.entry a::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  background: var(--oxide);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--d-base) var(--e-out);
+}
+
+.entry a:hover::after,
+.entry a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.class,
+.position,
+.significance {
+  white-space: nowrap;
+}
+
+.significance {
+  font-family: var(--f-editorial);
+  font-style: italic;
+  font-size: var(--t-small);
+  letter-spacing: 0;
+}
+
+/* Undetermined is the archive's default and by far its commonest verdict.
+   It is set quieter than the rest so that the exceptions are visible by
+   scanning the column. */
+.significance[data-value="undetermined"] {
+  color: var(--ink-ghost);
+}
+
+.significance[data-value="considerable"],
+.significance[data-value="contested"] {
+  color: var(--ink);
+}
+
+.unplaced {
+  color: var(--ink-ghost);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--margin);
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+}
+
+@media (max-width: 60rem) {
+  .table thead th {
+    position: static;
+  }
+}

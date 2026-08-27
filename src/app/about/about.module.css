@@ -1,0 +1,167 @@
+/* =========================================================================
+   About
+
+   The institution describing itself, at length, without ever conceding
+   that there is anything unusual about what it does.
+
+   Set as a document: a single column on a proper measure, with a marginal
+   column carrying the register of practice beside it.
+   ========================================================================= */
+
+.page {
+  padding-top: var(--rail);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  gap: var(--s-8) clamp(var(--s-6), 6vw, var(--s-10));
+  align-items: start;
+  padding: clamp(var(--s-6), 5vh, var(--s-8)) var(--margin) var(--s-9);
+}
+
+.statement {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  max-width: var(--measure-prose);
+  font-family: var(--f-editorial);
+  font-size: var(--t-body);
+  font-variation-settings: "opsz" 16;
+  line-height: var(--lh-body);
+}
+
+.statement p {
+  text-wrap: pretty;
+  hanging-punctuation: first last;
+}
+
+.opening {
+  max-width: var(--measure-lede);
+  font-size: var(--t-lede);
+  font-variation-settings: "opsz" 28;
+  line-height: var(--lh-lede);
+  letter-spacing: -0.006em;
+  text-wrap: balance;
+}
+
+.heading {
+  margin-top: var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.aside {
+  position: sticky;
+  top: calc(var(--rail) + var(--s-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+}
+
+.blockLabel {
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--ink);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-3);
+  padding-block: var(--s-3);
+  border-bottom: 1px solid var(--rule-faint);
+  align-items: baseline;
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-muted);
+}
+
+.line dt {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+
+.line dd {
+  text-align: right;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  padding: 0.1rem 0.3rem;
+  border: 1px solid var(--rule);
+  font-family: var(--f-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+/* Significance is the archive's own classification scheme, so it is set as
+   a scheme: the term, then the definition, ruled. */
+.scheme {
+  display: flex;
+  flex-direction: column;
+}
+
+.term {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: var(--s-4);
+  padding-block: var(--s-3);
+  border-bottom: 1px solid var(--rule-faint);
+  align-items: baseline;
+}
+
+.termName {
+  font-family: var(--f-editorial);
+  font-size: var(--t-body);
+  font-style: italic;
+  color: var(--ink);
+}
+
+.termDef {
+  font-family: var(--f-editorial);
+  font-size: var(--t-small);
+  line-height: var(--lh-meta);
+  color: var(--ink-muted);
+}
+
+@media (max-width: 68rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aside {
+    position: static;
+  }
+
+  .term {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-1);
+  }
+}

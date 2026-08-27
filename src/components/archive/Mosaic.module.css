@@ -1,0 +1,58 @@
+/* =========================================================================
+   Mosaic
+
+   Rows are packed on the server and each is rendered as its own grid. The
+   consequence — and the whole reason for doing it that way — is that no
+   record's height can affect any record it is not standing beside.
+
+   Columns are `fr` units rather than spans on a shared track list, so a
+   row that comes up short stretches its members to the full measure
+   instead of leaving a ragged right edge.
+   ========================================================================= */
+
+.mosaic {
+  display: flex;
+  flex-direction: column;
+  row-gap: clamp(var(--s-7), 6vw, var(--s-9));
+  padding: clamp(var(--s-7), 6vw, var(--s-9)) var(--margin) var(--s-10);
+}
+
+.row {
+  display: grid;
+  column-gap: var(--gutter);
+  /* Records sit on the row's top line and keep their own heights. Aligning
+     them to a shared baseline would mean cropping plates to match, which
+     is the uniformity the mosaic exists to avoid. */
+  align-items: start;
+}
+
+.cell {
+  min-width: 0;
+}
+
+/* =========================================================================
+   Narrower viewports
+
+   The packing is done for a twelve-column grid, so below the point where
+   three-column records stop being legible the rows are simply released and
+   every record takes the full measure. Thoughts already did.
+   ========================================================================= */
+
+@media (max-width: 62rem) {
+  .row {
+    /* Two up: the asymmetry survives because members keep their relative
+       widths within the pair, and rows of three or four reflow. */
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)) !important;
+    row-gap: clamp(var(--s-6), 5vw, var(--s-8));
+  }
+}
+
+@media (max-width: 42rem) {
+  .mosaic {
+    row-gap: var(--s-7);
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

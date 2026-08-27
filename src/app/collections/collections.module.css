@@ -1,0 +1,190 @@
+/* =========================================================================
+   Collections
+
+   A collection is an editorial act, not a folder, so it is not presented
+   as one. Each is given a full ruled band carrying its title, its
+   curatorial note, and a strip of the plates it actually contains — the
+   contents are visible without opening anything, which is the difference
+   between a curated set and a directory listing.
+   ========================================================================= */
+
+.page {
+  padding-top: var(--rail);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--rule);
+}
+
+.collection {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: var(--s-5) clamp(var(--s-6), 5vw, var(--s-9));
+  align-items: start;
+  padding: clamp(var(--s-6), 4vw, var(--s-8)) var(--margin);
+  border-bottom: 1px solid var(--rule-faint);
+  transition: background-color var(--d-considered) var(--e-out);
+}
+
+.collection:hover {
+  background: var(--wash);
+}
+
+/* The oxide rule draws in from the left on approach — the same movement
+   the thought records use, and the same one the Reveal `rule` uses. */
+.collection::before {
+  content: "";
+  position: absolute;
+  inset: auto auto -1px 0;
+  width: 100%;
+  height: 1px;
+  background: var(--oxide);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--d-cinematic) var(--e-out);
+}
+
+.collection:hover::before,
+.collection:focus-within::before {
+  transform: scaleX(1);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--f-editorial);
+  font-size: clamp(1.5rem, 1.1rem + 1.9vw, 2.5rem);
+  font-variation-settings: "opsz" 38;
+  line-height: 1.04;
+  letter-spacing: var(--tr-title);
+  text-wrap: balance;
+}
+
+.name a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.note {
+  max-width: 40ch;
+  font-family: var(--f-editorial);
+  font-size: var(--t-small);
+  font-style: italic;
+  line-height: var(--lh-lede);
+  color: var(--ink-muted);
+}
+
+.register {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Contents strip -----------------------------------------------------
+   The plates of the records the collection holds, at thumbnail size, in
+   accession order. Capped: past about six the strip stops reading as
+   contents and starts reading as a gallery. */
+
+.contents {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: var(--gutter);
+  align-items: start;
+}
+
+.thumb {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  min-width: 0;
+  background: var(--ground-raised);
+  transition: transform var(--d-considered) var(--e-physical);
+}
+
+/* Each plate in the strip lifts slightly, and slightly later than the one
+   before it, so the strip resolves as a hand of cards rather than as a row
+   of tiles all doing the same thing at once. */
+.collection:hover .thumb {
+  transform: translateY(-4px);
+}
+
+.collection:hover .thumb:nth-child(2) { transition-delay: 40ms; }
+.collection:hover .thumb:nth-child(3) { transition-delay: 80ms; }
+.collection:hover .thumb:nth-child(4) { transition-delay: 120ms; }
+.collection:hover .thumb:nth-child(5) { transition-delay: 160ms; }
+.collection:hover .thumb:nth-child(6) { transition-delay: 200ms; }
+
+.overflow {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--rule);
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+}
+
+/* =========================================================================
+   Collection detail
+   ========================================================================= */
+
+.detailNote {
+  max-width: var(--measure-lede);
+  padding: 0 var(--margin) var(--s-6);
+  font-family: var(--f-editorial);
+  font-size: var(--t-lede);
+  font-variation-settings: "opsz" 26;
+  font-style: italic;
+  line-height: var(--lh-lede);
+  color: var(--ink-muted);
+}
+
+.detailRegister {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-6);
+  padding: var(--s-4) var(--margin);
+  border-block: 1px solid var(--rule);
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-faint);
+}
+
+.detailRegister em {
+  font-family: var(--f-grotesk);
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin-right: var(--s-2);
+}
+
+@media (max-width: 68rem) {
+  .collection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 42rem) {
+  .contents .thumb:nth-child(n + 4),
+  .contents .overflow {
+    display: none;
+  }
+}

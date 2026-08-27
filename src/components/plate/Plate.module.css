@@ -1,0 +1,92 @@
+.plate {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ground-raised);
+  /* The plate carries its department's environment as an extremely faint
+     wash. At this strength it is not perceived as a colour, only as the
+     sense that two departments are lit differently. */
+  box-shadow: inset 0 0 0 1px var(--rule-faint);
+  isolation: isolate;
+}
+
+/* The drawing stops short of the legend rather than running underneath it.
+   Without this the dimension ticks a contour plate draws along its lower
+   edge land exactly where the accession number sits, and the legend reads
+   as struck through — which is visible at every plate size small enough
+   for the two bands to meet. The reserved strip is also just correct:
+   a plate has a caption area, and the drawing does not enter it. */
+.plate {
+  --legend-band: 2.25rem;
+}
+
+.compact {
+  --legend-band: 0rem;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0 0 var(--legend-band) 0;
+  width: 100%;
+  height: calc(100% - var(--legend-band));
+  /* Held back until the first draw so a plate never flashes as an empty
+     panel on a slow device. */
+  opacity: 0;
+  transition: opacity var(--d-considered) var(--e-out);
+}
+
+.canvas[data-drawn="true"] {
+  opacity: 1;
+}
+
+.wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--env);
+  opacity: 0.045;
+  mix-blend-mode: multiply;
+}
+
+:global(:root[data-light="dark"]) .wash {
+  opacity: 0.14;
+  mix-blend-mode: screen;
+}
+
+/* ---- Legend -------------------------------------------------------------
+   The accession number and condition sit in the plate as DOM text, not as
+   canvas pixels: they must stay selectable, searchable and crisp at every
+   pixel ratio. */
+
+.legend {
+  position: absolute;
+  inset: auto var(--s-3) var(--s-3) var(--s-3);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.condition {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  text-align: right;
+}
+
+.compact .legend {
+  inset: auto var(--s-2) var(--s-2) var(--s-2);
+}
+
+.compact .condition {
+  display: none;
+}

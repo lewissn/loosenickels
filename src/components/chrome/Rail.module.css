@@ -1,0 +1,182 @@
+/* =========================================================================
+   The rail
+
+   A letterhead, not a navigation bar. It is solid, it does not fade in or
+   out on scroll, and it never moves — which is precisely what lets the
+   index layer beneath it feel like a physical change of state rather than
+   a menu opening.
+   ========================================================================= */
+
+.rail {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: var(--z-rail);
+  height: var(--rail);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding-inline: var(--margin);
+  background: var(--ground);
+  border-bottom: 1px solid var(--rule);
+  view-transition-name: ln-rail;
+  transition: background-color var(--d-cinematic) var(--e-inout);
+}
+
+/* ---- Mark --------------------------------------------------------------- */
+
+.mark {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.stamp {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  border: 1px solid var(--ink);
+  font-family: var(--f-grotesk);
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-stretch: 92%;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding-left: 0.06em;
+  transition:
+    background-color var(--d-base) var(--e-out),
+    color var(--d-base) var(--e-out);
+}
+
+.mark:hover .stamp,
+.mark:focus-visible .stamp {
+  background: var(--ink);
+  color: var(--ground);
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  font-weight: 600;
+  font-stretch: 88%;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.qualifier {
+  font-family: var(--f-mono);
+  font-size: 0.625rem;
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-faint);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---- Controls ----------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  transition: color var(--d-quick) var(--e-out);
+}
+
+.control::after {
+  content: "";
+  position: absolute;
+  inset: auto var(--s-3) calc(var(--s-2) - 2px) var(--s-3);
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--d-base) var(--e-out);
+}
+
+.control:hover,
+.control:focus-visible {
+  color: var(--ink);
+}
+
+.control:hover::after,
+.control:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.control[aria-expanded="true"] {
+  color: var(--ink);
+}
+
+.control[aria-expanded="true"]::after {
+  transform: scaleX(1);
+}
+
+.chord {
+  font-family: var(--f-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0;
+  color: var(--ink-ghost);
+  padding: 0.1rem 0.25rem;
+  border: 1px solid var(--rule);
+}
+
+/* The count of records is a live institutional fact and is set in mono. */
+.holdings {
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+  padding-right: var(--s-3);
+  border-right: 1px solid var(--rule);
+  margin-right: var(--s-2);
+  white-space: nowrap;
+}
+
+@media (max-width: 60rem) {
+  .holdings,
+  .qualifier {
+    display: none;
+  }
+
+  .chord {
+    display: none;
+  }
+}
+
+@media (max-width: 34rem) {
+  .control {
+    padding-inline: var(--s-2);
+  }
+
+  /* Below this width the rail keeps the mark, Index and Search only —
+     Random moves into the index layer, where there is room for it. */
+  .control[data-secondary="true"] {
+    display: none;
+  }
+}

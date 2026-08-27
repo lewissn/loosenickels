@@ -1,0 +1,10 @@
+.page {
+  padding-top: var(--rail);
+}
+
+/* The survey plot department carries the Places environment throughout,
+   so its graticule, markers and rings are drawn in moss rather than in
+   the default stone. */
+.page {
+  --env: var(--env-PL);
+}

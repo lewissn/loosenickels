@@ -1,0 +1,259 @@
+/* =========================================================================
+   Enquiries
+
+   Search is a room in the institution rather than a widget floating over
+   one. It takes the whole viewport, it is set in the editorial face at a
+   size nothing else on the site uses, and it has a ruled ledger underneath
+   it instead of a list of rounded rows.
+   ========================================================================= */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-palette);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--ground);
+
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--d-base) var(--e-exit),
+    visibility 0s linear var(--d-base);
+}
+
+.scrim[data-open="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--d-base) var(--e-out),
+    visibility 0s;
+}
+
+/* ---- The line ----------------------------------------------------------- */
+
+.head {
+  padding: clamp(var(--s-6), 7vh, var(--s-9)) var(--margin) var(--s-5);
+  border-bottom: 1px solid var(--rule);
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--s-4);
+}
+
+.dismiss {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  transition: color var(--d-quick) var(--e-out);
+}
+
+.dismiss:hover,
+.dismiss:focus-visible {
+  color: var(--ink);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  outline: none;
+  font-family: var(--f-editorial);
+  font-size: clamp(1.75rem, 1rem + 3.6vw, 4rem);
+  font-variation-settings: "opsz" 48;
+  line-height: 1.08;
+  letter-spacing: var(--tr-display);
+  color: var(--ink);
+  caret-color: var(--oxide);
+}
+
+.field::placeholder {
+  color: var(--ink-ghost);
+  opacity: 1;
+}
+
+/* The caret is the only thing in the interface allowed to blink, and the
+   field's own is enough. No second cursor is drawn. */
+
+/* ---- Results ------------------------------------------------------------ */
+
+.results {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(var(--s-8) + env(safe-area-inset-bottom));
+}
+
+.group {
+  padding-top: var(--s-5);
+}
+
+.groupLabel {
+  padding-inline: var(--margin);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin-bottom: var(--s-3);
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s-4);
+  width: 100%;
+  text-align: left;
+  padding: var(--s-3) var(--margin);
+  border-top: 1px solid var(--rule-faint);
+  color: var(--ink-muted);
+  transition:
+    color var(--d-instant) linear,
+    background-color var(--d-instant) linear;
+}
+
+.row:last-child {
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+/* Selection is shown by an oxide rule in the margin and a shift in ink —
+   never by a filled row, which would read as a dropdown. */
+.row[data-selected="true"] {
+  color: var(--ink);
+  background: var(--wash);
+}
+
+.row[data-selected="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--oxide);
+}
+
+.rowId {
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.row[data-selected="true"] .rowId {
+  color: var(--oxide);
+}
+
+.rowTitle {
+  font-family: var(--f-editorial);
+  font-size: var(--t-lede);
+  font-variation-settings: "opsz" 22;
+  line-height: 1.24;
+  letter-spacing: var(--tr-title);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.rowNote {
+  display: block;
+  font-family: var(--f-editorial);
+  font-size: var(--t-small);
+  font-style: italic;
+  line-height: var(--lh-meta);
+  color: var(--ink-faint);
+  margin-top: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.rowMeta {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  white-space: nowrap;
+}
+
+/* ---- Empty -------------------------------------------------------------- */
+
+.empty {
+  padding: var(--s-8) var(--margin);
+  max-width: var(--measure-lede);
+  font-family: var(--f-editorial);
+  font-size: var(--t-lede);
+  font-style: italic;
+  line-height: var(--lh-lede);
+  color: var(--ink-faint);
+}
+
+.emptyNote {
+  display: block;
+  margin-top: var(--s-3);
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  font-style: normal;
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+}
+
+/* ---- Foot --------------------------------------------------------------- */
+
+.hint {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  gap: var(--s-5);
+  padding: var(--s-3) var(--margin) calc(var(--s-3) + env(safe-area-inset-bottom));
+  background: var(--ground);
+  border-top: 1px solid var(--rule-faint);
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+}
+
+@media (max-width: 48rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: var(--s-1);
+  }
+
+  .rowId {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .rowMeta {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .rowTitle {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .hint {
+    display: none;
+  }
+}

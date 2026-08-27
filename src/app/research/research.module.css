@@ -1,0 +1,123 @@
+/* =========================================================================
+   Department of Unnecessary Research
+
+   The question is the headline. Not the paper's title — the question it
+   set out to answer, set at display size, because the disproportion
+   between the seriousness of the setting and the triviality of the
+   question is the entire point of the department.
+   ========================================================================= */
+
+.page {
+  padding-top: var(--rail);
+  --env: var(--env-DR);
+}
+
+.papers {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--ink);
+}
+
+.paper {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--s-5) clamp(var(--s-6), 5vw, var(--s-9));
+  align-items: start;
+  padding: clamp(var(--s-7), 6vw, var(--s-9)) var(--margin);
+  border-bottom: 1px solid var(--rule);
+}
+
+.index {
+  position: absolute;
+  top: clamp(var(--s-7), 6vw, var(--s-9));
+  left: 0;
+  padding-left: calc(var(--margin) - 2.4rem);
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+}
+
+.question {
+  max-width: 20ch;
+  font-family: var(--f-editorial);
+  font-size: clamp(1.75rem, 1.1rem + 2.9vw, 3.5rem);
+  font-variation-settings: "opsz" 48;
+  line-height: 1.0;
+  letter-spacing: var(--tr-display);
+  text-wrap: balance;
+}
+
+.question a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-top: 0.6em;
+}
+
+.findingLabel {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--oxide);
+}
+
+.finding {
+  max-width: 40ch;
+  font-family: var(--f-editorial);
+  font-size: var(--t-body);
+  line-height: var(--lh-lede);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.pending {
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.register {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-2);
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-ghost);
+}
+
+.steps {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 68rem) {
+  .paper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .index {
+    position: static;
+    padding-left: 0;
+    margin-bottom: var(--s-3);
+  }
+
+  .aside {
+    padding-top: 0;
+  }
+}

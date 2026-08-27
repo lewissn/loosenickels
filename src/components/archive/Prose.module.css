@@ -1,0 +1,233 @@
+/* =========================================================================
+   Prose
+
+   The measure is set once, here, and everything else follows from it. Line
+   length is the single most consequential typographic decision on a page of
+   running text and it is not left to the container.
+   ========================================================================= */
+
+.prose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: var(--measure-prose);
+  font-family: var(--f-editorial);
+  font-size: var(--t-body);
+  font-variation-settings: "opsz" 16;
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+
+.prose p {
+  text-wrap: pretty;
+  hanging-punctuation: first last;
+}
+
+/* ---- Lede ---------------------------------------------------------------
+   One per record. Set larger, on a shorter measure, at a lighter optical
+   size — it is the sentence the record is built around. */
+
+.lede {
+  max-width: var(--measure-lede);
+  font-size: var(--t-lede);
+  font-variation-settings: "opsz" 28;
+  line-height: var(--lh-lede);
+  letter-spacing: -0.006em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* ---- Note ---------------------------------------------------------------
+   The institution speaking about itself. Indented, quieter, and set in the
+   italic so that it is audibly a different voice from the record. */
+
+.note {
+  position: relative;
+  max-width: var(--measure-note);
+  margin-left: var(--s-5);
+  padding-left: var(--s-5);
+  border-left: 1px solid var(--rule);
+  font-style: italic;
+  font-size: var(--t-small);
+  line-height: var(--lh-lede);
+  color: var(--ink-muted);
+}
+
+/* ---- Quote --------------------------------------------------------------- */
+
+.quote {
+  margin-block: var(--s-3);
+  max-width: var(--measure-lede);
+}
+
+.quote p {
+  font-size: var(--t-lede);
+  font-variation-settings: "opsz" 30;
+  line-height: 1.34;
+  letter-spacing: -0.008em;
+  text-indent: -0.42em;
+  text-wrap: balance;
+}
+
+.attribution {
+  display: block;
+  margin-top: var(--s-3);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.attribution::before {
+  content: "— ";
+}
+
+/* ---- List ---------------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  max-width: var(--measure-prose);
+  counter-reset: item;
+}
+
+.list li {
+  position: relative;
+  padding-left: var(--s-6);
+  line-height: var(--lh-lede);
+}
+
+.list li::before {
+  position: absolute;
+  left: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-faint);
+}
+
+.unordered li::before {
+  content: "—";
+}
+
+.ordered li {
+  counter-increment: item;
+}
+
+.ordered li::before {
+  content: counter(item, decimal-leading-zero);
+}
+
+/* ---- Measurements -------------------------------------------------------
+   Two columns, ruled, tabular figures, leader-free. This is a table of
+   values and it is set as one. */
+
+.measurements {
+  width: 100%;
+  max-width: var(--measure-prose);
+  border-collapse: collapse;
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  font-variant-numeric: tabular-nums;
+}
+
+.measurements tr {
+  border-top: 1px solid var(--rule-faint);
+}
+
+.measurements tr:last-child {
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+.measurements th {
+  width: 45%;
+  padding: var(--s-3) var(--s-4) var(--s-3) 0;
+  text-align: left;
+  font-weight: 400;
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  vertical-align: baseline;
+}
+
+.measurements td {
+  padding: var(--s-3) 0;
+  color: var(--ink);
+  vertical-align: baseline;
+}
+
+/* ---- Figures ------------------------------------------------------------- */
+
+.figure {
+  margin-block: var(--s-4);
+}
+
+.figure img {
+  width: 100%;
+  height: auto;
+}
+
+.figureCaption {
+  margin-top: var(--s-3);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-label);
+  color: var(--ink-faint);
+  max-width: 52ch;
+}
+
+.inset {
+  max-width: 22rem;
+}
+
+.column {
+  max-width: var(--measure-prose);
+}
+
+/* Figures may exceed the measure. They are the only thing permitted to. */
+.full {
+  max-width: none;
+  width: 100%;
+}
+
+.bleed {
+  max-width: none;
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+/* ---- Footnotes ----------------------------------------------------------
+   Set in the margin on wide viewports, where there is a margin to set them
+   in, and inline underneath the prose where there is not. */
+
+.footnotes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--rule);
+  max-width: var(--measure-prose);
+}
+
+.footnote {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: var(--s-3);
+  font-size: var(--t-small);
+  line-height: var(--lh-meta);
+  color: var(--ink-muted);
+}
+
+.marker {
+  font-family: var(--f-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-accession);
+  color: var(--oxide);
+}
