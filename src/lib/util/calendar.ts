@@ -38,10 +38,33 @@ function asDate(value: string): CalendarDate {
  * formatting trick, not a locale choice, and it is the only reliable way to
  * ask the platform "what was the wall-clock date there".
  */
+/**
+ * A time zone `Intl` will actually accept.
+ *
+ * Every zone here arrives from somewhere else — a profile column, an EXIF
+ * offset, a phone — and `Intl.DateTimeFormat` does not tolerate an
+ * unrecognised one: it throws, and a throw inside a resolve loop takes the
+ * whole archive down with it. A single photograph carrying a zone nobody can
+ * parse must cost that photograph its clock, not everybody their history.
+ *
+ * The fallback is deliberately UTC rather than the server's zone. A guess
+ * that changes depending on which machine answered the request is worse than
+ * an honest one that does not.
+ */
+function usableZone(timeZone: string | undefined): string {
+  if (!timeZone) return "UTC";
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone });
+    return timeZone;
+  } catch {
+    return "UTC";
+  }
+}
+
 export function dateIn(when: Date | Instant, timeZone: string): CalendarDate {
   const at = typeof when === "string" ? new Date(when) : when;
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
+    timeZone: usableZone(timeZone),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -204,7 +227,7 @@ export function full(date: CalendarDate): string {
  */
 export function clockTime(when: Instant, timeZone: string): string {
   return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
+    timeZone: usableZone(timeZone),
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

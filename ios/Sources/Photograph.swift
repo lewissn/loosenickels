@@ -145,7 +145,38 @@ enum Photograph {
         parser.timeZone = zone
 
         guard let moment = parser.date(from: reading) else { return nil }
-        return (moment, zone.identifier)
+        return (moment, name(for: zone, at: moment))
+    }
+
+    /**
+     A zone name the other end can actually use.
+
+     `TimeZone(secondsFromGMT:)` has an identifier like `GMT+0100`, and that
+     string is not a time zone as far as anything else is concerned:
+     `Intl.DateTimeFormat` rejects it outright, and a rejection inside the
+     website's resolve loop took the whole archive down rather than one
+     photograph's clock. Postgres accepted it happily, which is how a value
+     nothing could read came to be stored in the first place.
+
+     So: the device's own zone where it agrees with what the camera recorded,
+     which is very nearly always — the photograph was taken by this phone, in
+     this place. That keeps the real name, `Europe/London`, and with it the
+     knowledge of when the clocks change.
+
+     Otherwise the ISO offset, `+01:00`, which is accepted everywhere and is
+     honest about being less than a zone: it says what the camera knew and
+     claims nothing more.
+     */
+    private static func name(for zone: TimeZone, at moment: Date) -> String {
+        let here = TimeZone.current
+        if here.secondsFromGMT(for: moment) == zone.secondsFromGMT(for: moment) {
+            return here.identifier
+        }
+
+        let seconds = zone.secondsFromGMT(for: moment)
+        let sign = seconds < 0 ? "-" : "+"
+        let total = abs(seconds) / 60
+        return String(format: "%@%02d:%02d", sign, total / 60, total % 60)
     }
 
     // MARK: Camera
