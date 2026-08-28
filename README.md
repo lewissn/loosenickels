@@ -152,10 +152,59 @@ of everybody, rather than in the reply to a particular address.
 Accounts are made in the dashboard, under **Authentication → Users → Add
 user**. `handle_new_user()` fires on insert and the profile follows.
 
+### Storage
+
+One private R2 bucket. No public access, no custom domain, no public
+development URL — if any of those are switched on, every photograph in the
+archive becomes reachable by anyone holding a key, and keys travel in
+signed URLs.
+
+Photographs do not pass through the server. A serverless function caps its
+request body at a few megabytes and a photograph from a modern phone is
+larger than that, so an upload is three steps:
+
+```
+POST /api/uploads             → reserves the day and a revision,
+                                returns a URL signed for 120 seconds
+PUT  <that URL>               → browser or phone, straight to R2
+POST /api/uploads/{revision}  → the server asks R2 whether it arrived,
+                                and writes down R2's answer, not the client's
+```
+
+The signature covers the content type and the exact byte count, so the
+`PUT` must send both unchanged — a URL minted for one photograph cannot be
+spent on a hundred megabytes of something else. Because that `PUT` comes
+from a browser, the bucket needs a CORS rule (**R2 → your bucket →
+Settings → CORS policy**) or it will be refused before it starts:
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3000", "https://www.loosenickels.com"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["content-type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Reading goes back through `GET /api/media/{asset}`, which asks the
+database for the row and redirects to a URL signed for fifteen minutes.
+Row level security decides whether there is a row — for the owner, for an
+anonymous visitor looking at a public day, or for nobody — so permission is
+answered once in SQL rather than once in SQL and approximately again in
+TypeScript. A missing photograph and a forbidden one both come back 404.
+
+The `original` is never served to anyone but the owner. It still carries
+its EXIF, and the GPS tag with it.
+
 ### Environment
 
-`.env.local`, never committed. The first two are enough to sign in; the
-rest arrive with the upload pipeline:
+`.env.local`, never committed. The first two are checked at startup and are
+enough to sign in. The `R2_` four are read on first use instead, so a
+person working on the calendar does not need a Cloudflare account to run
+the site — leave them out entirely rather than filling them with
+placeholders, and the storage routes will say what is missing by name:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
