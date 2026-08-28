@@ -58,6 +58,46 @@ private struct RevisionRow: Decodable {
     var media_assets: [AssetRow]?
 }
 
+/**
+ An embedded relation that may arrive either way.
+
+ PostgREST returns a to-one embed as a bare object and a to-many as an
+ array, and which one you get depends on the direction of the foreign key
+ being followed rather than on anything visible in the select. Declaring the
+ wrong one does not degrade gracefully: the decode throws, the whole query
+ fails, and the failure surfaces somewhere far away wearing a transport
+ error's clothes.
+
+ `day_entries -> photo_revisions` follows the entry's pointer at its current
+ revision, so it is to-one and arrives as an object. This accepts both
+ anyway, because that is a fact about a server's serialisation and not a
+ thing worth having a client be brittle about.
+ */
+private struct Embedded<T: Decodable>: Decodable {
+    let values: [T]
+
+    var first: T? { values.first }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let many = try? container.decode([T].self) {
+            values = many
+        } else if let one = try? container.decode(T.self) {
+            values = [one]
+        } else if container.decodeNil() {
+            values = []
+        } else {
+            throw DecodingError.typeMismatch(
+                T.self,
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected \(T.self), an array of them, or null."
+                )
+            )
+        }
+    }
+}
+
 private struct DayRow: Decodable {
     var id: String
     var user_id: String
@@ -65,7 +105,7 @@ private struct DayRow: Decodable {
     var note: String?
     var visibility: DayVisibility
     var current_revision_id: String?
-    var photo_revisions: [RevisionRow]?
+    var photo_revisions: Embedded<RevisionRow>?
 }
 
 private struct ProfileRow: Decodable {

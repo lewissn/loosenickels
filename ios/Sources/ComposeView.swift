@@ -54,12 +54,26 @@ struct ComposeView: View {
                             details(photo: photo, date: date)
                         }
 
-                        if let problem {
-                            Notice(standing: "Problem", text: problem)
-                        }
+
                     }
                     .padding(.horizontal, Space.margin)
                     .padding(.vertical, Space.s4)
+                }
+            }
+            /* Above the fold and impossible to scroll past. This lived at
+               the bottom of the stack, under a full-height preview, which
+               is why a failed recording read as a button that did nothing:
+               the message was there and nobody was ever looking at it. */
+            .safeAreaInset(edge: .top) {
+                if let problem {
+                    Text(problem)
+                        .font(.system(size: Size.small))
+                        .foregroundStyle(Tone.ground)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Space.margin)
+                        .padding(.vertical, Space.s3)
+                        .background(Tone.oxide)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .navigationTitle("Record a day")
@@ -233,6 +247,8 @@ struct ComposeView: View {
                    screen's guess at it. Showing our own version instead is
                    how a screen comes to disagree with its next refresh. */
                 onRecorded(result.day)
+                /* Detached so dismissing is not waiting on it. */
+                Task.detached { await Transfer.nudgePipeline() }
                 dismiss()
             } catch {
                 problem = (error as? LocalizedError)?.errorDescription

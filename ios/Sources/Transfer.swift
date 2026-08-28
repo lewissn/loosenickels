@@ -204,4 +204,25 @@ enum Transfer {
                 : TransferFailure.interrupted
         }
     }
+
+    /**
+     Ask the pipeline to finish what was just recorded.
+
+     The app writes through PostgREST rather than through the website, so
+     nothing on the server knows a photograph has arrived until something
+     tells it. Without this a photograph taken on a phone waits for the daily
+     sweep — visible the whole time, but as its original, at full size, with
+     no thumbnail anywhere.
+
+     Deliberately not awaited by anything that can fail because of it: the
+     photograph is already recorded, the cron is the guarantee, and a resizer
+     having a bad afternoon is not the photographer's problem.
+     */
+    static func nudgePipeline() async {
+        guard let token = try? await bearer() else { return }
+        var request = URLRequest(url: URL(string: Site.origin + "/api/process")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try? await URLSession.shared.data(for: request)
+    }
 }

@@ -40,14 +40,30 @@ export interface Processed {
     queue that never empties is better than a run that never finishes. */
 const BATCH = 3;
 
-export async function processPending(limit = BATCH): Promise<Processed> {
+/**
+ * @param owner  When given, only this person's revisions are touched.
+ *
+ * That is what lets a signed-in client ask for its own photograph to be
+ * processed without holding the cron secret. The service role is still what
+ * does the work — it has to be, since it is finishing a photograph rather
+ * than answering a viewer — but the caller cannot use it to reach anybody
+ * else's queue.
+ */
+export async function processPending(
+  limit = BATCH,
+  owner?: string,
+): Promise<Processed> {
   const db = serviceClient();
   const out: Processed = { attempted: 0, ready: 0, failed: 0, problems: [] };
 
-  const { data: waiting } = await db
+  let pending = db
     .from("photo_revisions")
     .select("id, user_id, media_assets ( id, variant, storage_key )")
-    .eq("state", "pending")
+    .eq("state", "pending");
+
+  if (owner) pending = pending.eq("user_id", owner);
+
+  const { data: waiting } = await pending
     .order("created_at", { ascending: true })
     .limit(limit)
     .returns<

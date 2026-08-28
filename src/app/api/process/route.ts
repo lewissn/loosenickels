@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { processPending } from "@/lib/media/process";
+import { getSupabaseFor } from "@/lib/supabase/server";
 
 /* Making the renditions.
 
@@ -32,11 +33,31 @@ function permitted(request: Request): boolean {
 }
 
 export async function GET(request: Request) {
-  if (!permitted(request)) {
-    return new NextResponse(null, { status: 401 });
+  /* The cron, holding the secret, drains everybody's queue. */
+  if (permitted(request)) {
+    const result = await processPending();
+    return NextResponse.json(result, {
+      headers: { "cache-control": "no-store" },
+    });
   }
 
-  const result = await processPending();
+  /* A signed-in client may ask for its own photograph to be finished, and
+     only its own. The iOS app writes through PostgREST rather than through
+     this server, so nothing was nudging the pipeline on its behalf and a
+     photograph taken on a phone sat unprocessed until the daily sweep —
+     visible, but as an original, at full size, with no thumbnail anywhere.
+
+     The work still runs as the service role, because finishing a photograph
+     is not answering a viewer. What the caller controls is only whose queue
+     is drained, and it is theirs. */
+  const supabase = await getSupabaseFor(request);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return new NextResponse(null, { status: 401 });
+
+  const result = await processPending(undefined, user.id);
   return NextResponse.json(result, { headers: { "cache-control": "no-store" } });
 }
 
