@@ -2,12 +2,10 @@ import Foundation
 import Security
 
 /*
- The token lives in the keychain rather than in UserDefaults.
+ Small values that must not be picked up by a file-system backup.
 
- It is a fine-grained personal access token scoped to Contents: read and
- write on one repository, on a phone belonging to the person who owns
- that repository. The exposure is proportionate. Storing it somewhere a
- file-system backup would pick it up is not.
+ Nothing uses this at present: the session is the only credential the app
+ holds, and supabase-swift keeps that in the keychain on its own.
  */
 
 enum Keychain {
@@ -52,35 +50,10 @@ enum Keychain {
     }
 }
 
-/// Where the app is pointed and what it is allowed to do there.
-final class Settings: ObservableObject {
-    private static let repositoryKey = "ln.repository"
-    private static let tokenAccount = "github-token"
+/* The `Settings` class that lived here — a repository, a branch, and a
+   hand-pasted GitHub token — is gone with the write path it configured.
+   supabase-swift keeps the session in the keychain itself, so nothing in
+   this app stores a credential by hand any more.
 
-    @Published var repository: Repository {
-        didSet { persistRepository() }
-    }
-
-    @Published var token: String {
-        didSet { Keychain.set(token, for: Self.tokenAccount) }
-    }
-
-    init() {
-        if let data = UserDefaults.standard.data(forKey: Self.repositoryKey),
-           let stored = try? JSONDecoder().decode(Repository.self, from: data) {
-            repository = stored
-        } else {
-            repository = .default
-        }
-        token = Keychain.get(Self.tokenAccount)
-    }
-
-    var isReady: Bool { repository.isComplete && !token.trimmed.isEmpty }
-
-    var client: GitHub { GitHub(repository: repository, token: token) }
-
-    private func persistRepository() {
-        guard let data = try? JSONEncoder().encode(repository) else { return }
-        UserDefaults.standard.set(data, forKey: Self.repositoryKey)
-    }
-}
+   `Keychain` survives because it is the right answer to the question it
+   answers, and something will want it again. */

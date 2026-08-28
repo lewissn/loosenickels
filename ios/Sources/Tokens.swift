@@ -43,18 +43,10 @@ enum Tone {
     static let oxideSoft = Color(day: 0x8e3b24, dayAlpha: 0.14, night: 0xc05f3f, nightAlpha: 0.16)
 
     /// The environmental tint a department carries. Never a fill at full strength.
-    static func environment(_ dept: Department) -> Color {
-        switch dept {
-        case .objects:    return Color(day: 0x7a7566, night: 0x9a9382)  // stone
-        case .places:     return Color(day: 0x4a5643, night: 0x7d8f72)  // moss
-        case .fieldNotes: return Color(day: 0x6b5844, night: 0xa08a6c)  // soil
-        case .photographs:return Color(day: 0x6e747a, night: 0x8f959c)  // silver
-        case .thoughts:   return Color(day: 0x3e4557, night: 0x6d7691)  // ink
-        case .sounds:     return Color(day: 0x262a33, night: 0x565d6d)  // deep
-        case .experiments:return Color(day: 0x8e3b24, night: 0xc05f3f)  // oxide
-        case .research:   return Color(day: 0x31465e, night: 0x5b7ba1)  // indigo
-        }
-    }
+    /* The department palette that was here is gone with the departments.
+       Nothing replaces it: a day's environment comes from the photograph
+       itself — the website tints the ground from the image's own lightness
+       — rather than from a category the product no longer has. */
 }
 
 // MARK: - Type

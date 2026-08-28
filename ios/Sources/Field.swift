@@ -170,7 +170,10 @@ final class FieldConditions: ObservableObject {
             coordinates: Coordinates(
                 lat: location.coordinate.latitude,
                 lon: location.coordinate.longitude,
-                precision: location.horizontalAccuracy > 0
+                /* Renamed with the schema: the database column is
+                   `accuracy_m` and the value is metres of horizontal
+                   error, which "precision" read as the opposite of. */
+                accuracy: location.horizontalAccuracy > 0
                     ? (location.horizontalAccuracy * 10).rounded() / 10
                     : nil,
                 elevation: altitude.map { ($0 * 10).rounded() / 10 }

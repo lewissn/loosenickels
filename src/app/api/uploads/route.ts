@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { getSupabase } from "@/lib/supabase/server";
+import { getSupabaseFor } from "@/lib/supabase/server";
 import {
   MAX_ORIGINAL_BYTES,
   extensionFor,
@@ -33,7 +33,7 @@ const problem = (status: number, said: string) =>
   NextResponse.json({ problem: said }, { status });
 
 export async function POST(req: Request) {
-  const supabase = await getSupabase();
+  const supabase = await getSupabaseFor(req);
   const {
     data: { user },
   } = await supabase.auth.getUser();

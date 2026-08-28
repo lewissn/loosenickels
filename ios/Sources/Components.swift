@@ -37,20 +37,10 @@ struct Signage: View {
     }
 }
 
-/// An accession number, in the register's own hand. Hyphens in storage,
-/// en-dashes in display — the same rule `format()` applies on the website.
-struct AccessionNumber: View {
-    let id: String
-    var size: CGFloat = Size.micro
-    var tone: Color = Tone.inkFaint
-
-    var body: some View {
-        Text(Accession.display(id))
-            .font(Face.mono(size))
-            .tracking(size * Track.accession)
-            .foregroundStyle(tone)
-    }
-}
+/* `AccessionNumber` stood here. It set a museum accession number in the
+   register's own hand — hyphens in storage, en-dashes in display. There are
+   no accession numbers now: a day is identified by its date, and a date
+   needs no ceremony to be legible. */
 
 // MARK: - Readouts
 

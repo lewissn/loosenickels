@@ -1,171 +1,128 @@
-# Accession
+# The app
 
-The archive's capture app. One screen, on a phone, that files a record
-into this repository.
+A SwiftUI client for the same archive the website serves, speaking the same
+contract: `Sources/ArchiveSource.swift` is a mirror of
+`src/lib/archive/source.ts`, and both are mirrors of what row level security
+actually permits. Neither client is allowed a second opinion about
+permission — this one least of all, since it runs on a device its owner
+controls, where any check it made could simply be deleted.
 
-There is no server. The app draws the next accession number from the
-records directory, writes a JSON file and a photograph through the GitHub
-contents API, and the site rebuilds. Everything the archive is fussy
-about — position, the accuracy of that position, altitude, weather, the
-moment the photograph was taken — arrives on its own. What is left to
-type is a title.
-
-**It compiles, and it has filed a record.** Written without a Mac, it
-went through a compiler for the first time on 27 August 2026 and needed
-exactly one correction: `Accession.pattern` was a bare `/…/` regex
-literal, which Swift 5 will not parse without an opt-in flag. Extended
-delimiters — `#/…/#` — work as they stand. Nothing else was wrong; the
-remaining 1,300 lines built clean, without warnings.
-
-It has since run in the simulator and on a phone, and accessioned
-`LN-PH-0001` into this repository — photograph, position, reverse
-geocode and record, in a single pass.
-
-Two things remain unexercised. **WeatherKit** needs its entitlement
-registered before it will return anything, so no record has yet carried a
-weather line. And the app has only ever *created*: nothing here reads or
-updates an existing record.
+The museum that used to be here — departments, accession numbers,
+significance ratings, and a write path that committed records to this git
+repository through the GitHub contents API — is gone. It is preserved
+complete at the tag `institute-final`.
 
 ---
 
 ## Building it
 
-The Xcode project is generated rather than committed. `project.yml` is
-the source of truth; the `.xcodeproj` is disposable and gitignored.
+The Xcode project is generated rather than committed. Regenerate it rather
+than editing it, and keep anything that must survive in `project.yml`.
 
 ```bash
-brew install xcodegen     # once
-cd ios
-xcodegen                  # writes Accession.xcodeproj
-open Accession.xcodeproj
+brew install xcodegen
+cd ios && xcodegen && open Daily.xcodeproj
 ```
 
-Before the first run, put your Team ID in `project.yml` —
-`DEVELOPMENT_TEAM`, near the top of the target's settings. Xcode →
-Settings → Accounts → your account → the Team ID column. You can instead
-pick a team on the Signing & Capabilities tab, but that choice is lost
-the next time the project is regenerated.
+Put your ten-character Team ID in `project.yml` under `DEVELOPMENT_TEAM`
+before generating. Leaving it empty still produces a working project, but
+Xcode will ask for a team on the Signing & Capabilities tab and that choice
+is lost the next time the project is regenerated.
 
-Then build to the phone. A development build on a paid developer account
-is good for a year before it needs reinstalling; a free account gives you
-seven days.
+One dependency, resolved by Xcode on first build: **supabase-swift**. It
+carries the session — keychain storage, refresh before expiry, and parsing
+the magic link that creates it — and speaks PostgREST. Hand-rolling token
+refresh is the kind of code that works until somebody leaves the app open
+overnight.
 
-The spec sets iOS 17 as the minimum, iPhone only, portrait, Swift 5
-language mode, and writes the three usage strings the app needs —
-location, camera and photo library — into a generated `Info.plist`.
+## Pointing it somewhere
 
-Swift 5 is deliberate. Swift 6 strict concurrency wants annotations this
-code does not carry.
+`Sources/Backend.swift` has two constants to fill in, from the Supabase
+dashboard under **Project Settings → API**:
 
-### Without XcodeGen
-
-If you would rather not install it: **Xcode → New Project → iOS → App**,
-named `Accession`, SwiftUI, minimum iOS 17.0. Delete the generated
-`ContentView.swift` and `AccessionApp.swift`, drag everything in
-`Sources` in, set your team, and add these to the target's **Info** tab:
-
-| Key | Value |
-| --- | --- |
-| `NSLocationWhenInUseUsageDescription` | The archive records where a thing was found, and how accurately it is able to say so. |
-| `NSCameraUsageDescription` | For photographing what is being accessioned. |
-| `NSPhotoLibraryUsageDescription` | For filing a photograph that has already been taken. |
-
-### WeatherKit is deliberately off
-
-The weather line fills itself in from WeatherKit, which needs the
-entitlement on the target *and* the App ID registered for WeatherKit on
-the developer portal. Until the App ID is configured the entitlement
-fails to sign — so it is commented out in `project.yml` rather than
-blocking the very first build over a single optional field.
-
-Until it is switched on the app works exactly as it otherwise would and
-simply leaves the weather off the record. Get everything else running
-first, then uncomment the `entitlements:` block and regenerate.
-
----
-
-## The token
-
-Settings wants a **fine-grained personal access token**:
-
-- GitHub → Settings → Developer settings → Personal access tokens →
-  Fine-grained tokens
-- Repository access: **only** `lewissn/loosenickels`
-- Permissions: **Contents: read and write**
-- Nothing else
-
-It is held in the keychain, marked as this-device-only and
-unlocked-only. It is a token scoped to one repository, on the phone of
-the person who owns that repository — the exposure is proportionate, and
-it is the reason the app needs no backend at all.
-
----
-
-## What it writes
-
-Two files per record, both created and never updated:
-
-```
-src/content/records/LN-XX-0000.json
-public/media/LN-XX-0000/plate.jpg      (when there is a photograph)
+```swift
+static let url = URL(string: "https://YOUR-PROJECT.supabase.co")!
+static let publishableKey = "YOUR-PUBLISHABLE-KEY"
 ```
 
-The photograph goes first. A failure part-way then leaves at worst an
-orphaned image under a number that was never issued — invisible and
-harmless. The other order would leave a record pointing at a photograph
-that does not exist, which fails the build.
+Use the **publishable (anon)** key. Never the service role key — that one
+bypasses row level security entirely and must never leave a server.
 
-### Accession numbers cannot collide
+Neither value is a secret: the key is the same one the website ships to
+every browser. They are compiled in rather than put behind a settings screen
+because a settings screen only invites someone to change them.
 
-The filenames in `src/content/records` *are* the accession numbers, so
-listing that directory is reading the register. The next number is the
-highest yet issued in that department plus one — sequences are never
-reused, including after a withdrawal.
+Until they are filled in the app says so on its own first screen, rather
+than failing at the first request with something unreadable.
 
-The write carries no blob SHA, which means GitHub creates or refuses; it
-never overwrites. That refusal is the collision check, and it is exact.
+## The magic link
 
-### Slugs might
+This is the part with three places to get right, and it fails silently if
+any one of them is wrong — the link opens the website on the phone and the
+app simply stays signed out.
 
-Two things can honestly have the same title, and a duplicate slug fails
-the build rather than the write. So before filing, the app asks the
-deployed site whether `/archive/record/<slug>/` already answers, and
-suffixes if it does.
+1. **The URL scheme**, in `project.yml` under `CFBundleURLTypes`. Already
+   set to `loosenickels`.
+2. **The redirect**, in `Sources/Backend.swift` as
+   `loosenickels://auth-callback`.
+3. **The allow-list**, in the Supabase dashboard under **Authentication →
+   URL Configuration**. Add `loosenickels://auth-callback` alongside the web
+   callbacks.
 
-That only knows about records already deployed. Two identically titled
-records filed inside the same build window would still collide — at which
-point the build says so by name and the title can be changed. Rare enough
-to leave loud rather than engineer around.
+All three must agree.
 
----
+## What it does
 
-## What the phone knows
+**Sign in.** A link, no password. What the screen says when a link was sent
+and what it says when the address has no account are deliberately the same
+sentence: registration is closed, and a refusal that read differently would
+answer, to anybody willing to type addresses in, the question of who keeps
+an archive here.
 
-The schema was written before any of this existed and turns out to fit a
-phone almost exactly:
+**Look at the archive.** One day filling the screen, paged with the
+platform's own scrolling rather than a worse copy of the website's gesture.
+What opens is the most recently recorded day — not today's, necessarily. An
+empty screen for the sin of not having posted yet would be the product
+punishing somebody for missing a day.
 
-| Schema field | Where it comes from |
-| --- | --- |
-| `place.coordinates.lat` / `lon` | `CLLocation.coordinate` |
-| `place.coordinates.precision` | `CLLocation.horizontalAccuracy` — metres, the instrument's own figure |
-| `place.coordinates.elevation` | `CLLocation.altitude`, when vertical accuracy is valid |
-| `place.name` / `region` / `country` | `CLGeocoder` reverse geocode |
-| `weather` | WeatherKit current conditions |
-| `media[].captured` | EXIF `DateTimeOriginal`, read before re-encoding |
-| `media[].width` / `height` | measured after downscaling |
+**Record a day.** Three separate steps, and the separation is the point:
 
-`precision` is the one worth noticing. The About page claims positions
-are recorded to the accuracy the archive is willing to claim rather than
-the accuracy the instrument offers. On a phone those are the same number,
-so the claim is now literally true, and the rings on the survey plot are
-real GPS accuracy radii.
+```
+read on device   →   bytes to storage   →   tell a day which photograph is its own
+```
 
-Photographs are redrawn at no more than 2400px on the long edge and
-encoded as JPEG at 0.85 — every version is kept forever by git, and a
-12-megapixel HEIC is not a reasonable thing to keep forever. Redrawing
-also resolves EXIF orientation into the pixels, so a rotated photograph
-is not filed with its aspect inverted.
+The server never sees the file, only an object key, so anything not read on
+the device is lost. The middle step is the one that fails outdoors, and
+because it is separate a failed commit can be retried without sending the
+photograph again. An idempotency key, generated once per chosen photograph
+and kept across retries, means a reply that never arrived cannot produce a
+second copy of the same day.
 
-The build corrects the dimensions anyway. `tools/ingest.mjs` reads every
-image on the way through and treats the file as the authority, so a
-device that reports its own size badly is simply overruled.
+## Two things worth not breaking
+
+**The original is uploaded untouched.** This app used to downscale to
+2400px and re-encode as JPEG, because git was keeping every version of every
+file forever. Object storage removed that reason. Full resolution, original
+format, and the EXIF intact.
+
+**EXIF capture time is local time at the camera.** `Photograph.swift` parses
+`DateTimeOriginal` in the zone the offset tag names, or the device's zone if
+the file carries none — never as UTC. Parsing it as UTC is exactly what
+files a Tokyo evening on the wrong day. Where a file records no capture time
+at all, the day is today *in the archive owner's zone*, which comes from
+their profile and not from the phone: the phone is in a different zone
+whenever they are travelling.
+
+## What is not here yet
+
+- Calendar, map, on-this-day, and public profiles. The website has not built
+  them either; the contract has the methods.
+- Editing a note or a day's visibility after the fact. `ArchiveSource` has
+  `setNote` and `setVisibility` and no screen calls them.
+- Location from the device at the moment of recording. `Field.swift` still
+  reads position and weather and nothing uses it — the photograph's own EXIF
+  coordinates are what get recorded. It is kept because a photograph from a
+  screenshot has no position and the phone does.
+- WeatherKit. Deliberately not enabled: the entitlement fails to sign until
+  the App ID is registered for it, which would block the very first build
+  for a field the app is written to do without.

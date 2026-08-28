@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabase } from "@/lib/supabase/server";
+import { getSupabaseFor } from "@/lib/supabase/server";
 import { describeObject, extensionFor } from "@/lib/storage/blob";
 
 /* =========================================================================
@@ -31,7 +31,7 @@ const problem = (status: number, said: string) =>
   NextResponse.json({ problem: said }, { status });
 
 export async function POST(req: Request) {
-  const supabase = await getSupabase();
+  const supabase = await getSupabaseFor(req);
   const {
     data: { user },
   } = await supabase.auth.getUser();

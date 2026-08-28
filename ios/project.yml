@@ -1,4 +1,4 @@
-# XcodeGen spec for the capture app.
+# XcodeGen spec for the daily archive app.
 #
 #   brew install xcodegen
 #   cd ios && xcodegen
@@ -9,7 +9,17 @@
 #
 # The one thing to set before generating is DEVELOPMENT_TEAM, below.
 
-name: Accession
+name: Daily
+
+# The one dependency. supabase-swift carries the session — storing it in the
+# keychain, refreshing it before it lapses, and parsing the magic link that
+# creates it — and speaks PostgREST, which is where the archive's rules live.
+# Hand-rolling token refresh is the kind of code that works until somebody
+# leaves the app open overnight.
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    majorVersion: 2.0.0
 
 options:
   bundleIdPrefix: com.lewisnichols
@@ -26,17 +36,21 @@ settings:
     SWIFT_VERSION: "5.0"
 
 targets:
-  Accession:
+  Daily:
     type: application
     platform: iOS
 
     sources:
       - path: Sources
 
+    dependencies:
+      - package: Supabase
+        product: Supabase
+
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lewisnichols.daily
-        PRODUCT_NAME: Accession
+        PRODUCT_NAME: Daily
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
 
@@ -69,9 +83,9 @@ targets:
     #     com.apple.developer.weatherkit: true
 
     info:
-      path: Accession/Info.plist
+      path: Daily/Info.plist
       properties:
-        CFBundleDisplayName: Accession
+        CFBundleDisplayName: Daily
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
 
@@ -81,13 +95,29 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
 
-        # The archive records where a thing was found and how accurately
-        # it is able to say so, photographs what it takes in, and files
-        # photographs already taken. Hence three.
-        NSLocationWhenInUseUsageDescription: >-
-          The archive records where a thing was found, and how accurately it
-          is able to say so.
+        # Where a magic link comes back to.
+        #
+        # The link arrives in Mail, is opened by Safari, and has to hand
+        # the session to this app rather than to the website. Safari will
+        # only do that for a scheme the app has claimed here, so this entry
+        # is load-bearing: without it the link opens the website on the
+        # phone and the app stays signed out with no visible reason.
+        #
+        # It must match the redirect registered in the Supabase dashboard
+        # under Authentication -> URL Configuration.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.lewisnichols.daily
+            CFBundleURLSchemes:
+              - loosenickels
+
+        # Two, not three. The museum asked for the camera because it
+        # photographed objects being accessioned; this records the day, and
+        # a day is very often already in the library by the time anyone
+        # thinks to file it.
         NSCameraUsageDescription: >-
-          For photographing what is being accessioned.
+          To photograph the day.
         NSPhotoLibraryUsageDescription: >-
-          For filing a photograph that has already been taken.
+          To record a photograph you have already taken.
+        NSLocationWhenInUseUsageDescription: >-
+          To record where a photograph was taken. It is kept private unless
+          you choose otherwise, and each day can be set separately.

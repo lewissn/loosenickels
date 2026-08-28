@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabase } from "@/lib/supabase/server";
+import { getSupabaseFor } from "@/lib/supabase/server";
 import { signedRead } from "@/lib/storage/blob";
 
 const EXPIRES_IN = 900;
@@ -13,7 +13,7 @@ const EXPIRES_IN = 900;
    approximately again in TypeScript. */
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ asset: string }> },
 ) {
   const { asset } = await params;
@@ -21,7 +21,7 @@ export async function GET(
     return new NextResponse(null, { status: 404 });
   }
 
-  const supabase = await getSupabase();
+  const supabase = await getSupabaseFor(req);
   const { data } = await supabase
     .from("media_assets")
     .select("storage_key")
