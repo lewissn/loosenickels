@@ -424,6 +424,38 @@ export function supabaseArchive(client?: Db): ArchiveSource {
       );
     },
 
+    async recentDays(owner, viewer, options) {
+      const db = await conn();
+      const profile = await ownerProfile(db, owner);
+      if (!profile) return [];
+
+      let query = db
+        .from("day_entries")
+        .select(DAY_COLUMNS)
+        .eq("user_id", owner)
+        .not("current_revision_id", "is", null);
+
+      if (options?.before) query = query.lt("entry_date", options.before);
+
+      const { data } = await query
+        .order("entry_date", { ascending: false })
+        .limit(options?.limit ?? 24)
+        .returns<DayRow[]>();
+
+      if (!data) return [];
+
+      /* The signing is concurrent even though the fetch is one round trip.
+         Each day's URLs are independent, and awaiting them in sequence
+         would put the round trips back in a different place. */
+      const days = await Promise.all(
+        data.map((row) =>
+          resolveDay(row, owner, profile.location_precision, viewer),
+        ),
+      );
+
+      return days.filter((d): d is ResolvedDay => d !== null);
+    },
+
     async neighbours(owner, date, viewer) {
       const db = await conn();
       const profile = await ownerProfile(db, owner);

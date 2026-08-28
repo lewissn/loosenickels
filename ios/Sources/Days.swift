@@ -56,33 +56,12 @@ final class Days: ObservableObject {
             let status = try await archive.status(owner: owner)
             self.status = status
 
-            /* Anchored on the latest recorded day rather than on today, so
-               an archive whose owner missed a fortnight still opens on a
-               photograph instead of on two weeks of nothing. */
-            guard let latest = try await archive.latestDay(owner: owner) else {
-                days = []
-                loaded = true
-                return
-            }
+            /* One request for the window. This used to ask for the latest
+               day, then a page of summaries, then a full day for each of
+               those in turn — thirty round trips over a mobile network
+               before the first photograph could be drawn. */
+            days = try await archive.recentDays(owner: owner, limit: window, before: nil)
 
-            let summaries = try await archive.summaries(
-                owner: owner,
-                from: back(from: latest.date, days: window),
-                to: latest.date
-            )
-
-            /* The window is fetched as summaries — thumbnails and shapes —
-               and only the day actually on screen is fetched whole. A phone
-               on a train should not download thirty full photographs to
-               show one. */
-            var assembled: [ResolvedDay] = [latest]
-            for summary in summaries where summary.date != latest.date {
-                if let day = try? await archive.day(owner: owner, date: summary.date) {
-                    assembled.append(day)
-                }
-            }
-
-            days = assembled.sorted { $0.date > $1.date }
             loaded = true
         } catch let failure as ArchiveFailure {
             problem = failure.errorDescription

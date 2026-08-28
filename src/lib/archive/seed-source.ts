@@ -136,6 +136,15 @@ export const seedSource: ArchiveSource = {
     return found ? resolve(found, viewer) : null;
   },
 
+  async recentDays(owner, viewer, options) {
+    requireOwner(owner, viewer);
+    const ordered = [...SEED_DAYS].sort((a, b) => compareDates(b.date, a.date));
+    const from = options?.before
+      ? ordered.filter((d) => compareDates(d.date, options.before!) < 0)
+      : ordered;
+    return from.slice(0, options?.limit ?? 24).map((day) => resolve(day, viewer));
+  },
+
   async neighbours(owner, date, viewer) {
     if (owner !== OWNER) return { previous: null, next: null };
     /* Newest first, so the entry *before* this one in the list is the newer

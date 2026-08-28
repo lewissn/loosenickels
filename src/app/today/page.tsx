@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSupabase } from "@/lib/supabase/server";
 import { archive } from "@/lib/archive";
-import { userId as asUserId, type ResolvedDay } from "@/lib/archive/schema";
+import { userId as asUserId } from "@/lib/archive/schema";
 import type { Viewer } from "@/lib/archive/source";
 import { Archive } from "@/components/day/Archive";
 import { Menu } from "@/components/chrome/Menu";
@@ -24,9 +24,9 @@ export const metadata: Metadata = { title: "Today" };
    takes both and the public profile pages will pass different ones.
    ========================================================================= */
 
-/* Two dozen days of adjacency. In production this becomes a window that
-   extends as the reader travels; the shape of the call does not change,
-   only how many times it is made. */
+/* Two dozen days. The window extends as the reader travels by passing the
+   oldest date already held as `before`; the shape of the call does not
+   change, only where it starts. */
 const WINDOW = 24;
 
 export default async function TodayPage() {
@@ -43,12 +43,14 @@ export default async function TodayPage() {
   const owner = asUserId.parse(user.id);
   const viewer: Viewer = { userId: owner };
 
-  const [latest, status] = await Promise.all([
-    archive.latestDay(owner, viewer),
+  /* One query for the window, not one per day. This walked backwards a day
+     at a time through `neighbours` — twenty-four sequential round trips
+     before anything could render, which cost nothing against fixtures and a
+     great deal against a database in another building. */
+  const [days, status] = await Promise.all([
+    archive.recentDays(owner, viewer, { limit: WINDOW }),
     archive.status(owner, viewer),
   ]);
-
-  const days = latest ? await walkBack(latest, owner, viewer, WINDOW) : [];
 
   return (
     <>
@@ -63,25 +65,4 @@ export default async function TodayPage() {
       <Menu account={user.email} />
     </>
   );
-}
-
-/** Newest first, following `neighbours` rather than assuming the archive is
-    contiguous — it is not, and the gaps are part of the record. */
-async function walkBack(
-  from: ResolvedDay,
-  owner: ReturnType<typeof asUserId.parse>,
-  viewer: Viewer,
-  limit: number,
-): Promise<ResolvedDay[]> {
-  const days: ResolvedDay[] = [from];
-  let cursor = from;
-
-  while (days.length < limit) {
-    const { previous } = await archive.neighbours(owner, cursor.date, viewer);
-    if (!previous) break;
-    days.push(previous);
-    cursor = previous;
-  }
-
-  return days;
 }

@@ -101,6 +101,14 @@ protocol ArchiveSource {
 
     func day(owner: String, date: CalendarDate) async throws -> ResolvedDay?
 
+    /// A page of days, newest first, already resolved. One request, not one
+    /// per day — which matters more on a phone than anywhere else, because
+    /// the round trip is over a mobile network.
+    ///
+    /// `before` is exclusive: page further back by passing the oldest date
+    /// already held.
+    func recentDays(owner: String, limit: Int, before: CalendarDate?) async throws -> [ResolvedDay]
+
     /// Thumbnails across a range. Returns only days that exist; absent days
     /// are absent, and the caller draws the gap. The archive does not
     /// invent placeholder records for days that were never recorded.

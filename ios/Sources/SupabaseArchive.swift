@@ -161,6 +161,37 @@ struct SupabaseArchive: ArchiveSource {
         return try await resolve(row, owner: owner, ceiling: profile.location_precision)
     }
 
+    func recentDays(
+        owner: String,
+        limit: Int,
+        before: CalendarDate?
+    ) async throws -> [ResolvedDay] {
+        guard let profile = try await ownerProfile(owner) else { return [] }
+
+        let rows: [DayRow] = try await run {
+            var query = db.from("day_entries")
+                .select(Columns.day)
+                .eq("user_id", value: owner)
+                .not("current_revision_id", operator: .is, value: AnyJSON.null)
+
+            if let before { query = query.lt("entry_date", value: before.value) }
+
+            return try await query
+                .order("entry_date", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+        }
+
+        var out: [ResolvedDay] = []
+        for row in rows {
+            if let day = try await resolve(row, owner: owner, ceiling: profile.location_precision) {
+                out.append(day)
+            }
+        }
+        return out
+    }
+
     func summaries(
         owner: String,
         from: CalendarDate,
@@ -510,7 +541,14 @@ struct SupabaseArchive: ArchiveSource {
         }
 
         if label == nil && coordinates == nil { return nil }
-        return Place(label: label, region: r.region, country: r.country, coordinates: coordinates)
+
+        /* Only the label and the coordinates, and nothing beside them.
+           Passing `region` and `country` through as separate fields — which
+           this did — handed a viewer entitled to nothing the two facts the
+           ladder exists to withhold, however carefully the label above had
+           just been reduced. The web version returns exactly these two
+           fields for the same reason; this now matches it. */
+        return Place(label: label, coordinates: coordinates)
     }
 
     /**

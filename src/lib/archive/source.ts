@@ -203,6 +203,24 @@ export interface ArchiveSource {
   day(owner: UserId, date: CalendarDate, viewer: Viewer): Promise<ResolvedDay | null>;
 
   /**
+   * A page of days, newest first, already resolved.
+   *
+   * This exists because the obvious way to build a window — ask for the
+   * latest day, then its neighbour, then that one's neighbour — is one
+   * round trip per day, run in sequence. Against fixtures that is free.
+   * Against a database it is the difference between a page that appears and
+   * a page that assembles itself in front of the reader.
+   *
+   * `before` is exclusive, so paging further back is passing the oldest
+   * date already held.
+   */
+  recentDays(
+    owner: UserId,
+    viewer: Viewer,
+    options?: { limit?: number; before?: CalendarDate },
+  ): Promise<ResolvedDay[]>;
+
+  /**
    * The days either side, already resolved.
    *
    * The viewer scrolls through time, so it needs the next photograph decoded
