@@ -78,6 +78,32 @@ capture timezone and submission timestamp are stored separately. A photo
 taken at 23:40 in Tokyo belongs to that day in Tokyo regardless of where
 the server lives.
 
+### The database
+
+`supabase/migrations/`, applied in filename order:
+
+```bash
+supabase db push          # or paste into the SQL editor, in order
+```
+
+Three rules live in the database rather than in either client, because
+there are two clients and they are not allowed to disagree.
+
+- **One photograph per user per calendar date** — a unique constraint on
+  `(user_id, entry_date)`. `entry_date` has no default, so no code path can
+  quietly fall back to the server's idea of today, and a trigger rejects a
+  date more than one day ahead of the server: a user on the far side of the
+  date line is legitimately a day ahead, and no further.
+- **Revisions are never destroyed.** `photo_revisions` has no `DELETE`
+  policy and no `DELETE` grant. Replacing a photograph appends.
+- **Reach is decided server-side.** Row level security composes: a revision
+  is reachable only through an entry the reader can already see, and an
+  entry only through a profile they can already see. A public day inside a
+  private profile stays private. A public day exposes its *current*
+  photograph only — the revision history is private, since what someone
+  chose not to show is as revealing as what they did — and never the
+  original file, whose embedded EXIF would carry the GPS tag out with it.
+
 ### Environment
 
 `.env.local`, never committed:
