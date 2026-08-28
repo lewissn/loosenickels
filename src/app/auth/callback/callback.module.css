@@ -44,3 +44,14 @@
   border-color: var(--oxide);
   color: var(--oxide);
 }
+
+/* Separated from the primary action by a rule rather than by distance: they
+   are two ways to do the same thing, not a step and an afterthought. */
+.other {
+  margin-top: var(--s-5);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--rule-faint);
+  display: grid;
+  justify-items: start;
+  gap: var(--s-3);
+}

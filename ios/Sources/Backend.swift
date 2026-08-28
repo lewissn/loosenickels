@@ -50,10 +50,36 @@ enum Backend {
     static let publishableKey =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlma3JkeXRveWNrc29kcXBsamNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDE0NTEsImV4cCI6MjEwMzUxNzQ1MX0.OlbEIelZ9zj5YHCp8L1ve8fmQ0vuZ5uVUu1zk5r0XYg"
 
-    /// Where a magic link comes back to. Registered in `project.yml` as a
-    /// URL scheme and in the Supabase dashboard as a permitted redirect;
-    /// it has to be in both or the link opens the website instead.
-    static let callback = URL(string: "loosenickels://auth-callback")!
+    /**
+     Where the app's own deep link goes. Registered in `project.yml` as a
+     URL scheme, and handled by `Session.handle`.
+
+     Note what this is *not*: it is not what the app asks Supabase to put in
+     the email. See `emailReturn` below.
+     */
+    static let scheme = URL(string: "loosenickels://auth-callback")!
+
+    /**
+     Where a magic link is asked to come back to — the website, not the app.
+
+     Asking for the app's own scheme is the obvious thing and it does not
+     work. Mail clients will not make a `loosenickels://` link clickable:
+     Outlook and Hotmail in particular rewrite every URL they can understand
+     and quietly leave alone every one they cannot, so the link arrives inert
+     and tapping it does nothing at all. No error, on any side.
+
+     So the email points at the website's callback, which every mail client
+     is happy to linkify. That page holds the credential without spending it
+     and offers a button that opens the app with it. A custom scheme tapped
+     on a web page works perfectly well; it is only in email that it does
+     not.
+
+     The proper fix is a Universal Link, which needs an associated-domains
+     entitlement and an `apple-app-site-association` file served from the
+     domain — and therefore needs the domain moved off GitHub Pages first.
+     Worth doing. Not worth blocking on.
+     */
+    static let emailReturn = URL(string: "\(Site.origin)/auth/callback")!
 
     /// Kept, though both values are filled in: a fresh clone with the
     /// placeholders restored should say so on its first screen rather than
@@ -107,11 +133,43 @@ final class Session: ObservableObject {
             return
         }
 
-        do {
-            let profile = try await archive.me()
-            standing = profile.map(Standing.signedIn) ?? .signedOut
-        } catch {
+        /* Whether there is a session at all is a local question — the
+           keychain holds one and supabase-swift refreshes it in the
+           background — so it is asked first, and separately.
+
+           What follows is a network call, and conflating the two is how an
+           app comes to show its front door to somebody already holding a
+           key. Signing in once should mean signing in once: a train tunnel
+           is not a logout. */
+        guard let user = try? await Backend.client.auth.session.user else {
             standing = .signedOut
+            return
+        }
+
+        do {
+            if let profile = try await archive.me() {
+                standing = .signedIn(profile)
+                return
+            }
+            /* A session whose profile has genuinely gone — the account was
+               deleted underneath it. That is a real signed-out. */
+            standing = .signedOut
+        } catch {
+            /* Unreachable, not unauthorised. Keep whatever profile is
+               already on screen, and where there is none, carry on with
+               what the session itself knows. The archive below will say it
+               cannot reach anything, which is true and useful, rather than
+               this screen implying the reader is a stranger, which is
+               neither. */
+            standing = .signedIn(standing.profile ?? Profile(
+                id: user.id.uuidString.lowercased(),
+                handle: user.email ?? "you",
+                displayName: nil,
+                bio: nil,
+                visibility: .private,
+                timeZone: .current,
+                locationPrecision: .hidden
+            ))
         }
     }
 
@@ -138,7 +196,7 @@ final class Session: ObservableObject {
         do {
             try await Backend.client.auth.signInWithOTP(
                 email: address,
-                redirectTo: Backend.callback,
+                redirectTo: Backend.emailReturn,
                 /* Belt to the dashboard's braces. The switch in the
                    Supabase dashboard is the real lock — this key is public,
                    so anybody can call this endpoint themselves and ask for

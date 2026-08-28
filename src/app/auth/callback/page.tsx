@@ -39,6 +39,21 @@ export default async function CallbackPage({
   const tokenHash = one("token_hash");
   const type = one("type") || "magiclink";
 
+  /* The same credential, addressed to the app.
+
+     The app asks for its links to come back *here* rather than to its own
+     scheme, because a mail client will not make a `loosenickels://` link
+     clickable — Outlook and Hotmail rewrite every URL they understand and
+     leave inert every one they do not, so the link arrives dead with no
+     error anywhere. Tapped on a web page, the same scheme works perfectly.
+
+     Only offered for `token_hash`. A PKCE `code` is bound to a verifier held
+     by the browser that began the exchange, so handing one to the app would
+     produce a failure that reads like a bad link and is not. */
+  const appLink = tokenHash
+    ? `loosenickels://auth-callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`
+    : null;
+
   if (!code && !tokenHash) {
     return (
       <div className={s.page}>
@@ -68,9 +83,26 @@ export default async function CallbackPage({
         <input type="hidden" name="token_hash" value={tokenHash} />
         <input type="hidden" name="type" value={type} />
         <button className={s.enter} type="submit">
-          Sign in
+          Sign in here
         </button>
       </form>
+
+      {appLink && (
+        <div className={s.other}>
+          {/* Shown to everybody rather than guessed at from the user agent.
+              Sniffing would be wrong for an iPhone without the app installed
+              and wrong again for a Mac with it, and saying plainly who the
+              button is for costs one line. */}
+          <a className={s.enter} href={appLink}>
+            Open the app
+          </a>
+          <p className={s.aside}>
+            On an iPhone with the app installed. Either button signs you in;
+            whichever you use spends the link, so use the one you want to be
+            signed in on.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
