@@ -82,7 +82,12 @@ Supabase dashboard → **Authentication** → **URL Configuration** → add:
 https://<your-vercel-project>.vercel.app/auth/callback
 http://localhost:3000/auth/callback
 https://www.loosenickels.com/auth/callback
+loosenickels://auth-callback
 ```
+
+The last one is the app. Without it a link opened on the phone loads the
+website instead and the app stays signed out, with nothing on screen to
+explain why.
 
 A magic link whose redirect is not on this list fails after the click,
 which looks exactly like an expired link and is not one.
@@ -117,3 +122,34 @@ uses the product. `isClosedToStrangers` in `src/app/sign-in/actions.ts`
 guesses at two possible Supabase error shapes because this could not be
 verified without a live project. Confirm which one arrives, and drop the
 hedge.
+
+---
+
+## The app
+
+Two more steps, after the account exists.
+
+**Fill in `ios/Sources/Backend.swift`** with the project URL and the
+publishable (anon) key from Project Settings → API. Not the service role
+key: that one bypasses row level security entirely.
+
+**Build it.**
+
+```bash
+brew install xcodegen
+cd ios && xcodegen && open Daily.xcodeproj
+```
+
+Put your Team ID in `ios/project.yml` first, or Xcode will ask for one and
+forget the answer next time the project is generated. See `ios/README.md`.
+
+One thing I could not check on your machine: the Claude Code simulator
+integration reports Xcode as installed but not selected. If you want me to
+drive the simulator directly in future, that needs your password:
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+```
+
+Everything above was verified without it — the app was built and run through
+`xcodebuild` and `simctl`.
