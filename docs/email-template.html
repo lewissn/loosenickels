@@ -1,0 +1,42 @@
+<!--
+  Supabase → Authentication → Emails → Magic Link → paste as the template.
+
+  The point of this template is the href, and specifically that it does not
+  use `{{ .ConfirmationURL }}`.
+
+  ConfirmationURL sends the reader through Supabase's own verify endpoint,
+  which validates the token and then bounces to the redirect target with the
+  session in the URL *fragment* — `#access_token=…`. Browsers never send a
+  fragment to a server, so a Next.js route handler receives a request with no
+  credential in it whatsoever, correctly concludes the link carried nothing,
+  and returns the reader to the sign-in page. Which looks, from the outside,
+  exactly like a link that has expired.
+
+  `{{ .TokenHash }}` is the same credential in the query string, where the
+  server can read it and verify it directly.
+
+  `{{ .RedirectTo }}` rather than `{{ .SiteURL }}`, because the two clients
+  need different destinations: the website asks for `/auth/callback` on
+  whatever origin it is running on, and the iOS app asks for
+  `loosenickels://auth-callback`. Hardcoding the site URL would send every
+  link to the website, including the ones the app asked for — and a phone
+  opening the website instead of the app is the single hardest failure here
+  to diagnose, because nothing anywhere reports an error.
+-->
+<p style="font-family: Georgia, 'Times New Roman', serif; font-size: 17px; line-height: 1.5; color: #1a1915;">
+  A link to your archive.
+</p>
+
+<p style="font-family: Georgia, 'Times New Roman', serif; font-size: 17px; line-height: 1.5;">
+  <a
+    href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=magiclink"
+    style="color: #8e3b24;"
+    >Sign in</a
+  >
+</p>
+
+<p style="font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #666359;">
+  It works once, and only for an hour. If you did not ask for it, nothing has
+  happened and you can ignore it — the archive is closed and no account was
+  created.
+</p>

@@ -253,3 +253,39 @@ Sign in once with your own address, and then — from a private window — ask
 for a link for an address that has no account. The two must be
 indistinguishable: same sentence, same timing, no error. If they differ, the
 form has become a way to discover who keeps an archive here.
+
+---
+
+## The email template, and the failure it causes
+
+Symptom: the link in the email lands on the site and asks you to sign in
+again, as though it had expired. It has not. Nothing is broken except the
+template.
+
+Supabase's default template links to `{{ .ConfirmationURL }}`, which routes
+the reader through Supabase's own verify endpoint. That endpoint validates
+the token and then redirects to the target with the session in the URL
+**fragment** — `#access_token=…`. Browsers never send a fragment to a
+server. So `/auth/callback` receives a request containing no credential at
+all, correctly reports that the link carried nothing, and returns you to the
+sign-in page.
+
+The fix is to send the credential in the query string, where a server can
+read it. Supabase → **Authentication → Emails → Magic Link**, and paste the
+contents of [`email-template.html`](email-template.html).
+
+Two things in it matter:
+
+- **`{{ .TokenHash }}`** — the same credential, in the query string.
+  `/auth/callback` already verifies this form, and so does the iOS app.
+- **`{{ .RedirectTo }}`, not `{{ .SiteURL }}`** — the website asks for
+  `/auth/callback` on whichever origin it is running on, and the app asks for
+  `loosenickels://auth-callback`. Hardcoding the site URL would send every
+  link to the website, including the ones the app asked for. A phone opening
+  the website instead of the app is the hardest failure here to diagnose,
+  because nothing anywhere reports an error.
+
+While on that dashboard, set **Site URL** to
+`https://loosenickels.vercel.app`. It is the fallback for anything that does
+not name a redirect, and leaving it at localhost is a quiet source of broken
+links.

@@ -155,13 +155,38 @@ final class Session: ObservableObject {
         linkSentTo = address
     }
 
-    /// Safari hands the link back here.
+    /**
+     Safari hands the link back here.
+
+     Two shapes arrive, and both are honoured for the same reason the
+     website's callback honours both: which one turns up depends on how the
+     project's email template is written, and a template is a preference
+     rather than a thing that has to be right.
+
+     `?token_hash=&type=` is what the template ought to produce — it is a
+     credential in the query string, verified by asking the auth server. The
+     default template instead sends the reader through Supabase's own verify
+     endpoint, which comes back with the session in the URL *fragment*, and
+     `session(from:)` is what reads that.
+     */
     func handle(_ url: URL) async {
         isWorking = true
         defer { isWorking = false }
 
+        let parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let items = parts?.queryItems ?? []
+        let tokenHash = items.first { $0.name == "token_hash" }?.value
+        let type = items.first { $0.name == "type" }?.value
+
         do {
-            try await Backend.client.auth.session(from: url)
+            if let tokenHash {
+                try await Backend.client.auth.verifyOTP(
+                    tokenHash: tokenHash,
+                    type: EmailOTPType(rawValue: type ?? "magiclink") ?? .magiclink
+                )
+            } else {
+                try await Backend.client.auth.session(from: url)
+            }
             linkSentTo = nil
             problem = nil
             await refresh()
