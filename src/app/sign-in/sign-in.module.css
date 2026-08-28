@@ -1,0 +1,167 @@
+/* The way in. One field, a great deal of air, and no furniture: there is
+   nothing here to decorate, and a box with a shadow around it would only
+   be a box with a shadow around it. */
+
+.page {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0;
+  padding: var(--s-9) var(--margin);
+}
+
+.eyebrow {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--s-5);
+}
+
+.line {
+  font-size: var(--t-lede);
+  line-height: var(--lh-lede);
+  max-width: var(--measure-lede);
+  text-wrap: balance;
+  margin-bottom: var(--s-8);
+}
+
+.form {
+  display: grid;
+  justify-items: start;
+  width: 100%;
+  max-width: var(--measure-note);
+}
+
+.label {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--s-2);
+}
+
+/* A ruled line to write on, rather than a container to fill in. */
+.field {
+  width: 100%;
+  padding: var(--s-2) 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  font-family: var(--f-editorial);
+  font-size: var(--t-lede);
+  line-height: var(--lh-lede);
+  color: var(--ink);
+  transition: border-color var(--d-quick) var(--e-out);
+}
+
+.field:hover {
+  border-bottom-color: var(--rule-strong);
+}
+
+.field:focus {
+  border-bottom-color: var(--ink);
+}
+
+/* The default focus ring draws a rectangle around a field that was drawn
+   as a line. The line itself becomes the indicator instead: two pixels of
+   accent, which clears the contrast requirement on its own, with the
+   padding giving the pixel back so nothing shifts. */
+.field:focus-visible {
+  outline: none;
+  border-bottom-width: 2px;
+  border-bottom-color: var(--accent);
+  padding-bottom: calc(var(--s-2) - 1px);
+}
+
+.submit {
+  position: relative;
+  margin-top: var(--s-6);
+  padding-bottom: var(--s-1);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* The rule under the label draws itself in from the left on approach. The
+   whole of the motion budget on this page is spent here. */
+.submit::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--d-base) var(--e-out);
+}
+
+.submit:hover::after,
+.submit:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.submit:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.submit:disabled::after {
+  transform: scaleX(1);
+  background: var(--rule);
+}
+
+.submitText {
+  display: block;
+}
+
+.problem {
+  margin-top: var(--s-4);
+  font-size: var(--t-small);
+  line-height: var(--lh-meta);
+  color: var(--accent);
+  max-width: var(--measure-note);
+}
+
+/* The same voice as .problem, but it arrives before the form rather than
+   after the field it refers to. */
+.notice {
+  margin-bottom: var(--s-5);
+  font-size: var(--t-small);
+  line-height: var(--lh-meta);
+  color: var(--accent);
+  max-width: var(--measure-note);
+}
+
+/* Replaces the form in place. Nothing moves except the words. */
+.sent {
+  max-width: var(--measure-note);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+}
+
+:root[data-js] .sent {
+  animation: sent-in var(--d-considered) var(--e-out) both;
+}
+
+@keyframes sent-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* An address is data, so it is set in the family that carries data. */
+.address {
+  font-family: var(--f-mono);
+  font-size: 0.92em;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}

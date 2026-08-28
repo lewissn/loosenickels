@@ -1,0 +1,49 @@
+.page {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  padding: var(--s-9) var(--margin);
+}
+
+.line {
+  font-size: var(--t-title);
+  line-height: var(--lh-title);
+  letter-spacing: var(--tr-title);
+  max-width: var(--measure-lede);
+  text-wrap: balance;
+}
+
+.enter {
+  position: relative;
+  margin-top: var(--s-7);
+  padding-bottom: var(--s-1);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-signage);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  transition: color var(--d-quick) var(--e-out);
+}
+
+.enter::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--d-base) var(--e-out);
+}
+
+.enter:hover,
+.enter:focus-visible {
+  color: var(--ink);
+}
+
+.enter:hover::after,
+.enter:focus-visible::after {
+  transform: scaleX(1);
+}

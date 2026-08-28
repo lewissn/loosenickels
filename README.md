@@ -104,9 +104,37 @@ there are two clients and they are not allowed to disagree.
   chose not to show is as revealing as what they did — and never the
   original file, whose embedded EXIF would carry the GPS tag out with it.
 
+### Signing in
+
+An emailed link, and no password. A lifelong private archive is a poor
+thing to protect with a credential people reuse elsewhere, and a link is
+the same one gesture on the phone as on the desktop.
+
+The session lives in cookies rather than local storage so the server can
+read it. `src/proxy.ts` refreshes it on every navigation and turns
+anonymous visitors away from private routes; each private page then asks
+again with `getUser()`, because a guard that only stands in front of the
+door is a guard that can be walked around.
+
+Two settings in the Supabase dashboard, under **Authentication → URL
+Configuration**, without which the link will send but not return:
+
+```
+Site URL       https://www.loosenickels.com
+Redirect URLs  http://localhost:3000/auth/callback
+               https://www.loosenickels.com/auth/callback
+               https://*-<your-team>.vercel.app/auth/callback
+```
+
+`/auth/callback` accepts both shapes Supabase can send — `?code=` from the
+default email template, and `?token_hash=&type=` from a template rewritten
+to address it directly — so the template is a preference rather than
+something that has to be right.
+
 ### Environment
 
-`.env.local`, never committed:
+`.env.local`, never committed. The first two are enough to sign in; the
+rest arrive with the upload pipeline:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=

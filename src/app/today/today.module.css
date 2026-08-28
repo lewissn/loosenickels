@@ -1,0 +1,45 @@
+.page {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  padding: var(--s-9) var(--margin);
+}
+
+/* The absence of a photograph is stated once, without alarm. */
+.state {
+  font-size: var(--t-title);
+  line-height: var(--lh-title);
+  letter-spacing: var(--tr-title);
+  max-width: var(--measure-lede);
+  text-wrap: balance;
+}
+
+.footer {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+  margin-top: var(--s-8);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.who {
+  font-family: var(--f-mono);
+  letter-spacing: var(--tr-normal);
+  text-transform: none;
+}
+
+.leave {
+  color: var(--ink-faint);
+  letter-spacing: inherit;
+  text-transform: inherit;
+  transition: color var(--d-quick) var(--e-out);
+}
+
+.leave:hover {
+  color: var(--ink);
+}
