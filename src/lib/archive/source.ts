@@ -84,6 +84,16 @@ export interface RevisionHistory {
 export interface ArchiveStatus {
   /** The user's today, in their own zone — not the server's. */
   today: CalendarDate;
+  /**
+   * The zone that today was reckoned in.
+   *
+   * Carried alongside the date rather than left for the caller to fetch,
+   * because every surface that renders a time needs it and any surface that
+   * goes looking for it separately will eventually reach for the browser's
+   * zone instead — which is a different zone whenever the reader is
+   * travelling, and produces a clock that disagrees with the date beside it.
+   */
+  timeZone: string;
   /** Whether today has been recorded. Drives "Today remains unrecorded." */
   todayRecorded: boolean;
   /** Days with an entry. Stated plainly, never as a streak. */
@@ -234,7 +244,12 @@ export interface ArchiveSource {
 
   updateProfile(
     owner: UserId,
-    patch: Partial<Pick<Profile, "displayName" | "bio" | "visibility" | "discoverable" | "timeZone" | "locationPrecision">>,
+    patch: Partial<
+      Pick<
+        Profile,
+        "displayName" | "bio" | "visibility" | "timeZone" | "locationPrecision"
+      >
+    >,
     viewer: Viewer,
   ): Promise<PublicProfile>;
 

@@ -60,7 +60,6 @@ export const SEED_PROFILE = profile.parse({
      explicit override for a fixture, which is the only way it should ever
      happen. */
   visibility: "public",
-  discoverable: false,
   timeZone: "Europe/London",
   locationPrecision: "locality",
   createdAt: instant.parse("2024-01-01T00:00:00+00:00"),

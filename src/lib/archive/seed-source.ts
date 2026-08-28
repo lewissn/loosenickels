@@ -1,5 +1,6 @@
 import {
   discloseLocation,
+  isDiscoverable,
   type CalendarDate,
   type DaySummary,
   type Instant,
@@ -207,6 +208,7 @@ export const seedSource: ArchiveSource = {
     const now = today(SEED_PROFILE.timeZone);
     return {
       today: now,
+      timeZone: SEED_PROFILE.timeZone,
       todayRecorded: days.some((d) => d.date === now),
       daysRecorded: days.length,
       earliest: days[0]?.date,
@@ -244,9 +246,10 @@ export const seedSource: ArchiveSource = {
   },
 
   async findProfiles(query, limit = 10) {
-    /* Both consents are required, and this is the shape the real
-       implementation must keep: public AND discoverable, never either. */
-    if (SEED_PROFILE.visibility !== "public" || !SEED_PROFILE.discoverable) return [];
+    /* Both consents are still required; they are now expressed as the top
+       rung of one ladder rather than as a flag beside it, so this asks the
+       one question the row level security policies also ask. */
+    if (!isDiscoverable(SEED_PROFILE.visibility)) return [];
     const q = query.trim().toLowerCase();
     if (q.length === 0) return [];
     const hit =

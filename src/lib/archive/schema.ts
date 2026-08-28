@@ -93,6 +93,16 @@ export type DayVisibility = z.infer<typeof dayVisibility>;
 export const profileVisibility = z.enum(["private", "public", "discoverable"]);
 export type ProfileVisibility = z.infer<typeof profileVisibility>;
 
+/** Whether a profile may be returned by a search. Never a private one. */
+export function isDiscoverable(v: ProfileVisibility): boolean {
+  return v === "discoverable";
+}
+
+/** Whether a profile answers at all to someone who is not its owner. */
+export function isReachable(v: ProfileVisibility): boolean {
+  return v !== "private";
+}
+
 /* ---- Location precision -------------------------------------------------
    A photograph can carry the coordinates of someone's front door. The
    product stores that precisely, because a private map is one of the things
@@ -389,14 +399,18 @@ export const profile = z.object({
   bio: z.string().max(280).optional(),
   avatarAssetId: assetId.optional(),
 
-  /** Closed by default. Opening a profile is always deliberate. */
-  visibility: profileVisibility.default("private"),
   /**
-   * Whether a public profile may also be found by searching. Separate from
-   * visibility on purpose: public and findable are different consents, and a
-   * private profile can never be discoverable regardless of this value.
+   * Closed by default. Opening a profile is always deliberate, and opening
+   * it to search is a second deliberate step: `public` means the profile
+   * answers when its address is known, `discoverable` additionally means it
+   * may be found by someone who does not know it.
+   *
+   * These were briefly two fields, a ladder here and a boolean beside it.
+   * One of them had to be the authority and it was always going to be this
+   * one, because the row level security policies read it — a boolean the
+   * policies did not consult would have been a consent the database ignored.
    */
-  discoverable: z.boolean().default(false),
+  visibility: profileVisibility.default("private"),
 
   /**
    * The zone this user's days are reckoned in. Governs which calendar date a
