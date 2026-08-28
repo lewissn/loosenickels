@@ -116,6 +116,12 @@ targets:
         # thinks to file it.
         NSCameraUsageDescription: >-
           To photograph the day.
+
+        # Reminders are scheduled on the device and nothing about them
+        # leaves it, so there is no push entitlement here and no server
+        # involved. iOS still asks; the app asks after the first photograph
+        # is recorded rather than at launch, when the question is about
+        # something the person can picture.
         NSPhotoLibraryUsageDescription: >-
           To record a photograph you have already taken.
         NSLocationWhenInUseUsageDescription: >-

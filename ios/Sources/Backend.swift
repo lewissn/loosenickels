@@ -115,6 +115,11 @@ final class Session: ObservableObject {
     /// Set after a link is requested, and deliberately not cleared by an
     /// error: the sentence on screen must not depend on whether the
     /// address exists.
+    /// Set when something outside the app asked for a recording — a tapped
+    /// reminder, or a widget button. Read and cleared by the archive once it
+    /// is on screen and in a position to act on it.
+    @Published var pendingRecord: Deeplink.Source?
+
     @Published var linkSentTo: String?
     @Published var problem: String?
 

@@ -42,6 +42,9 @@ final class Days: ObservableObject {
 
     var isEmpty: Bool { days.isEmpty && !isLoading && problem == nil }
 
+    /// Every day that has a photograph, for deciding what to remind about.
+    var recorded: Set<CalendarDate> { Set(days.map(\.date)) }
+
     func loadIfNeeded(owner: String) async {
         guard !loaded else { return }
         await load(owner: owner)

@@ -24,6 +24,9 @@ import PhotosUI
 struct ComposeView: View {
     let owner: String
     let timeZone: TimeZone
+    /// Where to begin. The widget and a tapped reminder can say; opening the
+    /// sheet from inside the app asks.
+    var source: Deeplink.Source = .ask
     let onRecorded: (ResolvedDay) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -35,6 +38,7 @@ struct ComposeView: View {
     @State private var stage: Stage = .empty
     @State private var problem: String?
     @State private var keepPlace = true
+    @State private var shooting = false
 
     /* Generated once per chosen photograph and kept across retries, so a
        connection that drops after the request left but before the reply
@@ -100,6 +104,24 @@ struct ComposeView: View {
             guard let item else { return }
             Task { await read(item) }
         }
+        .fullScreenCover(isPresented: $shooting) {
+            Viewfinder(
+                onTaken: { data in
+                    shooting = false
+                    accept(data, takenNow: true)
+                },
+                onCancelled: { shooting = false }
+            )
+            .ignoresSafeArea()
+        }
+        .task {
+            /* The widget's camera button, or a reminder tapped with the
+               camera in mind. Opening straight into it is the whole value of
+               having two buttons rather than one. */
+            if source == .camera, Viewfinder.available, photo == nil {
+                shooting = true
+            }
+        }
     }
 
     // MARK: The bar
@@ -164,13 +186,19 @@ struct ComposeView: View {
                 .foregroundStyle(room.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
 
-            PhotosPicker(selection: $picked, matching: .images, photoLibrary: .shared()) {
-                Signage(text: "Choose a photograph", tone: room.ink, weight: .semibold)
-                    .padding(.vertical, Space.s4)
-                    .padding(.horizontal, Space.s5)
-                    .overlay(
-                        Rectangle().stroke(Tone.rule, lineWidth: 1)
-                    )
+            /* Two, because they are two different intentions rather than two
+               routes to one: "this, now" and "that thing from earlier". The
+               widget offers the same pair for the same reason. */
+            HStack(spacing: Space.s3) {
+                if Viewfinder.available {
+                    Button { shooting = true } label: {
+                        bordered("Take one")
+                    }
+                }
+
+                PhotosPicker(selection: $picked, matching: .images, photoLibrary: .shared()) {
+                    bordered(Viewfinder.available ? "Choose one" : "Choose a photograph")
+                }
             }
             .disabled(stage == .reading)
             .opacity(stage == .reading ? 0.4 : 1)
@@ -180,6 +208,13 @@ struct ComposeView: View {
         }
         .padding(.horizontal, Space.margin)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func bordered(_ label: String) -> some View {
+        Signage(text: label, tone: room.ink, weight: .semibold)
+            .padding(.vertical, Space.s4)
+            .padding(.horizontal, Space.s5)
+            .overlay(Rectangle().stroke(Tone.rule, lineWidth: 1))
     }
 
     // MARK: Chosen
@@ -287,12 +322,23 @@ struct ComposeView: View {
         stage = .reading
         problem = nil
 
-        guard let data = try? await item.loadTransferable(type: Data.self),
-              let prepared = Photograph.read(
-                  data,
-                  filename: item.supportedContentTypes.first?.preferredFilenameExtension
-              )
-        else {
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            problem = "That image could not be read. Try another."
+            stage = .empty
+            return
+        }
+
+        accept(
+            data,
+            filename: item.supportedContentTypes.first?.preferredFilenameExtension,
+            takenNow: false
+        )
+    }
+
+    /// Both routes end here: a file chosen from the library, and bytes handed
+    /// over by the camera. One place decides what a chosen photograph is.
+    private func accept(_ data: Data, filename: String? = "jpg", takenNow: Bool) {
+        guard let prepared = Photograph.read(data, filename: filename, takenNow: takenNow) else {
             problem = "That image could not be read. Try another."
             stage = .empty
             return

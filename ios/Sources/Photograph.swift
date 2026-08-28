@@ -75,7 +75,19 @@ enum Photograph {
     /// carried in a database column and shown for a fraction of a second.
     private static let placeholderEdge: CGFloat = 20
 
-    static func read(_ data: Data, filename: String?) -> Prepared? {
+    /**
+     - Parameter takenNow: True when the photograph was just taken by this
+       app's camera. A `UIImage` from the picker is pixels and carries no
+       EXIF at all, so a camera shot would otherwise arrive knowing nothing
+       about itself and be filed under today by accident rather than on
+       purpose. The facts are known here — the moment is now, the camera is
+       this device — so they are stated rather than lost.
+     */
+    static func read(
+        _ data: Data,
+        filename: String?,
+        takenNow: Bool = false
+    ) -> Prepared? {
         guard let cgSource = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
 
         let properties = CGImageSourceCopyPropertiesAtIndex(cgSource, 0, nil) as? [CFString: Any] ?? [:]
@@ -101,9 +113,10 @@ enum Photograph {
             placeholder: image.flatMap(placeholder),
             lightness: measured?.lightness,
             tone: measured?.tone,
-            capturedAt: capture?.moment,
-            captureTimeZone: capture?.zone,
-            camera: camera(exif: exif, tiff: tiff),
+            capturedAt: capture?.moment ?? (takenNow ? Date() : nil),
+            captureTimeZone: capture?.zone
+                ?? (takenNow ? TimeZone.current.identifier : nil),
+            camera: camera(exif: exif, tiff: tiff) ?? (takenNow ? thisDevice : nil),
             coordinates: coordinates(gps: gps),
             preview: image
         )
@@ -231,6 +244,18 @@ enum Photograph {
             lon: west ? -lon : lon,
             accuracy: gps[kCGImagePropertyGPSHPositioningError] as? Double,
             elevation: elevation
+        )
+    }
+
+    /// What the camera is, when the file does not say. `UIDevice`'s model
+    /// name is "iPhone" rather than "iPhone 16"; the marketing name is not
+    /// exposed, and inventing one from a hardware identifier means a table
+    /// that is wrong for every phone released after this was written.
+    private static var thisDevice: Camera {
+        Camera(
+            make: "Apple",
+            model: UIDevice.current.model,
+            lens: nil, focalLength: nil, aperture: nil, shutterSpeed: nil, iso: nil
         )
     }
 

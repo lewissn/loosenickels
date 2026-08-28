@@ -11,12 +11,9 @@ struct DailyApp: App {
                 /* The design harness: invented days, no session, no network,
                    so the viewer can be looked at rather than only reasoned
                    about. See Fixtures.swift. */
-                ArchiveView(
-                    profile: Fixtures.profile,
-                    fixtures: Fixtures.days()
-                )
-                .environmentObject(session)
-                .tint(Tone.oxide)
+                ArchiveView(profile: Fixtures.profile, fixtures: Fixtures.days())
+                    .environmentObject(session)
+                    .tint(Tone.oxide)
             } else {
                 Archive().environmentObject(session)
             }
@@ -35,11 +32,18 @@ private struct Archive: View {
 
     var body: some View {
         RootView()
-            /* Safari hands the magic link back here. Without this the link
-               opens the website in a browser and the app stays signed out,
-               with nothing on screen to explain why. */
+            /* One handler for every way in — the website's sign-in hand-off,
+               a tapped reminder, the widget's buttons. Two handlers on the
+               same scheme is two ideas about what a URL means, and they
+               disagree quietly rather than loudly. */
             .onOpenURL { url in
-                Task { await session.handle(url) }
+                guard let link = Deeplink(url) else { return }
+                switch link {
+                case .signIn(let url):
+                    Task { await session.handle(url) }
+                case .record(let source):
+                    session.pendingRecord = source
+                }
             }
             .task { await session.refresh() }
             .onChange(of: phase) { _, now in

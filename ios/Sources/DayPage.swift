@@ -69,46 +69,17 @@ struct DayPage: View {
     // MARK: The photograph
 
     private func photograph(in room: Room) -> some View {
-        ZStack {
-            /* Behind, not instead of. The placeholder stays put while the
-               real one arrives on top of it, so the transition is a picture
-               resolving rather than one view replacing another. */
-            if let inline = day.photo.placeholder,
-               let image = InlineImage.decode(inline) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(day.photo.aspect, contentMode: .fit)
-                    .blur(radius: 18)
-                    .opacity(0.9)
+        Plate(photo: day.photo, room: room)
+            /* Parallax. The picture drifts against its own frame as the day
+               crosses the screen — a little slower than the scroll, which is
+               what makes the surface read as having depth rather than as a
+               list of cards going past. */
+            .scrollTransition(axis: .vertical) { content, phase in
+                content
+                    .offset(y: phase.value * -34)
+                    .scaleEffect(1 - abs(phase.value) * 0.035)
+                    .opacity(1 - abs(phase.value) * 0.35)
             }
-
-            if let url = day.photo.best {
-                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.45))) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .transition(.opacity)
-                    } else {
-                        Color.clear
-                    }
-                }
-            } else if day.photo.processing != .ready {
-                /* Honest rather than hidden. The photograph is safe; what
-                   does not exist yet is a rendition small enough to show. */
-                Signage(text: "Still arriving", tone: room.inkFaint)
-            }
-        }
-        /* Parallax. The picture drifts against its own frame as the day
-           crosses the screen — a little slower than the scroll, which is
-           what makes the surface read as having depth rather than as a list
-           of cards going past. */
-        .scrollTransition(axis: .vertical) { content, phase in
-            content
-                .offset(y: phase.value * -34)
-                .scaleEffect(1 - abs(phase.value) * 0.035)
-                .opacity(1 - abs(phase.value) * 0.35)
-        }
     }
 
     // MARK: The writing
@@ -202,5 +173,58 @@ enum InlineImage {
               let data = Data(base64Encoded: String(inline[inline.index(after: comma)...]))
         else { return nil }
         return UIImage(data: data)
+    }
+}
+
+/*
+ The photograph itself.
+
+ Replaces `AsyncImage`, which begins downloading when the view appears and
+ caches by URL — neither of which survives contact with a paging scroll over
+ signed, expiring URLs. See Photographs.swift.
+
+ The placeholder sits behind rather than instead of, so the transition is a
+ picture resolving rather than one view replacing another.
+ */
+private struct Plate: View {
+    let photo: ResolvedPhoto
+    let room: Room
+
+    @State private var image: UIImage?
+
+    var body: some View {
+        ZStack {
+            if image == nil, let inline = photo.placeholder,
+               let blurred = InlineImage.decode(inline) {
+                Image(uiImage: blurred)
+                    .resizable()
+                    .aspectRatio(photo.aspect, contentMode: .fit)
+                    .blur(radius: 18)
+                    .opacity(0.9)
+                    .transition(.opacity)
+            }
+
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .transition(.opacity)
+            } else if photo.forThisScreen == nil, photo.processing != .ready {
+                /* Honest rather than hidden. The photograph is safe; what
+                   does not exist yet is a rendition small enough to show. */
+                Signage(text: "Still arriving", tone: room.inkFaint)
+            }
+        }
+        .animation(Tempo.out, value: image != nil)
+        .task(id: photo.assetId) {
+            /* Very often already held, because the day either side of this
+               one was prefetched while the reader was looking at it. */
+            if let held = await Photographs.shared.cached(photo.assetId) {
+                image = held
+                return
+            }
+            guard let url = photo.forThisScreen else { return }
+            image = await Photographs.shared.image(for: photo.assetId, at: url)
+        }
     }
 }
