@@ -1,28 +1,26 @@
 /* =========================================================================
-   LOOSE NICKELS — Institutional token layer
+   Token layer
 
    Everything visual in this project resolves to something declared here.
    No component invents a colour, a duration, or a step of the type scale.
+
+   The structure is settled. The values are not: they were chosen for a
+   paper-and-ink archive, and this product is a cinematic photographic one
+   where the interface is meant to recede behind the image. Expect most of
+   the colour, and some of the scale, to be re-picked when the viewer is
+   designed. The discipline is the part worth keeping.
    ========================================================================= */
 
 :root {
   /* ---- Ground & ink -------------------------------------------------- */
-  /* Day: a warm chalk paper, never white. Ink is warm near-black, never #000. */
   --ground:         #e3dfd3;
   --ground-deep:    #d7d2c3;
   --ground-raised:  #edeae1;
-  --ground-vitrine: #eeebe3;
 
-  /* The ink ladder has a floor. `faint` carries real text — accession
-     numbers, column headings, the standing labels — almost always at
-     micro size, so it holds 4.5:1 against the ground and nothing quieter
-     is allowed to carry a word. `ghost` is for marks rather than text:
-     registration crosses, rules, a plate's furniture. It holds 3:1.
-
-     This compresses the gap between `muted` and `faint` more than is
-     comfortable. That is the correct trade: an archive whose labels
-     cannot be read at arm's length has failed at the one thing it is
-     for. */
+  /* The ink ladder has a floor. `faint` carries real text, almost always
+     at micro size, so it holds 4.5:1 against the ground and nothing
+     quieter is allowed to carry a word. `ghost` is for marks rather than
+     text — rules, registration, furniture. It holds 3:1. */
   --ink:            #1a1915;
   --ink-muted:      #57544a;
   --ink-faint:      #666359;
@@ -35,48 +33,26 @@
   --wash:           rgb(26 25 21 / 0.035);
   --scrim:          rgb(227 223 211 / 0.86);
 
-  /* Paper stock. A single static tone across the ground — not film grain,
-     not an overlay effect, and never animated. Rendered once by the
-     compositor and then forgotten about. */
-  --paper-tone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23t)' opacity='0.28'/%3E%3C/svg%3E");
-
-  /* ---- Classification -------------------------------------------------
-     Iron oxide. Used for accession stamps, significance marks, and nothing
-     that is merely decorative. Its scarcity is what gives it authority.   */
-  --oxide:          #8e3b24;
-  --oxide-soft:     rgb(142 59 36 / 0.14);
-
-  /* ---- Departmental environments --------------------------------------
-     Each department carries a subtle environmental tint. These are never
-     used as fills at full strength — they colour plates, rules, and the
-     ambient cast of a department's pages.                                 */
-  --env-OB: #7a7566;  /* Objects      — stone   */
-  --env-PL: #4a5643;  /* Places       — moss    */
-  --env-FN: #6b5844;  /* Field Notes  — soil    */
-  --env-PH: #6e747a;  /* Photographs  — silver  */
-  --env-TH: #3e4557;  /* Thoughts     — ink     */
-  --env-AU: #262a33;  /* Sounds       — deep    */
-  --env-XP: #8e3b24;  /* Experiments  — oxide   */
-  --env-DR: #31465e;  /* Research     — indigo  */
-
-  /* Resolved per-scope by [data-dept]; defaults to stone. */
-  --env: var(--env-OB);
+  /* ---- Accent ---------------------------------------------------------
+     One colour, used sparingly. Its scarcity is what gives it authority. */
+  --accent:         #8e3b24;
+  --accent-soft:    rgb(142 59 36 / 0.14);
 
   /* ---- Type families --------------------------------------------------
      Three families, each with a job. Nothing is set in a family whose job
      it is not.
-       editorial — titles, prose, thoughts. Carries the voice.
-       grotesk   — navigation, labels, institutional signage.
-       mono      — accession numbers, coordinates, readouts, measurement.  */
+       editorial — titles, notes, prose. Carries the voice.
+       grotesk   — navigation and labels.
+       mono      — dates, coordinates, readouts, measurement.             */
   --f-editorial: var(--font-newsreader), "Iowan Old Style", Palatino, Georgia, serif;
   --f-grotesk:   var(--font-archivo), "Helvetica Neue", Inter, system-ui, sans-serif;
   --f-mono:      var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
   /* ---- Type scale -----------------------------------------------------
      Fluid, but anchored: every step is legible at both ends of its clamp. */
-  --t-micro:    0.6875rem;                                   /* accession  */
-  --t-fine:     0.75rem;                                     /* metadata   */
-  --t-small:    0.8125rem;                                   /* captions   */
+  --t-micro:    0.6875rem;
+  --t-fine:     0.75rem;
+  --t-small:    0.8125rem;
   --t-body:     clamp(0.9375rem, 0.89rem + 0.22vw, 1.0625rem);
   --t-lede:     clamp(1.125rem, 0.99rem + 0.62vw, 1.5rem);
   --t-title:    clamp(1.6875rem, 1.26rem + 1.95vw, 3rem);
@@ -85,10 +61,9 @@
 
   /* ---- Tracking -------------------------------------------------------
      Small type is tracked open; display type is tracked tight. This single
-     relationship does more for the institutional feel than any ornament.  */
-  --tr-signage:   0.22em;   /* micro labels, department names */
-  --tr-label:     0.12em;   /* metadata keys                  */
-  --tr-accession: 0.04em;   /* accession numbers              */
+     relationship does more for the feel than any ornament.               */
+  --tr-signage:   0.22em;
+  --tr-label:     0.12em;
   --tr-normal:    0;
   --tr-title:     -0.012em;
   --tr-display:   -0.028em;
@@ -109,7 +84,7 @@
   --measure-note:  34ch;
 
   /* ---- Space ----------------------------------------------------------
-     A 4px base, but named by intent so components read as compositions.   */
+     A 4px base, named by intent so components read as compositions.      */
   --s-hair: 1px;
   --s-1:    0.25rem;
   --s-2:    0.5rem;
@@ -123,16 +98,13 @@
   --s-10:   8rem;
   --s-11:   12rem;
 
-  /* ---- Page frame -----------------------------------------------------
-     The institution keeps generous margins. They tighten on small screens
-     but never collapse — the frame is part of the identity.               */
+  /* ---- Page frame ------------------------------------------------------ */
   --margin: clamp(1.125rem, 0.6rem + 2.6vw, 4.5rem);
-  --rail:   3.25rem;   /* height of the fixed institutional rail */
   --gutter: clamp(0.875rem, 0.4rem + 1.6vw, 2rem);
 
   /* ---- Motion ---------------------------------------------------------
      Five durations and five curves. Any animation that needs a value not
-     listed here is asking the wrong question.                             */
+     listed here is asking the wrong question.                            */
   --d-instant:    120ms;
   --d-quick:      240ms;
   --d-base:       420ms;
@@ -145,36 +117,27 @@
   --e-exit:     cubic-bezier(0.5, 0, 0.9, 0.4);      /* departing elements   */
   --e-physical: cubic-bezier(0.34, 1.2, 0.64, 1);    /* weighted settle      */
 
-  /* ---- Depth ----------------------------------------------------------
-     Shadow is used sparingly and is always warm — a paper shadow, not an
-     elevation ramp.                                                       */
+  /* ---- Depth ----------------------------------------------------------- */
   --lift-1: 0 1px 2px rgb(26 25 21 / 0.06), 0 2px 10px rgb(26 25 21 / 0.04);
   --lift-2: 0 2px 6px rgb(26 25 21 / 0.07), 0 12px 38px rgb(26 25 21 / 0.09);
   --lift-3: 0 4px 12px rgb(26 25 21 / 0.09), 0 30px 80px rgb(26 25 21 / 0.14);
 
-  /* The rail sits above the index layer, not below it. The letterhead is
-     the one thing that never gives up the top of the page — which is what
-     makes the layer read as the interface changing state underneath it
-     rather than as a menu covering it over. */
   --z-content: 1;
   --z-layer:   50;
-  --z-rail:    60;
-  --z-palette: 90;
-  --z-cursor:  100;
+  --z-chrome:  60;
+  --z-overlay: 90;
 }
 
 /* =========================================================================
    After dark
 
-   Not a toggle with a sun icon. The institution is simply darker at night.
-   Resolved by <html data-light="dark">, set from local time on the client,
-   overridable, and remembered. Defaults to day for a stable first paint.
+   Not a toggle with a sun icon. Resolved by <html data-light="dark">, set
+   before first paint, overridable, and remembered.
    ========================================================================= */
 :root[data-light="dark"] {
   --ground:         #14140f;
   --ground-deep:    #0c0c09;
   --ground-raised:  #1c1c15;
-  --ground-vitrine: #1f1f18;
 
   --ink:            #e4e0d4;
   --ink-muted:      #948f80;
@@ -188,29 +151,10 @@
   --wash:           rgb(228 224 212 / 0.04);
   --scrim:          rgb(20 20 15 / 0.88);
 
-  --oxide:          #c05f3f;
-  --oxide-soft:     rgb(192 95 63 / 0.16);
-
-  --env-OB: #9a9382;
-  --env-PL: #7d8f72;
-  --env-FN: #a08a6c;
-  --env-PH: #8f959c;
-  --env-TH: #6d7691;
-  --env-AU: #565d6d;
-  --env-XP: #c05f3f;
-  --env-DR: #5b7ba1;
+  --accent:         #c05f3f;
+  --accent-soft:    rgb(192 95 63 / 0.16);
 
   --lift-1: 0 1px 2px rgb(0 0 0 / 0.3),  0 2px 10px rgb(0 0 0 / 0.24);
   --lift-2: 0 2px 6px rgb(0 0 0 / 0.34), 0 12px 38px rgb(0 0 0 / 0.4);
   --lift-3: 0 4px 12px rgb(0 0 0 / 0.4), 0 30px 80px rgb(0 0 0 / 0.55);
 }
-
-/* Departmental scoping. Any subtree may declare its environment. */
-[data-dept="OB"] { --env: var(--env-OB); }
-[data-dept="PL"] { --env: var(--env-PL); }
-[data-dept="FN"] { --env: var(--env-FN); }
-[data-dept="PH"] { --env: var(--env-PH); }
-[data-dept="TH"] { --env: var(--env-TH); }
-[data-dept="AU"] { --env: var(--env-AU); }
-[data-dept="XP"] { --env: var(--env-XP); }
-[data-dept="DR"] { --env: var(--env-DR); }

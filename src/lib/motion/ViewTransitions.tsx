@@ -12,13 +12,11 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-export { plateName, titleName } from "./names";
-
 /* =========================================================================
    View transitions
 
-   Navigation in this archive is meant to read as the current interface
-   changing state, not as one page being swapped for another. The View
+   Navigation here is meant to read as the current interface changing
+   state, not as one page being swapped for another. The View
    Transitions API is the only mechanism that can genuinely do that — it
    snapshots the old and new DOM and interpolates between them — but it
    needs to be told when a client-side navigation has finished rendering,
@@ -54,8 +52,8 @@ interface StartViewTransition {
 export interface NavigateOptions {
   /**
    * The element that should stay physically continuous across the
-   * navigation — a plate, usually. It is named for the duration of the
-   * transition and released afterwards.
+   * navigation — a photograph, usually. It is named for the duration of
+   * the transition and released afterwards.
    */
   continuity?: { element: HTMLElement | null; name: string } | null;
   /** Adds a data attribute to <html> for the duration, so CSS can respond. */
@@ -199,8 +197,8 @@ export function ViewTransitionProvider({ children }: { children: ReactNode }) {
      absent from most of the site.
 
      Intercepting at the document means a link cannot be forgotten. Links
-     that want more than a route change (a record carrying its plate) call
-     `navigate` themselves and mark the event handled; this listener sees
+     that want more than a route change (a day carrying its photograph)
+     call `navigate` themselves and mark the event handled; this sees
      `defaultPrevented` and stands aside.
 
      Everything that is not an ordinary left-click on a same-origin link
