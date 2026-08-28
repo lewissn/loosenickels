@@ -1,4 +1,4 @@
-# Loose Nickels
+# One photograph a day
 
 One photograph a day, becoming a life over time.
 
@@ -19,8 +19,21 @@ rename is a configuration change rather than a migration.
 Early. The previous product — a fictional institute archiving objects,
 places and observations under parody accession numbers — was retired at the
 tag [`museum`](../../releases/tag/museum) and is recoverable from there.
-What stands now is the foundation and the small number of things worth
-carrying across.
+What stands now is the foundation, the small number of things worth carrying
+across, and the daily viewer.
+
+| | |
+| --- | --- |
+| Data model | Written, twice — `schema.ts` and the SQL migrations |
+| Source interface | Written. `src/lib/archive/source.ts` |
+| Seed implementation | Written, read-only, in memory |
+| Daily viewer | First version, on seed data, at `/today` |
+| Compose | First version. Recorded photographs do not persist yet |
+| Authentication | Magic links, working |
+| Database | Supabase, schema and RLS written |
+| Object storage | R2, upload routes written |
+| Viewer on live data | **Not built** — needs a Supabase `ArchiveSource` |
+| Calendar, map, On This Day | **Not built** |
 
 ```bash
 npm install
@@ -218,6 +231,89 @@ R2_BUCKET=
 ```
 
 ---
+
+---
+
+## The seam
+
+Every surface reads through `ArchiveSource`, and **every method takes a
+viewer**.
+
+```
+src/lib/archive/
+  schema.ts       The contract. Plain serialisable JSON, Postgres-shaped.
+  source.ts       The interface both clients speak, plus authorisation helpers.
+  seed-source.ts  In-memory implementation over src/content/seed.ts.
+  index.ts        Exports `archive` — the single binding everything reads.
+```
+
+Authorisation lives behind that seam, not in the components. A page cannot
+accidentally render a private day, because it is never handed one. Hiding a
+button protects nothing from anyone holding a fetch client, so the rule is:
+**an implementation of `ArchiveSource` answers as though the caller is
+hostile.**
+
+`schema.ts` is the TypeScript mirror of `supabase/migrations/*_foundation.sql`
+— same tables, same enums, same location ladder. They are not yet reconciled
+field for field; see *Known divergences* below. To move the viewer onto
+Postgres, write a second `ArchiveSource` against Supabase and change one line
+in `index.ts`.
+
+### Two distinctions worth not breaking
+
+**`CalendarDate` is not an `Instant`.** A calendar date is the day a
+photograph belongs to, as the person who took it would name it. An instant is
+a moment. They are separate branded types so neither can be assigned to the
+other by accident, and `src/lib/util/calendar.ts` never reads the system time
+zone — the server's zone is never the right answer. EXIF's `DateTimeOriginal`
+is local time at the camera, so its date component is already correct wherever
+anyone is standing; parsing it to UTC and formatting it back is what files a
+Tokyo evening on the wrong day. There is a seed record at 23:40 Asia/Tokyo
+that exists purely to catch that regression.
+
+**Location precision is a ladder ordered by disclosure** — hidden, region,
+locality, approximate, precise — so a comparison means "reveals no more than".
+Every surface showing a place goes through `discloseLocation()`, so there is
+one function to get right and one to audit. Coordinates blur by rounding
+rather than jitter: a fresh random offset per read can be averaged back to the
+true position.
+
+### The viewer
+
+`src/components/day/` is the daily viewer and the compose flow.
+
+The viewport is a stage: the viewer does not scroll. Wheel, arrow keys and
+vertical drag move through days — down and right go *backward* in time, up and
+left move toward today. The position is a single float in a ref and no part of
+the gesture lives in React state; one `requestAnimationFrame` loop integrates
+inertia, projects where a flick was going to land, springs onto the nearest day
+and writes transforms directly. There are no CSS transitions on anything the
+gesture drives. Wheel deltas are normalised for `deltaMode`, because many mice
+report lines rather than pixels.
+
+Two layout states, because looking at a photograph and reading a day are
+different activities. Composed gives the writing a column; immersive gives the
+photograph the viewport. Nothing is ever cropped — the leftover space when a
+picture's orientation disagrees with the screen is exactly where the writing
+goes. The room is lit by the photograph: a dark image tints the ground and puts
+the document into the night palette, published to the document root rather than
+scoped to the viewer so chrome outside it resolves the same palette.
+
+Breakpoints ask about viewport *orientation*, not width. A phone held sideways
+is 844×390: wide enough to pass a width test and far too short to stack a
+photograph above a paragraph.
+
+### Known divergences
+
+The viewer arrived from a branch cut before the backend existed, so two pairs
+of definitions do not yet agree:
+
+- **Profile visibility.** SQL has `private | public | discoverable`;
+  `schema.ts` has `private | public`.
+- **Media variants.** SQL has `original | large | medium | thumbnail`;
+  `schema.ts` has `thumb | medium | large`.
+
+Reconcile these before writing the Supabase-backed `ArchiveSource`.
 
 ## What survived the pivot
 

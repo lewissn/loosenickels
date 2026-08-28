@@ -12,6 +12,7 @@
    ========================================================================= */
 
 :root {
+  --paper-tone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23t)' opacity='0.28'/%3E%3C/svg%3E");
   /* ---- Ground & ink -------------------------------------------------- */
   --ground:         #e3dfd3;
   --ground-deep:    #d7d2c3;
@@ -134,7 +135,15 @@
    Not a toggle with a sun icon. Resolved by <html data-light="dark">, set
    before first paint, overridable, and remembered.
    ========================================================================= */
-:root[data-light="dark"] {
+/* The same palette is also claimed by any subtree that declares itself dark.
+
+   That is how a dark photograph darkens the room it hangs in: the daily
+   viewer measures the image's lightness and sets data-env, and the whole
+   composition — ground, ink, rules, shadows — resolves to night. Reusing
+   this block rather than restating its values is the point; there is still
+   exactly one place where the dark palette is defined. */
+:root[data-light="dark"],
+[data-env="dark"] {
   --ground:         #14140f;
   --ground-deep:    #0c0c09;
   --ground-raised:  #1c1c15;

@@ -17,6 +17,23 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  scroll-behavior: smooth;
+
+  /* The ground is painted here as well as on the body, because a viewport-
+     owning surface can leave the body narrower than the window and the
+     canvas behind it would otherwise show through as a white strip. */
+  background: var(--ground);
+}
+
+/* A surface that owns the viewport says so, and the document stops being a
+   scrolling document while it does.
+
+   `scrollbar-gutter` is deliberately not reserved globally. The primary
+   surfaces of this product are viewport-sized and do not scroll, so a
+   permanently reserved gutter is 15px of the wrong colour down the right
+   of every photograph. Scrolling surfaces reserve it for themselves. */
+:root:has([data-viewport-surface]) body {
+  overflow: hidden;
 }
 
 body {
@@ -131,6 +148,32 @@ ol {
 }
 
 /* =========================================================================
+   Paper
+
+   A single low-frequency tone across the ground. This is paper stock, not
+   film grain: large scale, very low contrast, and it does not move. It is
+   dropped entirely at night, where it would only read as noise.
+   ========================================================================= */
+
+.paper::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: var(--paper-tone);
+  background-size: 220px 220px;
+  mix-blend-mode: multiply;
+}
+
+:root[data-light="dark"] .paper::before {
+  opacity: 0.16;
+  mix-blend-mode: screen;
+}
+
+
+/* =========================================================================
    Route transitions
 
    The default root cross-fade is replaced with a shorter, weighted move so
@@ -224,4 +267,58 @@ ol {
 /* Applied to <html> while a full-screen layer owns the viewport. */
 :root[data-locked] body {
   overflow: hidden;
+}
+
+/* The page does not stay put underneath a layer. It withdraws — a little
+   smaller, a little quieter — so that opening the menu reads as the
+   photograph stepping back rather than as a sheet being dropped over it. */
+/* The surface itself, not its wrapper. A viewport surface is position:fixed
+   inside a <main> that has no height of its own; transforming the wrapper
+   would make it the containing block and collapse the surface to nothing. */
+[data-viewport-surface] {
+  transition:
+    transform var(--d-considered) var(--e-inout),
+    opacity var(--d-considered) var(--e-inout);
+}
+
+:root[data-locked] [data-viewport-surface] {
+  transform: scale(0.94);
+  opacity: 0.28;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-locked] [data-viewport-surface] {
+    transform: none;
+  }
+}
+
+/* =========================================================================
+   Receding
+
+   When the index layer comes up, the page does not stay put underneath it.
+   It steps back — a very small scale, a small loss of light — so that the
+   layer occupies space the page has given up rather than space it is
+   covering. The distance is deliberately too small to notice as movement
+   and just large enough to feel as depth.
+   ========================================================================= */
+
+main {
+  transform-origin: 50% 0;
+  transition:
+    transform var(--d-cinematic) var(--e-inout),
+    opacity var(--d-considered) var(--e-inout),
+    filter var(--d-cinematic) var(--e-inout);
+}
+
+:root[data-index="open"] main {
+  transform: scale(0.982) translateY(-0.5rem);
+  opacity: 0.32;
+  filter: saturate(0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-index="open"] main {
+    transform: none;
+    opacity: 0.32;
+  }
 }
