@@ -160,7 +160,7 @@ export function Compose({ timeZone, existing, onRecord }: Props) {
         tone: shot.tone,
         processing: "ready",
         urls: {
-          thumb: shot.previewUrl,
+          thumbnail: shot.previewUrl,
           medium: shot.previewUrl,
           large: shot.previewUrl,
         },

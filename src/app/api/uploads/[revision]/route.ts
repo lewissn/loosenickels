@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabase } from "@/lib/supabase/server";
-import { describeObject, extensionFor, objectKey } from "@/lib/storage/r2";
+import { describeObject, extensionFor, objectKey } from "@/lib/storage/blob";
 
 /* Saying the upload finished. The claim comes from the client, so it is
    not taken on trust: the bucket is asked whether the object is there, and

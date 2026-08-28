@@ -31,7 +31,7 @@ across, and the daily viewer.
 | Compose | First version. Recorded photographs do not persist yet |
 | Authentication | Magic links, working |
 | Database | Supabase, schema and RLS written |
-| Object storage | R2, upload routes written |
+| Object storage | Vercel Blob (private), upload routes written |
 | Viewer on live data | **Not built** — needs a Supabase `ArchiveSource` |
 | Calendar, map, On This Day | **Not built** |
 
@@ -72,7 +72,7 @@ website and the phone cannot disagree about them.
               └──────────────┬──────────────┘
                              │
                  ┌───────────┴──────────────┐
-                 │  Cloudflare R2 (private) │  originals + derivatives
+                 │  Vercel Blob (private)   │  originals + derivatives
                  └──────────────────────────┘
 ```
 
@@ -81,7 +81,8 @@ canonical photograph per user per calendar date, enforced by a database
 constraint. Replacing a photograph creates a revision; it never destroys
 the previous one.
 
-**Media is never public by default.** R2 has no public access. Route
+**Media is never public by default.** The Blob store is created in
+private mode, which cannot be changed afterwards. Route
 handlers verify the session and mint short-lived signed URLs, so no
 photograph is reachable by a permanent guessable URL and authorisation is
 enforced server-side rather than by hiding buttons.
@@ -167,10 +168,9 @@ user**. `handle_new_user()` fires on insert and the profile follows.
 
 ### Storage
 
-One private R2 bucket. No public access, no custom domain, no public
-development URL — if any of those are switched on, every photograph in the
-archive becomes reachable by anyone holding a key, and keys travel in
-signed URLs.
+One **private** Vercel Blob store. Private is chosen at creation and cannot
+be changed afterwards, which is the right way round: a store that could be
+made public later is a store that will be, by somebody in a hurry.
 
 Photographs do not pass through the server. A serverless function caps its
 request body at a few megabytes and a photograph from a modern phone is
@@ -179,27 +179,20 @@ larger than that, so an upload is three steps:
 ```
 POST /api/uploads             → reserves the day and a revision,
                                 returns a URL signed for 120 seconds
-PUT  <that URL>               → browser or phone, straight to R2
-POST /api/uploads/{revision}  → the server asks R2 whether it arrived,
-                                and writes down R2's answer, not the client's
+PUT  <that URL>               → browser or phone, straight to Blob
+POST /api/uploads/{revision}  → the server asks Blob whether it arrived,
+                                and writes down Blob's answer, not the client's
 ```
 
-The signature covers the content type and the exact byte count, so the
-`PUT` must send both unchanged — a URL minted for one photograph cannot be
-spent on a hundred megabytes of something else. Because that `PUT` comes
-from a browser, the bucket needs a CORS rule (**R2 → your bucket →
-Settings → CORS policy**) or it will be refused before it starts:
+The content type and the exact byte ceiling are carried in the delegation
+payload and enforced by the CDN, so a URL minted for one photograph cannot
+be spent on a hundred megabytes of something else. `allowOverwrite` is
+false: a revision is written once, which is what makes a retry safe.
 
-```json
-[
-  {
-    "AllowedOrigins": ["http://localhost:3000", "https://www.loosenickels.com"],
-    "AllowedMethods": ["PUT"],
-    "AllowedHeaders": ["content-type"],
-    "MaxAgeSeconds": 3600
-  }
-]
-```
+There is no CORS rule to set and no bucket policy to get wrong. There is
+also no storage secret: on Vercel the SDK authenticates with a short-lived
+OIDC token the platform rotates by itself, and `vercel env pull` supplies
+the same locally.
 
 Reading goes back through `GET /api/media/{asset}`, which asks the
 database for the row and redirects to a URL signed for fifteen minutes.
@@ -208,27 +201,41 @@ anonymous visitor looking at a public day, or for nobody — so permission is
 answered once in SQL rather than once in SQL and approximately again in
 TypeScript. A missing photograph and a forbidden one both come back 404.
 
+Read URLs are signed from one store-wide delegation, cached in memory and
+renewed a minute before it lapses. Issuing a delegation is a call to the
+Blob control API and signing a URL from one is local HMAC — a page showing
+two dozen days would otherwise make two dozen round-trips before it could
+render. Widening the delegation does not widen what anybody receives: the
+signing key never leaves the server, and a reader is only ever handed a URL
+already signed for a single pathname.
+
 The `original` is never served to anyone but the owner. It still carries
 its EXIF, and the GPS tag with it.
 
 ### Environment
 
-`.env.local`, never committed. The first two are checked at startup and are
-enough to sign in. The `R2_` four are read on first use instead, so a
-person working on the calendar does not need a Cloudflare account to run
-the site — leave them out entirely rather than filling them with
-placeholders, and the storage routes will say what is missing by name:
+`.env.local`, never committed — and mostly not hand-written either. Run
+`vercel env pull` and the Supabase and Blob variables arrive from the
+project, because both are provisioned through Vercel.
+
+The two `NEXT_PUBLIC_` values are checked at startup, by name, so a missing
+one stops the build with its own name in the message rather than surfacing
+later as an `undefined` halfway through a request.
+
+Storage has no entry here at all. It authenticates with `BLOB_STORE_ID`
+(an identifier, not a secret) and a rotating OIDC token the SDK reads for
+itself, so there is no long-lived storage credential to leak from a `.env`
+and nothing for someone working on the calendar to obtain first.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET=
 ```
+
+See [docs/going-live.md](docs/going-live.md) for the account setup this
+assumes.
 
 ---
 

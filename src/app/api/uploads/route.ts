@@ -6,7 +6,7 @@ import {
   extensionFor,
   objectKey,
   signedUpload,
-} from "@/lib/storage/r2";
+} from "@/lib/storage/blob";
 
 /* Asking to file a photograph. The bytes do not come through here: a
    serverless function caps its request body at a few megabytes and a

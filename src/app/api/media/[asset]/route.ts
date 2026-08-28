@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabase } from "@/lib/supabase/server";
-import { signedRead } from "@/lib/storage/r2";
+import { signedRead } from "@/lib/storage/blob";
 
 const EXPIRES_IN = 900;
 

@@ -83,7 +83,14 @@ export const timeZone = z.string().min(1);
 export const dayVisibility = z.enum(["private", "public", "unlisted"]);
 export type DayVisibility = z.infer<typeof dayVisibility>;
 
-export const profileVisibility = z.enum(["private", "public"]);
+/* Three levels, matching `profile_visibility` in the migration. The middle
+   one is the point: `public` means a profile answers when its address is
+   known, `discoverable` additionally means it may be *found* — returned by
+   `findProfiles`, listed, suggested. Someone who publishes an archive for
+   the people they gave the link to has not thereby volunteered to be
+   searchable by strangers, and collapsing the two would make that choice
+   for them. */
+export const profileVisibility = z.enum(["private", "public", "discoverable"]);
 export type ProfileVisibility = z.infer<typeof profileVisibility>;
 
 /* ---- Location precision -------------------------------------------------
@@ -220,7 +227,12 @@ export type Camera = z.infer<typeof camera>;
    time, signed and expiring, because a permanent guessable URL to a private
    photograph is a permanent leak. */
 
-export const VARIANTS = ["thumb", "medium", "large"] as const;
+/* The names are `media_variant` in the migration, not a parallel vocabulary.
+   `original` is in the list because the original is a stored object like any
+   other and the pipeline has to be able to name it — but it is the one
+   variant never handed to a non-owner, because its embedded EXIF carries the
+   GPS tag out past any redaction of the location columns. */
+export const VARIANTS = ["original", "large", "medium", "thumbnail"] as const;
 export const variantName = z.enum(VARIANTS);
 export type VariantName = z.infer<typeof variantName>;
 
@@ -241,7 +253,12 @@ export type Variant = z.infer<typeof variant>;
  * user has successfully recorded: the day is done. It simply displays from
  * whatever is ready.
  */
-export const processingState = z.enum(["pending", "ready", "failed"]);
+export const processingState = z.enum([
+  "pending",
+  "processing",
+  "ready",
+  "failed",
+]);
 export type ProcessingState = z.infer<typeof processingState>;
 
 export const mediaAsset = z.object({

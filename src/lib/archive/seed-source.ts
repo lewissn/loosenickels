@@ -52,7 +52,7 @@ function photoOf(day: (typeof SEED_DAYS)[number]): ResolvedPhoto {
     lightness: day.lightness,
     tone: day.tone,
     processing: "ready",
-    urls: { thumb: day.src, medium: day.src, large: day.src },
+    urls: { thumbnail: day.src, medium: day.src, large: day.src },
     alt: day.alt,
   };
 }
