@@ -289,3 +289,24 @@ While on that dashboard, set **Site URL** to
 `https://loosenickels.vercel.app`. It is the fallback for anything that does
 not name a redirect, and leaving it at localhost is a quiet source of broken
 links.
+
+---
+
+## Why the link has a button on it
+
+You will click the link in the email and land on a page that says the link is
+ready, with a **Sign in** button. That extra click is not an oversight.
+
+A magic link works once. Plenty of mail systems fetch every URL in a message
+before the recipient sees it, to scan it for malware — Outlook and Hotmail do
+this by default, under Safe Links. The scan spends the token. The person who
+asked for it then clicks, is told the link has expired or has already been
+used, and has no way to find out who used it. Both statements are true and
+neither is any help.
+
+So the page verifies nothing. It puts the credential in a form, and only
+submitting it spends it. Scanners issue GET requests; they do not fill in
+forms and press buttons.
+
+This does not affect the iOS app: its links use the `loosenickels://` scheme,
+which a mail scanner has no way to fetch at all.

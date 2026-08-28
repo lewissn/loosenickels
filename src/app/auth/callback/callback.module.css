@@ -1,0 +1,46 @@
+.page {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: var(--s-4);
+  padding: var(--s-9) var(--margin);
+  max-width: var(--measure-note);
+}
+
+.line {
+  font-size: var(--t-title);
+  line-height: var(--lh-title);
+  letter-spacing: var(--tr-title);
+  text-wrap: balance;
+}
+
+/* Useful — being told the link is unspent answers the question the reader
+   arrived with — but not the thing they came to do. */
+.aside {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  line-height: var(--lh-meta);
+  letter-spacing: var(--tr-label);
+  color: var(--ink-faint);
+}
+
+.enter {
+  margin-top: var(--s-4);
+  display: inline-block;
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  padding: var(--s-3) var(--s-5);
+  transition:
+    border-color var(--d-quick) var(--e-out),
+    color var(--d-quick) var(--e-out);
+}
+
+.enter:hover {
+  border-color: var(--oxide);
+  color: var(--oxide);
+}
