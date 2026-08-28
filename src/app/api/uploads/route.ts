@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { getSupabase } from "@/lib/supabase/server";
 import {
   MAX_ORIGINAL_BYTES,
@@ -8,20 +9,24 @@ import {
   signedUpload,
 } from "@/lib/storage/blob";
 
-/* Asking to file a photograph. The bytes do not come through here: a
-   serverless function caps its request body at a few megabytes and a
-   photograph from a modern phone is larger than that, so this reserves the
-   place in the database and hands back a URL the client uploads to
-   directly. Nothing is minted before the session has been checked. */
+/* =========================================================================
+   Transfer, step one: ask to send a photograph.
+
+   The bytes do not come through here. A serverless function caps its
+   request body at a few megabytes and a photograph from a modern phone is
+   larger than that, so this hands back a URL the client uploads to
+   directly.
+
+   Nothing about a *day* happens here, and that is the change from the first
+   version of this route. Transfer and submission are separate steps — the
+   interface says so and gives the reason: a failed commit must not mean
+   re-sending the bytes over a bad connection. Opening a day entry here
+   meant every abandoned upload left a half-written day behind it.
+   ========================================================================= */
 
 const request = z.object({
-  /* The date as the person's own device understands it. Never derived from
-     the server, which is in the wrong place to have an opinion. */
-  entryDate: z.iso.date(),
   contentType: z.string(),
   byteSize: z.number().int().positive().max(MAX_ORIGINAL_BYTES),
-  capturedAt: z.iso.datetime({ offset: true }).optional(),
-  captureTimezone: z.string().max(64).optional(),
 });
 
 const problem = (status: number, said: string) =>
@@ -39,52 +44,24 @@ export async function POST(req: Request) {
   const asked = request.safeParse(body);
   if (!asked.success) return problem(400, "That request does not make sense.");
 
-  const { entryDate, contentType, byteSize, capturedAt, captureTimezone } =
-    asked.data;
+  const { contentType, byteSize } = asked.data;
 
   if (!extensionFor("original", contentType)) {
     return problem(415, `${contentType} is not a photograph this can read.`);
   }
 
-  /* The day exists or comes into being; either way there is exactly one of
-     it, because the database says so rather than because this checked. */
-  const { data: entry, error: entryFailed } = await supabase
-    .from("day_entries")
-    .upsert(
-      { user_id: user.id, entry_date: entryDate },
-      { onConflict: "user_id,entry_date" },
-    )
-    .select("id")
-    .single();
-
-  /* Very nearly always the date guard: a date further ahead than the far
-     side of the date line can account for. */
-  if (entryFailed || !entry) return problem(422, "That date cannot be filed.");
-
-  const { data: revision, error: revisionFailed } = await supabase
-    .from("photo_revisions")
-    .insert({
-      day_entry_id: entry.id,
-      user_id: user.id,
-      captured_at: capturedAt ?? null,
-      capture_timezone: captureTimezone ?? null,
-    })
-    .select("id, revision_number")
-    .single();
-
-  if (revisionFailed || !revision) {
-    return problem(500, "The record could not be opened.");
-  }
-
-  const key = objectKey(revision.id, "original", contentType);
+  /* The key is minted here rather than by the client, from a uuid the
+     client never chooses. It is not derived from anything a visitor can
+     see, and the store has no public access, so it is unguessable in both
+     directions. */
+  const key = objectKey(randomUUID(), "original", contentType);
 
   return NextResponse.json(
     {
-      revisionId: revision.id,
-      revisionNumber: revision.revision_number,
+      storageKey: key,
       uploadUrl: await signedUpload(key, contentType, byteSize),
-      /* The client must send exactly this, and exactly this many bytes:
-         both are inside the signature. */
+      /* The client must send exactly this type, and no more than this many
+         bytes: both are carried in the delegation and enforced by the CDN. */
       contentType,
       byteSize,
       expiresInSeconds: 120,

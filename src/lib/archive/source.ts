@@ -1,6 +1,8 @@
 import type {
   AssetId,
   CalendarDate,
+  Camera,
+  Coordinates,
   DayEntry,
   DaySummary,
   DayVisibility,
@@ -127,6 +129,38 @@ export interface SubmitPhoto {
 
   capturedAt?: Instant;
   captureTimeZone?: string;
+
+  /* -- What the photograph knows about itself ------------------------
+     Read in the browser, before a byte was uploaded, because that is the
+     only place the file still exists intact — the server receives an
+     object key, never the file. Every field is optional: a screenshot with
+     no metadata must be exactly as easy to record as a raw file. */
+
+  /** Pixel dimensions with EXIF orientation already resolved. */
+  width?: number;
+  height?: number;
+  /** Tiny inline image, shown while the real one decodes. */
+  placeholder?: string;
+  /** Average perceived lightness, 0-1. Decides how dark the room goes. */
+  lightness?: number;
+  /** A restrained tone drawn from the image, for the ambient ground. */
+  tone?: string;
+  camera?: Camera;
+  /**
+   * Where the photograph was taken, at full precision.
+   *
+   * Stored precisely and disclosed narrowly: what a visitor sees is decided
+   * at read time by `discloseLocation`, against the profile's ceiling and
+   * the day's own setting. Recording it coarsely instead would throw away
+   * something the owner cannot recover, to protect them from a disclosure
+   * that has not happened yet.
+   */
+  place?: {
+    coordinates?: Coordinates;
+    label?: string;
+    region?: string;
+    country?: string;
+  };
 
   /**
    * A client-generated key, stable across retries of the same submission.

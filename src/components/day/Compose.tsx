@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ingest, type Ingested } from "@/lib/media/ingest";
+import { transfer, TransferError } from "@/lib/media/transfer";
+import { recordDay } from "@/app/today/actions";
 import { resolveCapture } from "@/lib/archive/capture";
 import { full, stamp } from "@/lib/util/calendar";
 import type { CalendarDate, ResolvedDay } from "@/lib/archive/schema";
@@ -31,12 +33,20 @@ interface Props {
   onRecord: (day: ResolvedDay) => void;
 }
 
-type Stage = "idle" | "reading" | "ready" | "failed";
+/* `sending` is its own stage rather than a boolean beside `ready`, because
+   what the panel shows during it is different in kind: the form stops being
+   editable, and the one thing that must not happen is a second submission
+   while the first is still in flight. */
+type Stage = "idle" | "reading" | "ready" | "sending" | "failed";
 
 export function Compose({ timeZone, existing, onRecord }: Props) {
   const [open, setOpen] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
   const [shot, setShot] = useState<Ingested | null>(null);
+  /* Generated once per chosen photograph and reused across retries, so a
+     connection that drops after the request left but before the reply
+     arrived cannot produce a second revision of the same photograph. */
+  const [attempt, setAttempt] = useState(() => crypto.randomUUID());
   const [date, setDate] = useState<CalendarDate | null>(null);
   const [note, setNote] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
@@ -46,17 +56,15 @@ export function Compose({ timeZone, existing, onRecord }: Props) {
   const panel = useRef<HTMLDivElement>(null);
 
   /* An object URL is a live handle into the file: letting it outlive the
-     preview leaks the whole image for the life of the document, and revoking
-     one that is still being displayed breaks the picture.
+     preview leaks the whole image for the life of the document.
 
-     Both happen easily, and both happened here. A URL that has been handed to
-     the archive is *adopted* — the archive is now displaying it, and this
-     component must never revoke it. Anything not adopted is ours to release
-     when the preview goes away. */
-  const adopted = useRef(new Set<string>());
-
+     This used to need an "adopted" set, because a recorded day was shown
+     from this very handle and revoking it would have broken the picture on
+     screen. It no longer is — what the archive displays now is a signed URL
+     the server returned — so every handle this component makes is this
+     component's to release, without exception. */
   const release = (url: string | undefined) => {
-    if (url && !adopted.current.has(url)) URL.revokeObjectURL(url);
+    if (url) URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -134,8 +142,8 @@ export function Compose({ timeZone, existing, onRecord }: Props) {
     }
   }
 
-  function submit() {
-    if (!shot || !date) return;
+  async function submit() {
+    if (!shot || !date || stage === "sending") return;
 
     const capture = resolveCapture({
       capturedAtLocal: shot.capturedAtLocal,
@@ -143,42 +151,61 @@ export function Compose({ timeZone, existing, onRecord }: Props) {
       timeZone,
     });
 
-    /* The shape handed on is deliberately the shape ArchiveSource.submit
-       will take. When there is a database and object storage behind this,
-       the change is that the file goes to storage and this object goes to
-       the server — not that the flow is rewritten. */
-    onRecord({
+    setStage("sending");
+    setProblem(null);
+
+    let assetId: string;
+    try {
+      /* The bytes first, and separately. If this succeeds and the step
+         below fails, pressing the button again re-runs both — but the
+         second transfer finds its object already in the store and returns
+         the same asset rather than storing it twice. */
+      assetId = await transfer(shot);
+    } catch (error) {
+      setProblem(
+        error instanceof TransferError
+          ? error.message
+          : "The photograph did not finish sending.",
+      );
+      setStage("ready");
+      return;
+    }
+
+    const result = await recordDay({
+      assetId,
       date,
       note: note.trim() || undefined,
       visibility: "private",
-      photo: {
-        assetId: `local-${shot.checksum.slice(0, 16)}` as ResolvedDay["photo"]["assetId"],
-        width: shot.width,
-        height: shot.height,
-        placeholder: shot.placeholder,
-        lightness: shot.lightness,
-        tone: shot.tone,
-        processing: "ready",
-        urls: {
-          thumbnail: shot.previewUrl,
-          medium: shot.previewUrl,
-          large: shot.previewUrl,
-        },
-        alt: `Photograph recorded for ${full(date)}.`,
-      },
       capturedAt: capture.capturedAt,
       captureTimeZone: capture.captureTimeZone,
-      ...(shot.coordinates
-        ? { place: { coordinates: shot.coordinates } }
-        : {}),
-      ...(shot.camera ? { camera: shot.camera } : {}),
-      revisionCount: 1,
+      width: shot.width,
+      height: shot.height,
+      placeholder: shot.placeholder,
+      lightness: shot.lightness,
+      tone: shot.tone,
+      camera: shot.camera,
+      place: shot.coordinates ? { coordinates: shot.coordinates } : undefined,
+      idempotencyKey: attempt,
     });
 
-    /* The archive is displaying this image now, so the handle is no longer
-       ours to release. Clearing the form must not take the picture with it. */
-    adopted.current.add(shot.previewUrl);
+    if (!result.ok) {
+      setProblem(result.problem);
+      setStage("ready");
+      return;
+    }
+
+    /* The day that comes back is the archive's, not this component's
+       guess at it — signed URLs, the revision number the database chose,
+       the location reduced to what is disclosed. Showing our own version
+       instead would mean the screen disagreed with the next reload. */
+    onRecord(result.day);
+    setAttempt(crypto.randomUUID());
+
+    /* The preview has been replaced on screen by the archive's own copy, so
+       the handle goes back. */
+    release(shot.previewUrl);
     clear();
+    setStage("idle");
     setOpen(false);
   }
 
@@ -239,7 +266,7 @@ export function Compose({ timeZone, existing, onRecord }: Props) {
               </div>
             )}
 
-            {stage === "ready" && shot && date && (
+            {(stage === "ready" || stage === "sending") && shot && date && (
               <div className={styles.review}>
                 <figure className={styles.preview}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -285,10 +312,24 @@ export function Compose({ timeZone, existing, onRecord }: Props) {
                   </label>
 
                   <div className={styles.actions}>
-                    <button type="button" className={styles.submit} onClick={submit}>
-                      {replacing ? "Replace photograph" : "Record this day"}
+                    <button
+                      type="button"
+                      className={styles.submit}
+                      onClick={submit}
+                      disabled={stage === "sending"}
+                    >
+                      {stage === "sending"
+                        ? "Sending"
+                        : replacing
+                          ? "Replace photograph"
+                          : "Record this day"}
                     </button>
-                    <button type="button" className={styles.again} onClick={discard}>
+                    <button
+                      type="button"
+                      className={styles.again}
+                      onClick={discard}
+                      disabled={stage === "sending"}
+                    >
                       Choose another
                     </button>
                   </div>

@@ -675,15 +675,59 @@ export function supabaseArchive(client?: Db): ArchiveSource {
       }
 
       /* The asset was uploaded and registered before this call; point it at
-         the revision that now owns it. */
-      const { error: attachFailed } = await db
+         the revision that now owns it.
+
+         `is("photo_revision_id", null)` is the guard that matters. An asset
+         already attached to a day must not be re-attached to another —
+         otherwise a replayed request with a fresh idempotency key could
+         move somebody's photograph from one date to a different one. RLS
+         has already restricted this to the caller's own assets; this stops
+         them doing it to themselves. */
+      const { data: attached } = await db
         .from("media_assets")
         .update({ photo_revision_id: revision.id })
-        .eq("id", input.assetId);
+        .eq("id", input.assetId)
+        .eq("user_id", owner)
+        .is("photo_revision_id", null)
+        .select("id, width, height")
+        .maybeSingle<{ id: string; width: number; height: number }>();
 
-      if (attachFailed) {
-        throw new ArchiveError("asset-not-ready", "That photograph is not ready.");
+      if (!attached) {
+        throw new ArchiveError(
+          "asset-not-ready",
+          "That photograph has not arrived, or belongs to another day.",
+        );
       }
+
+      /* What the photograph knows about itself, written onto the revision
+         rather than the day: it describes this photograph, and replacing
+         the photograph tomorrow must not inherit today's camera. */
+      await db
+        .from("photo_revisions")
+        .update({
+          width: input.width ?? attached.width,
+          height: input.height ?? attached.height,
+          placeholder: input.placeholder ?? null,
+          camera_make: input.camera?.make ?? null,
+          camera_model: input.camera?.model ?? null,
+          lens: input.camera?.lens ?? null,
+          focal_length_mm: input.camera?.focalLength ?? null,
+          aperture: input.camera?.aperture ?? null,
+          exposure_seconds: input.camera?.shutterSpeed ?? null,
+          iso: input.camera?.iso ?? null,
+          latitude: input.place?.coordinates?.lat ?? null,
+          longitude: input.place?.coordinates?.lon ?? null,
+          accuracy_m: input.place?.coordinates?.accuracy ?? null,
+          altitude_m: input.place?.coordinates?.elevation ?? null,
+          place_name: input.place?.label ?? null,
+          region: input.place?.region ?? null,
+          country: input.place?.country ?? null,
+          /* Withheld until the owner decides otherwise, every time. A
+             default carried over from a previous day would publish a
+             location the owner never looked at. */
+          location_privacy: "hidden",
+        })
+        .eq("id", revision.id);
 
       const patch: Record<string, unknown> = {
         current_revision_id: revision.id,
