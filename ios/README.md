@@ -20,8 +20,27 @@ The Xcode project is generated rather than committed. Regenerate it rather
 than editing it, and keep anything that must survive in `project.yml`.
 
 ```bash
-brew install xcodegen
 cd ios && xcodegen && open Daily.xcodeproj
+```
+
+**You do not have Homebrew on this machine**, so the usual
+`brew install xcodegen` will not work. Two ways round it.
+
+Build xcodegen from source — no admin password, and this is the one that was
+actually used to generate and build the project:
+
+```bash
+git clone --depth 1 https://github.com/yonaskolb/XcodeGen.git /tmp/xcodegen && (cd /tmp/xcodegen && swift build -c release)
+```
+
+That leaves the binary at `/tmp/xcodegen/.build/release/xcodegen`. Run it by
+that full path, or copy it somewhere on your `PATH`.
+
+Or install Homebrew first, which needs your password and is worth having
+anyway:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 Put your ten-character Team ID in `project.yml` under `DEVELOPMENT_TEAM`
