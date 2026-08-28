@@ -24,7 +24,7 @@ export const collections: Collection[] = [
     title: "Excellent Light",
     note: "Records made under conditions that could not have been arranged and did not last. Admission is by the light alone; the subject is immaterial.",
     dept: "PH",
-    keystone: "LN-PH-0001",
+    keystone: "LN-PH-0004",
     opened: "2026-01-28",
   },
   {

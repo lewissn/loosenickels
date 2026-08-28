@@ -1,48 +1,39 @@
 {
-  "id": "LN-PH-0001",
-  "dept": "PH",
-  "slug": "excellent-light-briefly",
-  "title": "Excellent light, briefly",
-  "summary": "Approximately ninety seconds, at the far end of a day that had given no indication it was going to do this.",
-  "date": "2026-01-28",
-  "place": {
-    "name": "Shingle spit, Orford Ness",
-    "region": "Suffolk",
-    "country": "United Kingdom",
-    "coordinates": {
-      "lat": 52.0902,
-      "lon": 1.5568,
-      "precision": 150,
-      "elevation": 2
+  "body" : [
+    {
+      "text" : "Yes, definitely at least 10",
+      "type" : "lede"
     }
+  ],
+  "date" : "2026-08-27",
+  "dept" : "PH",
+  "id" : "LN-PH-0001",
+  "media" : [
+    {
+      "alt" : "More than one tree",
+      "captured" : "2026-08-22",
+      "height" : 2400,
+      "kind" : "image",
+      "src" : "\/media\/LN-PH-0001\/plate.jpg",
+      "width" : 1703
+    }
+  ],
+  "place" : {
+    "coordinates" : {
+      "elevation" : 75.5,
+      "lat" : 51.88033180203484,
+      "lon" : 0.5046595474551312,
+      "precision" : 7.7
+    },
+    "country" : "United Kingdom",
+    "name" : "Duckend Green, Shalford Road",
+    "region" : "England"
   },
-  "weather": "Overcast all day, clearing at the horizon at 16:31",
-  "collections": [
-    "excellent-light",
-    "water"
+  "significance" : "undetermined",
+  "slug" : "more-than-one-tree",
+  "summary" : "At least 10 i would say",
+  "tags" : [
+
   ],
-  "tags": [
-    "light",
-    "coast",
-    "winter"
-  ],
-  "significance": "considerable",
-  "body": [
-    {
-      "type": "p",
-      "text": "The cloud had been unbroken since morning and stayed unbroken. What happened was that it ended about two degrees above the sea, and for a minute and a half the sun came underneath it and lit the underside of the entire sky from below."
-    },
-    {
-      "type": "p",
-      "text": "Everything on the shingle acquired a shadow four or five times its own length. The shadows were the colour of the sea and the ground between them was the colour of an apricot, and both of these statements are accurate and neither is useful."
-    },
-    {
-      "type": "note",
-      "text": "Eleven exposures. Two are worth keeping. This is a good ratio for the circumstances."
-    }
-  ],
-  "related": [
-    "LN-PL-0002",
-    "LN-OB-0003"
-  ]
+  "title" : "More than one tree"
 }
