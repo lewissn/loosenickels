@@ -192,13 +192,23 @@ struct SupabaseArchive: ArchiveSource {
         }
 
         guard let row = rows.first else { return nil }
-        return try await resolve(row, owner: owner, ceiling: profile.location_precision)
+        return try await resolve(
+            row,
+            owner: owner,
+            ceiling: profile.location_precision,
+            signed: await signedURLs(for: assetIds(in: [row]))
+        )
     }
 
     func day(owner: String, date: CalendarDate) async throws -> ResolvedDay? {
         guard let profile = try await ownerProfile(owner) else { return nil }
         guard let row = try await dayRow(owner: owner, date: date) else { return nil }
-        return try await resolve(row, owner: owner, ceiling: profile.location_precision)
+        return try await resolve(
+            row,
+            owner: owner,
+            ceiling: profile.location_precision,
+            signed: await signedURLs(for: assetIds(in: [row]))
+        )
     }
 
     func recentDays(
@@ -223,9 +233,16 @@ struct SupabaseArchive: ArchiveSource {
                 .value
         }
 
+        let signed = await signedURLs(for: assetIds(in: rows))
+
         var out: [ResolvedDay] = []
         for row in rows {
-            if let day = try await resolve(row, owner: owner, ceiling: profile.location_precision) {
+            if let day = try await resolve(
+                row,
+                owner: owner,
+                ceiling: profile.location_precision,
+                signed: signed
+            ) {
                 out.append(day)
             }
         }
@@ -249,6 +266,8 @@ struct SupabaseArchive: ArchiveSource {
                 .value
         }
 
+        let signed = await signedURLs(for: assetIds(in: rows))
+
         var out: [DaySummary] = []
         for row in rows {
             guard let revision = row.photo_revisions?.first else { continue }
@@ -262,7 +281,7 @@ struct SupabaseArchive: ArchiveSource {
             out.append(
                 DaySummary(
                     date: row.entry_date,
-        thumbnailUrl: mediaURL(thumb?.id),
+                    thumbnailUrl: thumb.flatMap { signed[$0.id] },
                     width: revision.width ?? original?.width ?? 0,
                     height: revision.height ?? original?.height ?? 0,
                     placeholder: revision.placeholder
@@ -495,10 +514,19 @@ struct SupabaseArchive: ArchiveSource {
         )
     }
 
+    /// Every asset id the given rows refer to. Gathered before resolving so
+    /// that one request covers a whole page rather than one per photograph.
+    private func assetIds(in rows: [DayRow]) -> [String] {
+        rows.flatMap { row in
+            (row.photo_revisions?.first?.media_assets ?? []).map(\.id)
+        }
+    }
+
     private func resolve(
         _ row: DayRow,
         owner: String,
-        ceiling: LocationPrecision
+        ceiling: LocationPrecision,
+        signed: [String: URL]
     ) async throws -> ResolvedDay? {
         /* A day entry with no current revision is a reservation that was
            never completed — an upload that failed halfway. Not a day. */
@@ -516,7 +544,7 @@ struct SupabaseArchive: ArchiveSource {
                and carries exactly the same tag, which is why the rule is a
                property of the variant rather than a test for one. */
             if asset.variant.isOwnerOnly && !mine { continue }
-            if let url = mediaURL(asset.id) { urls[asset.variant] = url }
+            if let url = signed[asset.id] { urls[asset.variant] = url }
         }
 
         let camera = Camera(
@@ -601,18 +629,42 @@ struct SupabaseArchive: ArchiveSource {
     }
 
     /**
-     Where to fetch one asset's bytes.
+     Signed URLs for a set of assets, in one authenticated request.
 
-     By asset id, never by storage key. The route takes an id and asks the
-     database for the row, so the policy decides — once, in one place, for
-     both clients — and then redirects to a URL signed for fifteen minutes.
-     Signing on the device would be a second implementation of the same
-     rule, and a storage key is not a thing to put in a path anyway: it
-     contains slashes, and it is not what the route is looking up.
+     The obvious thing — pointing an image view at `/api/media/{id}` and
+     letting it follow the redirect — is what a browser does, and it works
+     there because an `<img>` carries the session cookie. It does not work
+     here: `AsyncImage` fetches a URL and cannot be handed an Authorization
+     header, so every request arrived anonymous, the policy correctly found
+     nothing, and every photograph rendered as its twenty-pixel placeholder.
+
+     So the URLs are asked for, with the token attached, and the image views
+     are given something already signed. One request for a page of days
+     rather than one per rendition, which on a mobile connection is the
+     difference between a screen that fills and one that trickles.
      */
-    private func mediaURL(_ assetId: String?) -> URL? {
-        guard let assetId else { return nil }
-        return URL(string: "\(Site.origin)/api/media/\(assetId)")
+    private func signedURLs(for assetIds: [String]) async -> [String: URL] {
+        guard !assetIds.isEmpty,
+              let session = try? await db.auth.session
+        else { return [:] }
+
+        var request = URLRequest(url: URL(string: "\(Site.origin)/api/media")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try? JSONSerialization.data(
+            withJSONObject: ["assetIds": Array(Set(assetIds))]
+        )
+
+        struct Answer: Decodable { var urls: [String: String] }
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data)
+        else { return [:] }
+
+        return answer.urls.compactMapValues(URL.init(string:))
     }
 
     /// Turns a transport failure into a domain outcome. A PostgREST error

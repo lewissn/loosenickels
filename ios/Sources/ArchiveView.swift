@@ -101,14 +101,24 @@ struct ArchiveView: View {
 
     /// Quiet, and to one side. Not an alarm.
     private var todayOpen: some View {
-        HStack {
-            Signage(text: "Today remains unrecorded", tone: Tone.inkMuted)
-            Spacer()
+        /* Baseline-aligned, and the label kept to one line. Set as an
+           ordinary HStack the sentence wrapped to two lines and the button
+           centred itself against the pair, which read as two unrelated
+           things that had collided rather than as a line with an action at
+           the end of it. */
+        HStack(alignment: .firstTextBaseline, spacing: Space.s4) {
+            Signage(text: "Today is not recorded", tone: Tone.inkMuted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            Spacer(minLength: 0)
+
             Button("Record") { composing = true }
                 .buttonStyle(QuietButtonStyle())
+                .fixedSize()
         }
         .padding(.horizontal, Space.margin)
-        .padding(.vertical, Space.s2)
+        .padding(.vertical, Space.s3)
         .background(Tone.wash)
     }
 
