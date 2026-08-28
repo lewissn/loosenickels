@@ -131,6 +131,27 @@ default email template, and `?token_hash=&type=` from a template rewritten
 to address it directly — so the template is a preference rather than
 something that has to be right.
 
+### Registration is closed
+
+Asking for a link does not create an account. The sign-in action passes
+`shouldCreateUser: false`, but that is the courtesy, not the lock: the anon
+key is public, so anyone can call the OTP endpoint themselves and ask for
+`create_user: true`. The lock is one switch in the dashboard, under
+**Authentication → Sign In / Providers**:
+
+```
+Allow new users to sign up    off
+```
+
+With it off, Supabase refuses an unknown address and the form quietly
+reports success anyway. This is deliberate. Reported as a failure it would
+answer, to anyone willing to type addresses in, the question of who keeps an
+archive here — so the closure is stated once on the page, where it is true
+of everybody, rather than in the reply to a particular address.
+
+Accounts are made in the dashboard, under **Authentication → Users → Add
+user**. `handle_new_user()` fires on insert and the profile follows.
+
 ### Environment
 
 `.env.local`, never committed. The first two are enough to sign in; the

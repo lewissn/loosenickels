@@ -158,6 +158,18 @@
   }
 }
 
+/* Quiet, and last. It is a condition of the place, not a problem with
+   anything the reader has just done. */
+.footnote {
+  margin-top: var(--s-8);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  line-height: var(--lh-meta);
+  letter-spacing: var(--tr-label);
+  color: var(--ink-faint);
+  max-width: var(--measure-note);
+}
+
 /* An address is data, so it is set in the family that carries data. */
 .address {
   font-family: var(--f-mono);
