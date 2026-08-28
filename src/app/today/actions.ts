@@ -49,6 +49,14 @@ export async function recordDay(
        agree with the screen. */
     revalidatePath("/today");
 
+    /* Nudge the pipeline rather than wait for the cron, so the renditions
+       usually exist within seconds of recording instead of within five
+       minutes. Deliberately not awaited and deliberately unable to fail the
+       call: the photograph is already safe, the cron will find it either
+       way, and a resizer having a bad afternoon must not turn a successful
+       recording into an error the person who took it has to read. */
+    void nudgePipeline();
+
     return { ok: true, day: result.day, created: result.created };
   } catch (error) {
     if (error instanceof ArchiveError) {
@@ -72,5 +80,24 @@ function humanly(error: ArchiveError): string {
       return "That day has gone.";
     case "conflict":
       return "Something else was writing to that day. Try again.";
+  }
+}
+
+/** Fire-and-forget. Every outcome is swallowed on purpose — see above. */
+async function nudgePipeline(): Promise<void> {
+  const secret = process.env.CRON_SECRET;
+  const origin = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000";
+
+  if (!secret) return;
+
+  try {
+    await fetch(`${origin}/api/process`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+  } catch {
+    /* The cron is the guarantee. This is only the hurry. */
   }
 }
