@@ -50,19 +50,35 @@ struct Room: Equatable {
     static func lit(by photo: ResolvedPhoto) -> Room {
         guard let lightness = photo.lightness else { return .unlit }
 
-        let base = photo.tone.flatMap(Color.init(hex:)) ?? Tone.ground
         let night = lightness < 0.42
+        let base = photo.tone.flatMap(Color.init(hex:))
+            ?? (night ? Tone.groundNight : Tone.groundDay)
 
-        /* The ground is the photograph's tone, taken most of the way toward
-           the archive's own — the interface stays recognisably itself, in a
-           light the picture has cast. */
-        let ground = base.mixed(with: night ? Tone.groundDeep : Tone.ground, amount: 0.72)
+        /* Every colour here is fixed rather than system-adaptive, and that
+           is the point rather than an oversight.
+
+           An earlier version mixed toward the adaptive tokens, which meant a
+           bright photograph on a phone set to dark still sat in a dark room:
+           the system was deciding and the picture was being consulted about
+           the trim. Since the whole idea is that the interface belongs to the
+           photograph, the photograph decides, and it decides the same way at
+           noon and at midnight.
+
+           The chrome outside the viewer — the rail, the compose sheet, the
+           sign-in screen — keeps using the adaptive tokens, because a phone
+           has already made that decision for its own furniture and should
+           not be argued with. It is only the room around a picture that the
+           picture owns. */
+        let ground = base.mixed(
+            with: night ? Tone.groundNight : Tone.groundDay,
+            amount: 0.72
+        )
 
         return Room(
             ground: ground,
-            ink: night ? Tone.inkNight : Tone.ink,
-            inkMuted: night ? Tone.inkMutedNight : Tone.inkMuted,
-            inkFaint: night ? Tone.inkFaintNight : Tone.inkFaint,
+            ink: night ? Tone.inkNight : Tone.inkDay,
+            inkMuted: night ? Tone.inkMutedNight : Tone.inkMutedDay,
+            inkFaint: night ? Tone.inkFaintNight : Tone.inkFaintDay,
             isNight: night
         )
     }

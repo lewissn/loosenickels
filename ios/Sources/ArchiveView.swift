@@ -18,14 +18,22 @@ import SwiftUI
 struct ArchiveView: View {
     let profile: Profile
 
+    /// Days to show instead of loading any, for the design harness. Nil in
+    /// every build anybody but me runs.
+    var fixtures: [ResolvedDay]? = nil
+
     @EnvironmentObject private var session: Session
     @StateObject private var days = Days()
     @State private var composing = false
     @State private var showingAccount = false
+    /// The day currently filling the screen. The rail takes its light from
+    /// this one, so the chrome changes as the archive is scrolled rather
+    /// than being fixed to whatever happened to load first.
+    @State private var visible: String?
 
     var body: some View {
         ZStack {
-            Paper()
+            room.ground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 rail
@@ -37,7 +45,21 @@ struct ArchiveView: View {
                 }
             }
         }
-        .task { await days.loadIfNeeded(owner: profile.id) }
+        /* One line does a surprising amount of work. Every adaptive token in
+           this subtree — the rail's ink, its rules, the compose sheet — then
+           resolves against the photograph rather than against the phone, and
+           the status bar goes dark over a pale picture without being asked.
+           Setting each of those by hand would be the same decision made in
+           nine places, and eight of them would eventually disagree. */
+        .preferredColorScheme(room.isNight ? .dark : .light)
+        .animation(Tempo.considered, value: room)
+        .task {
+            if let fixtures {
+                days.present(fixtures)
+            } else {
+                await days.loadIfNeeded(owner: profile.id)
+            }
+        }
         .sheet(isPresented: $composing) {
             ComposeView(owner: profile.id, timeZone: days.timeZone) { recorded in
                 days.merge(recorded)
@@ -60,7 +82,8 @@ struct ArchiveView: View {
     /// ground behind everything take their colours from it, so the chrome
     /// belongs to the photograph rather than sitting on top of it.
     private var room: Room {
-        days.days.first.map { Room.lit(by: $0.photo) } ?? .unlit
+        let day = days.days.first { $0.id == visible } ?? days.days.first
+        return day.map { Room.lit(by: $0.photo) } ?? .unlit
     }
 
     private var rail: some View {
@@ -104,6 +127,7 @@ struct ArchiveView: View {
                 todayOpen
             }
         }
+        .background(room.ground)
     }
 
     /// Quiet, and to one side. Not an alarm.
@@ -144,6 +168,7 @@ struct ArchiveView: View {
         }
         .scrollTargetBehavior(.paging)
         .scrollIndicators(.hidden)
+        .scrollPosition(id: $visible)
         .ignoresSafeArea(edges: .bottom)
         .overlay(alignment: .bottomTrailing) {
             if days.todayRecorded {

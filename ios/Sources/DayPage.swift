@@ -32,16 +32,23 @@ struct DayPage: View {
         let room = Room.lit(by: day.photo)
 
         GeometryReader { screen in
-            let portrait = day.photo.aspect < 1
-            /* A tall photograph is given the room it needs and the writing
-               sits under it; a wide one is held to two thirds so the band
-               beneath is a deliberate proportion rather than whatever is
-               left. */
-            let pictureHeight = portrait
-                ? screen.size.height * 0.74
-                : screen.size.height * 0.56
+            /* The photograph takes the height its own shape asks for, and
+               the writing sits directly beneath it — then the pair is
+               centred in what is left.
 
-            VStack(alignment: .leading, spacing: 0) {
+               An earlier version gave the picture a fixed fraction of the
+               screen, three quarters for a tall one and just over half for a
+               wide one. A tall photograph filled its allowance and looked
+               right; a wide one sat marooned in the middle of a frame far
+               taller than itself, with dead air above it and the writing
+               stranded below. Aspect-fitting inside a box the wrong shape is
+               how that happens, and the fix is to stop choosing the box. */
+            let natural = screen.size.width / max(day.photo.aspect, 0.01)
+            /* The ceiling leaves room for a date, a note of a few lines and
+               the measurements under it, whatever the photograph's shape. */
+            let pictureHeight = min(natural, screen.size.height * 0.66)
+
+            VStack(alignment: .leading, spacing: Space.s5) {
                 photograph(in: room)
                     .frame(width: screen.size.width, height: pictureHeight)
                     .clipped()
@@ -49,11 +56,12 @@ struct DayPage: View {
                 writing(in: room)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Space.margin)
-                    .padding(.top, Space.s5)
-
-                Spacer(minLength: 0)
             }
-            .frame(width: screen.size.width, height: screen.size.height)
+            .frame(
+                width: screen.size.width,
+                height: screen.size.height,
+                alignment: .center
+            )
             .background(room.ground)
         }
     }
@@ -107,33 +115,21 @@ struct DayPage: View {
 
     private func writing(in room: Room) -> some View {
         VStack(alignment: .leading, spacing: Space.s3) {
-            /* The year, oversized and barely there, sitting behind the date.
-               It is the one piece of ornament in the design and it earns its
-               place by doing a job: at a glance, across a scroll, it is how
-               you know roughly where in a life you are. */
-            ZStack(alignment: .topLeading) {
-                Text(String(day.date.year))
-                    .font(.system(size: 84, weight: .regular, design: .serif))
-                    .foregroundStyle(room.ink.opacity(0.07))
-                    .offset(x: -Space.s2, y: -Space.s6)
-                    .allowsHitTesting(false)
-
                 VStack(alignment: .leading, spacing: Space.s2) {
-                    Text(day.date.spelled(in: timeZone))
-                        .font(.system(size: Size.title, design: .serif))
-                        .foregroundStyle(room.ink)
+                Text(day.date.spelled(in: timeZone))
+                    .font(.system(size: Size.title, design: .serif))
+                    .foregroundStyle(room.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let note = day.note, !note.isEmpty {
+                    Text(note)
+                        .font(.system(size: Size.body, design: .serif))
+                        .foregroundStyle(room.inkMuted)
+                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
-
-                    if let note = day.note, !note.isEmpty {
-                        Text(note)
-                            .font(.system(size: Size.body, design: .serif))
-                            .foregroundStyle(room.inkMuted)
-                            .lineSpacing(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    metadata(in: room)
                 }
+
+                metadata(in: room)
             }
         }
         /* The writing arrives a beat after the picture and from slightly

@@ -85,6 +85,20 @@ final class Days: ObservableObject {
 
     func invalidate() { loaded = false }
 
+    /// Show these and load nothing. Used only by the design harness.
+    func present(_ fixtures: [ResolvedDay]) {
+        days = fixtures
+        loaded = true
+        status = ArchiveStatus(
+            today: CalendarDate.today(in: timeZone),
+            timeZone: TimeZone(identifier: "Europe/London")!,
+            todayRecorded: false,
+            daysRecorded: fixtures.count,
+            earliest: fixtures.last?.date,
+            latest: fixtures.first?.date
+        )
+    }
+
     private func back(from date: CalendarDate, days count: Int) -> CalendarDate {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone

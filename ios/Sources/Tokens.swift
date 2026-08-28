@@ -53,6 +53,11 @@ enum Tone {
        decided by the picture, in daylight or at midnight alike. So the four
        below are fixed rather than adaptive, and `Environment` chooses
        between them by measurement. */
+    static let inkDay        = Color(fixed: 0x1a1915)
+    static let inkMutedDay   = Color(fixed: 0x57544a)
+    static let inkFaintDay   = Color(fixed: 0x666359)
+    static let groundDay     = Color(fixed: 0xe3dfd3)
+
     static let inkNight      = Color(fixed: 0xe4e0d4)
     static let inkMutedNight = Color(fixed: 0x948f80)
     static let inkFaintNight = Color(fixed: 0x807d77)
@@ -138,6 +143,11 @@ enum Tempo {
     static let out = Animation.timingCurve(0.16, 1, 0.3, 1, duration: base)
     /// State changes within a page.
     static let inOut = Animation.timingCurve(0.76, 0, 0.24, 1, duration: quick)
+
+    /// The room changing as the archive is scrolled. Slower than anything
+    /// else on purpose: the light in a room is the one thing that should not
+    /// appear to snap when you move through it.
+    static let considered = Animation.timingCurve(0.32, 0, 0.24, 1, duration: 0.7)
 }
 
 // MARK: - Paper
