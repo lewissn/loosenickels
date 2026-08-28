@@ -56,6 +56,12 @@ struct ArchiveView: View {
         .task {
             if let fixtures {
                 days.present(fixtures)
+                #if DEBUG
+                /* `-compose` opens the sheet straight away, because its
+                   interesting state is the one after a photograph has been
+                   chosen and there is no way to choose one from a script. */
+                if CommandLine.arguments.contains("-compose") { composing = true }
+                #endif
             } else {
                 await days.loadIfNeeded(owner: profile.id)
             }

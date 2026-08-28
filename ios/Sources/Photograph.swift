@@ -51,6 +51,15 @@ enum Photograph {
         /// A tiny inline JPEG, shown while the real one decodes.
         var placeholder: String?
 
+        /* What the photograph does to the room, measured here as well as in
+           the pipeline. The server's numbers are the ones that get stored —
+           they are computed from the full-resolution original rather than
+           from a preview — but the compose sheet needs to light itself the
+           moment a picture is chosen, and that is long before any server has
+           seen it. */
+        var lightness: Double?
+        var tone: String?
+
         /// Wall-clock capture reading, and the offset the camera recorded.
         var capturedAt: Date?
         var captureTimeZone: String?
@@ -78,7 +87,9 @@ enum Photograph {
         let size = orientedSize(properties: properties, fallback: image?.size)
 
         let capture = captureMoment(exif: exif, tiff: tiff)
-
+        /* Optional because a file the decoder refuses has no room to
+           measure — the same reason `preview` is optional. */
+        let measured: (lightness: Double, tone: String)? = image.map(environment)
         let type = contentType(for: cgSource, filename: filename)
 
         return Prepared(
@@ -88,6 +99,8 @@ enum Photograph {
             width: Int(size.width),
             height: Int(size.height),
             placeholder: image.flatMap(placeholder),
+            lightness: measured?.lightness,
+            tone: measured?.tone,
             capturedAt: capture?.moment,
             captureTimeZone: capture?.zone,
             camera: camera(exif: exif, tiff: tiff),
@@ -218,6 +231,61 @@ enum Photograph {
             lon: west ? -lon : lon,
             accuracy: gps[kCGImagePropertyGPSHPositioningError] as? Double,
             elevation: elevation
+        )
+    }
+
+    // MARK: The room it makes
+
+    /**
+     Rec. 709 luma and one restrained colour, from a 32-pixel sample.
+
+     The same arithmetic as `environmentOf` in the pipeline, deliberately:
+     the sheet lights itself from these and then the archive lights itself
+     from the server's version of the same measurement, and if the two
+     disagreed the room would change colour a few seconds after a photograph
+     was recorded, for no reason a person could see.
+
+     Luma rather than the mean of the channels, because green reads far
+     brighter to the eye than blue at the same value.
+     */
+    private static func environment(_ image: UIImage) -> (lightness: Double, tone: String) {
+        let side = 32
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        format.opaque = true
+
+        let small = UIGraphicsImageRenderer(
+            size: CGSize(width: side, height: side), format: format
+        ).image { _ in
+            image.draw(in: CGRect(x: 0, y: 0, width: side, height: side))
+        }
+
+        guard let cg = small.cgImage,
+              let data = cg.dataProvider?.data,
+              let bytes = CFDataGetBytePtr(data)
+        else { return (0.5, "#808080") }
+
+        let perPixel = cg.bitsPerPixel / 8
+        var luma = 0.0, r = 0.0, g = 0.0, b = 0.0
+        let count = cg.width * cg.height
+
+        for i in stride(from: 0, to: count * perPixel, by: perPixel) {
+            let red = Double(bytes[i]), green = Double(bytes[i + 1]), blue = Double(bytes[i + 2])
+            luma += 0.2126 * red + 0.7152 * green + 0.0722 * blue
+            r += red; g += green; b += blue
+        }
+
+        /* Pulled well toward neutral before it is used as a ground: the full
+           average reads as a coloured wash competing with the picture, where
+           a third of it reads as the light in the room. */
+        let toward = { (channel: Double) -> Int in
+            Int((128 + (channel / Double(count) - 128) * 0.35).rounded())
+        }
+        let hex = { (n: Int) in String(format: "%02x", max(0, min(255, n))) }
+
+        return (
+            luma / Double(count) / 255,
+            "#\(hex(toward(r)))\(hex(toward(g)))\(hex(toward(b)))"
         )
     }
 

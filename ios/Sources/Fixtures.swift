@@ -89,6 +89,14 @@ enum Fixtures {
         ]
     }
 
+    /// A chosen-but-not-yet-sent photograph, for looking at the compose
+    /// sheet in the only state that matters.
+    static func prepared() -> Photograph.Prepared? {
+        let (url, _, _) = drawn(width: 1050, height: 1400, dark: false)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return Photograph.read(data, filename: "jpg")
+    }
+
     // MARK: Making a photograph out of nothing
 
     private static func day(

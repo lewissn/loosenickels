@@ -4,15 +4,21 @@ import PhotosUI
 /*
  Recording a day.
 
- Three things happen and they are deliberately separate. The file is read on
- the device, because the server never sees it and anything not read here is
- lost. The bytes go to object storage. Then, and only then, a day is told
- which photograph is its own.
+ This is the one thing the product asks of somebody, and it happens once a
+ day for years. So it is arranged as a single held breath rather than a form:
+ choose, look, say something if there is something to say, and be done. There
+ is no title bar competing with the photograph, no section headers, and
+ nothing to scroll past.
 
- The middle step is the one that fails outdoors, and the separation is what
- makes that survivable: a failed commit can be retried without sending the
- photograph again, and the idempotency key means a reply that never arrived
- cannot produce a second copy of the same day.
+ The room takes its light from the picture here as it does everywhere else,
+ which means the sheet changes colour the moment a photograph is chosen. That
+ is the point at which the day stops being an empty slot and becomes a
+ particular day, and the interface saying so is worth more than any label.
+
+ Three things happen underneath and they are deliberately separate: the file
+ is read on the device, because the server never sees it; the bytes go to
+ storage; and only then is a day told which photograph is its own. The middle
+ one is what fails outdoors, and the separation is what makes it survivable.
  */
 
 struct ComposeView: View {
@@ -28,144 +34,252 @@ struct ComposeView: View {
     @State private var note = ""
     @State private var stage: Stage = .empty
     @State private var problem: String?
-    @State private var includePlace = true
+    @State private var keepPlace = true
 
     /* Generated once per chosen photograph and kept across retries, so a
        connection that drops after the request left but before the reply
        arrived cannot write the same day twice. */
     @State private var attempt = UUID().uuidString
 
+    @FocusState private var writing: Bool
+
     private let archive: ArchiveSource = SupabaseArchive()
 
-    private enum Stage: Equatable {
-        case empty, reading, ready, sending
+    #if DEBUG
+    /// Opens with a photograph already chosen, for the design harness — the
+    /// interesting state, and one a script cannot reach through a picker.
+    private func loadFixture() {
+        guard CommandLine.arguments.contains("-compose"), photo == nil else { return }
+        guard let prepared = Fixtures.prepared() else { return }
+        photo = prepared
+        date = CalendarDate.today(in: timeZone)
+        stage = .ready
+    }
+    #endif
+
+    enum Stage: Equatable { case empty, reading, ready, sending }
+
+    /// Before a photograph is chosen there is nothing to take light from, so
+    /// the sheet holds the archive's own colours until there is.
+    private var room: Room {
+        guard let photo, stage != .empty, stage != .reading else { return .unlit }
+        return Room.lit(by: ResolvedPhoto(
+            assetId: "pending",
+            width: photo.width,
+            height: photo.height,
+            placeholder: nil,
+            lightness: photo.lightness,
+            tone: photo.tone,
+            processing: .pending,
+            urls: [:],
+            alt: ""
+        ))
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Paper()
+        ZStack {
+            room.ground.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Space.s5) {
-                        chooser
+            VStack(spacing: 0) {
+                header
 
-                        if stage == .ready || stage == .sending, let photo, let date {
-                            details(photo: photo, date: date)
-                        }
-
-
-                    }
-                    .padding(.horizontal, Space.margin)
-                    .padding(.vertical, Space.s4)
-                }
-            }
-            /* Above the fold and impossible to scroll past. This lived at
-               the bottom of the stack, under a full-height preview, which
-               is why a failed recording read as a button that did nothing:
-               the message was there and nobody was ever looking at it. */
-            .safeAreaInset(edge: .top) {
-                if let problem {
-                    Text(problem)
-                        .font(.system(size: Size.small))
-                        .foregroundStyle(Tone.ground)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Space.margin)
-                        .padding(.vertical, Space.s3)
-                        .background(Tone.oxide)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .navigationTitle("Record a day")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                        .disabled(stage == .sending)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(stage == .sending ? "Sending" : "Record") { record() }
-                        .disabled(stage != .ready)
+                if let photo, let date, stage == .ready || stage == .sending {
+                    chosen(photo: photo, date: date)
+                } else {
+                    invitation
                 }
             }
         }
+        .preferredColorScheme(room.isNight ? .dark : .light)
+        .animation(Tempo.considered, value: room)
+        .animation(Tempo.out, value: stage)
+        #if DEBUG
+        .task { loadFixture() }
+        #endif
         .onChange(of: picked) { _, item in
             guard let item else { return }
             Task { await read(item) }
         }
     }
 
-    // MARK: Choosing
+    // MARK: The bar
 
-    private var chooser: some View {
-        PhotosPicker(
-            selection: $picked,
-            matching: .images,
-            /* The original, not a rendered copy. `.current` would hand over
-               a version with the edits applied and the EXIF stripped, which
-               is the metadata the archive is here to keep. */
-            photoLibrary: .shared()
-        ) {
-            ZStack {
-                if let preview = photo?.preview {
-                    Image(uiImage: preview)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } else {
-                    VStack(spacing: Space.s2) {
-                        Image(systemName: "photo")
-                            .font(.system(size: Size.display, weight: .ultraLight))
-                            .foregroundStyle(Tone.inkGhost)
-                        Signage(
-                            text: stage == .reading ? "Reading" : "Choose a photograph",
-                            tone: Tone.inkFaint
-                        )
+    /* Close on the left, the action on the right, and the state of things
+       between them. A navigation title would say "Record a day" over a
+       photograph that is already saying which day it is. */
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Button("Close") { dismiss() }
+                .buttonStyle(QuietButtonStyle())
+                .disabled(stage == .sending)
+
+            Spacer()
+
+            if stage == .ready || stage == .sending {
+                Button(action: record) {
+                    Signage(
+                        text: stage == .sending ? "Sending" : (replacing ? "Replace" : "Record"),
+                        tone: stage == .sending ? room.inkFaint : room.ink,
+                        weight: .semibold
+                    )
+                }
+                .disabled(stage == .sending)
+            }
+        }
+        .padding(.horizontal, Space.margin)
+        .padding(.vertical, Space.s4)
+        .overlay(alignment: .bottom) {
+            /* Pinned above everything and impossible to scroll past. A
+               refusal used to render at the foot of a scroll view under a
+               full-height photograph, where nobody was ever going to find
+               it, which is why a failed recording read as a dead button. */
+            if let problem {
+                Text(problem)
+                    .font(Face.grotesk(Size.fine))
+                    .foregroundStyle(Tone.groundDay)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Space.margin)
+                    .padding(.vertical, Space.s3)
+                    .background(Tone.oxide)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .offset(y: 44)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    // MARK: Nothing chosen yet
+
+    private var invitation: some View {
+        VStack(alignment: .leading, spacing: Space.s5) {
+            Spacer()
+
+            Text(stage == .reading ? "Reading the photograph" : "Today, then.")
+                .font(.system(size: Size.display, design: .serif))
+                .foregroundStyle(room.ink)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("One photograph. It will be filed under the day it was taken, not the day it was added.")
+                .font(.system(size: Size.body, design: .serif))
+                .foregroundStyle(room.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+
+            PhotosPicker(selection: $picked, matching: .images, photoLibrary: .shared()) {
+                Signage(text: "Choose a photograph", tone: room.ink, weight: .semibold)
+                    .padding(.vertical, Space.s4)
+                    .padding(.horizontal, Space.s5)
+                    .overlay(
+                        Rectangle().stroke(Tone.rule, lineWidth: 1)
+                    )
+            }
+            .disabled(stage == .reading)
+            .opacity(stage == .reading ? 0.4 : 1)
+
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, Space.margin)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Chosen
+
+    private func chosen(photo: Photograph.Prepared, date: CalendarDate) -> some View {
+        GeometryReader { screen in
+            /* Same rule as the viewer: the picture takes the height its own
+               shape asks for, capped, and never fills a frame of the wrong
+               proportion by floating in the middle of it. */
+            let natural = screen.size.width / max(Double(photo.width) / Double(max(photo.height, 1)), 0.01)
+            let height = min(natural, screen.size.height * 0.52)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.s5) {
+                    if let preview = photo.preview {
+                        Image(uiImage: preview)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: screen.size.width, height: height)
+                            .clipped()
+                            .opacity(stage == .sending ? 0.55 : 1)
+                            .overlay(alignment: .center) {
+                                if stage == .sending {
+                                    ProgressView().tint(room.ink)
+                                }
+                            }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Space.s8)
-                    .background(Tone.wash)
+
+                    VStack(alignment: .leading, spacing: Space.s3) {
+                        Text(date.spelled(in: timeZone))
+                            .font(.system(size: Size.title, design: .serif))
+                            .foregroundStyle(room.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        /* Where the date came from, said plainly and quietly.
+                           A file with no capture time is filed under today,
+                           and the person should know that now rather than
+                           wonder about it in five years.
+
+                           Set as prose rather than as signage: uppercase ran
+                           to two lines and shouted an aside over the date it
+                           was explaining. */
+                        Text(photo.capturedAt == nil
+                            ? "This file records no capture time, so today is assumed."
+                            : "Dated from the photograph itself.")
+                            .font(Face.grotesk(Size.micro))
+                            .foregroundStyle(room.inkFaint)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        noteField
+
+                        if photo.coordinates != nil {
+                            placeToggle
+                        }
+                    }
+                    .padding(.horizontal, Space.margin)
+
+                    Spacer(minLength: Space.s8)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .disabled(stage == .sending)
         }
-        .disabled(stage == .sending)
     }
 
-    // MARK: Details
-
-    @ViewBuilder
-    private func details(photo: Photograph.Prepared, date: CalendarDate) -> some View {
+    private var noteField: some View {
         VStack(alignment: .leading, spacing: Space.s2) {
-            Signage(text: "Day", tone: Tone.inkFaint)
-            Text(date.spelled(in: timeZone))
-                .font(.system(size: Size.lede, design: .serif))
-                .foregroundStyle(Tone.ink)
-
-            /* Where the date came from, said plainly. A photograph that
-               carried no capture time is filed under today, and the reader
-               should know that rather than discover it later. */
-            Signage(
-                text: photo.capturedAt == nil
-                    ? "This file records no capture time, so today is assumed."
-                    : "From the photograph's own capture time.",
-                tone: Tone.inkGhost
+            /* No label. The placeholder says what it is, and a field with a
+               heading above it and a hint inside it says it twice. */
+            TextField(
+                "A line, if there is one",
+                text: $note,
+                axis: .vertical
             )
-        }
+            .lineLimit(1...5)
+            .font(.system(size: Size.body, design: .serif))
+            .foregroundStyle(room.ink)
+            .focused($writing)
+            .padding(.vertical, Space.s2)
 
-        WritingField("Note", placeholder: "A sentence, if there is one.", text: $note, lines: 2...5)
-
-        if photo.coordinates != nil {
-            Toggle(isOn: $includePlace) {
-                VStack(alignment: .leading, spacing: Space.s1) {
-                    Signage(text: "Keep the location", tone: Tone.inkFaint)
-                    Text("Stored privately. Nothing is shown to anyone until you choose to show it, and each day is set separately.")
-                        .font(.system(size: Size.fine))
-                        .foregroundStyle(Tone.inkGhost)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .tint(Tone.oxide)
+            Rule(tone: Tone.rule)
         }
+        .padding(.top, Space.s2)
     }
+
+    private var placeToggle: some View {
+        Toggle(isOn: $keepPlace) {
+            VStack(alignment: .leading, spacing: Space.s1) {
+                Signage(text: "Keep where it was taken", tone: room.inkFaint)
+                Text("Kept privately. Nothing is shown to anyone until you choose to show it, and each day is set on its own.")
+                    .font(Face.grotesk(Size.micro))
+                    .foregroundStyle(room.inkFaint.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .tint(Tone.oxide)
+        .padding(.top, Space.s3)
+    }
+
+    private var replacing: Bool { false }
 
     // MARK: Reading
 
@@ -173,13 +287,12 @@ struct ComposeView: View {
         stage = .reading
         problem = nil
 
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
-            problem = "That image could not be read. Try another."
-            stage = .empty
-            return
-        }
-
-        guard let prepared = Photograph.read(data, filename: item.supportedContentTypes.first?.preferredFilenameExtension) else {
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let prepared = Photograph.read(
+                  data,
+                  filename: item.supportedContentTypes.first?.preferredFilenameExtension
+              )
+        else {
             problem = "That image could not be read. Try another."
             stage = .empty
             return
@@ -188,7 +301,8 @@ struct ComposeView: View {
         photo = prepared
         /* The capture moment decides the day, in the zone the camera was
            standing in. Where there is none, today — in the archive owner's
-           zone, never the device's. */
+           zone, never the device's, which is a different zone whenever they
+           are travelling. */
         date = prepared.capturedAt.map { moment in
             CalendarDate(
                 moment,
@@ -204,7 +318,7 @@ struct ComposeView: View {
 
     private func record() {
         guard let photo, let date, stage == .ready else { return }
-
+        writing = false
         stage = .sending
         problem = nil
 
@@ -236,18 +350,17 @@ struct ComposeView: View {
                         height: photo.height,
                         placeholder: photo.placeholder,
                         camera: photo.camera,
-                        place: includePlace && photo.coordinates != nil
+                        place: keepPlace && photo.coordinates != nil
                             ? Place(coordinates: photo.coordinates)
                             : nil,
                         idempotencyKey: attempt
                     )
                 )
 
-                /* The day that comes back is the archive's, not this
-                   screen's guess at it. Showing our own version instead is
-                   how a screen comes to disagree with its next refresh. */
+                /* The day that comes back is the archive's, not this screen's
+                   guess at it. Showing our own version is how a screen comes
+                   to disagree with its next refresh. */
                 onRecorded(result.day)
-                /* Detached so dismissing is not waiting on it. */
                 Task.detached { await Transfer.nudgePipeline() }
                 dismiss()
             } catch {
