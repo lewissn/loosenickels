@@ -138,6 +138,8 @@ export async function processPending(
           width: derived.width,
           height: derived.height,
           placeholder: derived.placeholder,
+          lightness: derived.lightness,
+          tone: derived.tone,
         })
         .eq("id", revision.id);
 

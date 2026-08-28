@@ -56,6 +56,13 @@ struct ArchiveView: View {
 
     // MARK: The rail
 
+    /// The room the day currently on screen has made. The rail and the
+    /// ground behind everything take their colours from it, so the chrome
+    /// belongs to the photograph rather than sitting on top of it.
+    private var room: Room {
+        days.days.first.map { Room.lit(by: $0.photo) } ?? .unlit
+    }
+
     private var rail: some View {
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
@@ -127,9 +134,10 @@ struct ArchiveView: View {
     private var pages: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                ForEach(days.days) { day in
-                    DayPage(day: day, timeZone: days.timeZone)
+                ForEach(Array(days.days.enumerated()), id: \.element.id) { index, day in
+                    DayPage(day: day, timeZone: days.timeZone, isFirst: index == 0)
                         .containerRelativeFrame(.vertical)
+                        .id(day.id)
                 }
             }
             .scrollTargetLayout()
@@ -179,106 +187,5 @@ struct ArchiveView: View {
         }
         .padding(.horizontal, Space.margin)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-/*
- One day, filling the screen.
-
- Nothing is ever cropped. A photograph whose orientation disagrees with the
- screen leaves space, and that leftover space is exactly where the writing
- goes — the conflict generates the composition rather than needing to be
- solved.
- */
-private struct DayPage: View {
-    let day: ResolvedDay
-    let timeZone: TimeZone
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Space.s4) {
-            photograph
-
-            VStack(alignment: .leading, spacing: Space.s2) {
-                Text(day.date.spelled(in: timeZone))
-                    .font(.system(size: Size.lede, design: .serif))
-                    .foregroundStyle(Tone.ink)
-
-                if let note = day.note, !note.isEmpty {
-                    Text(note)
-                        .font(.system(size: Size.body, design: .serif))
-                        .foregroundStyle(Tone.inkMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                metadata
-            }
-            .padding(.horizontal, Space.margin)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var photograph: some View {
-        ZStack {
-            /* The placeholder is behind the real image rather than replaced
-               by it, so the transition is the photograph resolving rather
-               than one view swapping for another. */
-            if let inline = day.photo.placeholder,
-               let image = InlineImage.decode(inline) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(day.photo.aspect, contentMode: .fit)
-                    .blur(radius: 12)
-            }
-
-            if let url = day.photo.best {
-                AsyncImage(url: url) { image in
-                    image.resizable().aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    Color.clear
-                }
-            } else if day.photo.processing != .ready {
-                /* Honest rather than hidden. The photograph is safe; what
-                   does not exist yet is a rendition small enough to show. */
-                Signage(text: "Still arriving", tone: Tone.inkGhost)
-                    .padding(Space.s5)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder
-    private var metadata: some View {
-        let parts = [
-            day.capturedAt.map { clock($0) },
-            day.place?.label,
-            day.camera?.model,
-        ].compactMap { $0 }
-
-        if !parts.isEmpty {
-            Signage(text: parts.joined(separator: "  ·  "), tone: Tone.inkGhost)
-                .padding(.top, Space.s1)
-        }
-    }
-
-    /// The zone the photograph was taken in, where it recorded one — not
-    /// the reader's. A time is a measurement of a moment somewhere.
-    private func clock(_ moment: Date) -> String {
-        let out = DateFormatter()
-        out.locale = Locale(identifier: "en_GB")
-        out.timeZone = day.captureTimeZone.flatMap(TimeZone.init(identifier:)) ?? timeZone
-        out.dateFormat = "HH:mm"
-        return out.string(from: moment)
-    }
-}
-
-enum InlineImage {
-    /// `data:image/jpeg;base64,…`, as the placeholder column stores it.
-    static func decode(_ inline: String) -> UIImage? {
-        guard let comma = inline.firstIndex(of: ","),
-              let data = Data(base64Encoded: String(inline[inline.index(after: comma)...]))
-        else { return nil }
-        return UIImage(data: data)
     }
 }

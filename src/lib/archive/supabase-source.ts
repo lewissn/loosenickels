@@ -70,6 +70,7 @@ type Db = SupabaseClient;
 
 const REVISION_COLUMNS = `
   id, day_entry_id, user_id, revision_number, state, placeholder,
+  lightness, tone,
   width, height, orientation,
   captured_at, capture_timezone, submitted_at,
   camera_make, camera_model, lens, focal_length_mm, aperture,
@@ -115,6 +116,8 @@ interface RevisionRow {
   revision_number: number;
   state: "pending" | "processing" | "ready" | "failed";
   placeholder: string | null;
+  lightness: number | null;
+  tone: string | null;
   width: number | null;
   height: number | null;
   orientation: number | null;
@@ -234,6 +237,8 @@ async function resolvePhoto(
     width: r.width ?? original?.width ?? 0,
     height: r.height ?? original?.height ?? 0,
     placeholder: r.placeholder ?? undefined,
+    lightness: r.lightness ?? undefined,
+    tone: r.tone ?? undefined,
     processing: r.state,
     urls: await urlsFor(assets, owner, viewer),
     /* Alt text is not yet a field anybody fills in. Saying what the

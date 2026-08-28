@@ -35,6 +35,8 @@ private struct RevisionRow: Decodable {
     var revision_number: Int
     var state: ProcessingState
     var placeholder: String?
+    var lightness: Double?
+    var tone: String?
     var width: Int?
     var height: Int?
     var captured_at: Date?
@@ -55,6 +57,7 @@ private struct RevisionRow: Decodable {
     var region: String?
     var country: String?
     var location_privacy: LocationPrecision
+    var weather: Weather?
     var media_assets: [AssetRow]?
 }
 
@@ -130,12 +133,12 @@ private enum Columns {
         "id, handle, display_name, bio, visibility, time_zone, location_precision"
 
     static let revision = """
-        id, revision_number, state, placeholder, width, height,
+        id, revision_number, state, placeholder, lightness, tone, width, height,
         captured_at, capture_timezone,
         camera_make, camera_model, lens, focal_length_mm, aperture,
         exposure_seconds, iso,
         latitude, longitude, altitude_m, accuracy_m,
-        place_name, locality, region, country, location_privacy,
+        place_name, locality, region, country, location_privacy, weather,
         media_assets ( id, variant, width, height )
         """
 
@@ -566,6 +569,8 @@ struct SupabaseArchive: ArchiveSource {
                 width: revision.width ?? original?.width ?? 0,
                 height: revision.height ?? original?.height ?? 0,
                 placeholder: revision.placeholder,
+                lightness: revision.lightness,
+                tone: revision.tone,
                 processing: revision.state,
                 urls: urls,
                 alt: "Photograph for \(row.entry_date.value)"
@@ -573,6 +578,7 @@ struct SupabaseArchive: ArchiveSource {
             capturedAt: revision.captured_at,
             captureTimeZone: revision.capture_timezone,
             place: disclose(revision, to: mine ? .precise : min(ceiling, revision.location_privacy)),
+            weather: revision.weather,
             camera: camera.isEmpty ? nil : camera,
             revisionCount: mine ? revision.revision_number : nil
         )

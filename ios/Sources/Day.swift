@@ -183,6 +183,33 @@ struct Place: Codable, Equatable {
     var coordinates: Coordinates?
 }
 
+/**
+ The weather as it stood, kept whole.
+
+ Mirrors the `weather` object in schema.ts, and is stored as jsonb rather
+ than as columns because it is supplementary and never queried across —
+ nobody will ask this archive for every rainy Tuesday.
+
+ Nothing populates it yet. The shape exists on both sides so that when
+ something does, neither client needs changing to show it.
+ */
+struct Weather: Codable, Equatable {
+    /// Degrees Celsius. Presentation converts; storage does not.
+    var temperatureC: Double?
+    /// A short human phrase: "Light rain", "Clear".
+    var conditions: String?
+    /// Millimetres in the hour of capture.
+    var precipitationMm: Double?
+    /// Metres per second.
+    var windMs: Double?
+    var daylight: Bool?
+
+    var isEmpty: Bool {
+        temperatureC == nil && conditions == nil
+            && precipitationMm == nil && windMs == nil
+    }
+}
+
 struct Camera: Codable, Equatable {
     var make: String?
     var model: String?
@@ -211,6 +238,10 @@ struct ResolvedPhoto: Identifiable, Equatable {
     var width: Int
     var height: Int
     var placeholder: String?
+    /// Rec. 709 luma, 0–1. What the photograph does to the room around it.
+    var lightness: Double?
+    /// One restrained colour from the image, `#rrggbb`, for the ground.
+    var tone: String?
     var processing: ProcessingState
     /// Signed and expiring, by intent. An absent variant is not yet made.
     var urls: [MediaVariant: URL]
@@ -242,6 +273,7 @@ struct ResolvedDay: Identifiable, Equatable {
     var capturedAt: Date?
     var captureTimeZone: String?
     var place: Place?
+    var weather: Weather?
     var camera: Camera?
     /// Present only for the owner. Visitors are not told a day was revised.
     var revisionCount: Int?

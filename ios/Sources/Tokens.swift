@@ -42,11 +42,21 @@ enum Tone {
     static let oxide     = Color(day: 0x8e3b24, night: 0xc05f3f)
     static let oxideSoft = Color(day: 0x8e3b24, dayAlpha: 0.14, night: 0xc05f3f, nightAlpha: 0.16)
 
-    /// The environmental tint a department carries. Never a fill at full strength.
     /* The department palette that was here is gone with the departments.
        Nothing replaces it: a day's environment comes from the photograph
-       itself — the website tints the ground from the image's own lightness
-       — rather than from a category the product no longer has. */
+       itself rather than from a category the product no longer has.
+
+       Which is what these are for. Every token above resolves against the
+       *system* appearance, and that is right for the chrome — a phone has
+       already made that decision and should not be argued with. It is wrong
+       for a photograph: whether the writing over a picture goes pale is
+       decided by the picture, in daylight or at midnight alike. So the four
+       below are fixed rather than adaptive, and `Environment` chooses
+       between them by measurement. */
+    static let inkNight      = Color(fixed: 0xe4e0d4)
+    static let inkMutedNight = Color(fixed: 0x948f80)
+    static let inkFaintNight = Color(fixed: 0x807d77)
+    static let groundNight   = Color(fixed: 0x14140f)
 }
 
 // MARK: - Type
@@ -175,7 +185,7 @@ private enum Grain {
 
 // MARK: - Colour plumbing
 
-private extension Color {
+extension Color {
     /// A colour that resolves itself against the system appearance, so a
     /// view never has to ask which one it is in.
     init(day: UInt32, dayAlpha: Double = 1, night: UInt32, nightAlpha: Double = 1) {
@@ -185,9 +195,15 @@ private extension Color {
                 : UIColor(rgb: day, alpha: dayAlpha)
         })
     }
+
+    /// A colour that does not adapt, for the places where something other
+    /// than the system decides — a photograph, chiefly.
+    init(fixed: UInt32, alpha: Double = 1) {
+        self.init(uiColor: UIColor(rgb: fixed, alpha: alpha))
+    }
 }
 
-private extension UIColor {
+extension UIColor {
     convenience init(rgb: UInt32, alpha: Double) {
         self.init(
             red: Double((rgb >> 16) & 0xff) / 255,

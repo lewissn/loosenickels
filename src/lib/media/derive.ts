@@ -50,6 +50,8 @@ export interface Derived {
   placeholder: string;
   /** Rec. 709 luma, 0–1. Decides how dark the room around it goes. */
   lightness: number;
+  /** One restrained colour from the image, `#rrggbb`, for the ground. */
+  tone: string;
 }
 
 /**
@@ -145,7 +147,7 @@ export async function derive(
     width,
     height,
     placeholder: await placeholderFor(base, width, height),
-    lightness: await lightnessOf(base),
+    ...(await environmentOf(base)),
   };
 }
 
@@ -172,14 +174,16 @@ async function placeholderFor(
 }
 
 /**
- * Average perceived lightness, by Rec. 709 luma.
+ * What the photograph does to the room: its lightness, and one colour.
  *
  * Not the mean of the channels: green reads far brighter to the eye than
  * blue at the same value, and averaging them makes a deep blue photograph
  * look, arithmetically, as bright as a pale green one. The room is lit from
  * this number, so getting it wrong is visible rather than academic.
  */
-async function lightnessOf(base: Sharp): Promise<number> {
+async function environmentOf(
+  base: Sharp,
+): Promise<{ lightness: number; tone: string }> {
   const { data, info } = await base
     .clone()
     .resize(32, 32, { fit: "inside" })
@@ -187,11 +191,38 @@ async function lightnessOf(base: Sharp): Promise<number> {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  let total = 0;
+  let luma = 0;
+  let r = 0;
+  let g = 0;
+  let b = 0;
   const pixels = info.width * info.height;
+
   for (let i = 0; i < data.length; i += info.channels) {
-    total += 0.2126 * data[i]! + 0.7152 * data[i + 1]! + 0.0722 * data[i + 2]!;
+    const [red, green, blue] = [data[i]!, data[i + 1]!, data[i + 2]!];
+    /* Rec. 709, not the mean of the channels: green reads far brighter to
+       the eye than blue at the same value, and averaging them makes a deep
+       blue photograph arithmetically as bright as a pale green one. The room
+       is lit from this number, so being wrong is visible rather than
+       academic. */
+    luma += 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    r += red;
+    g += green;
+    b += blue;
   }
 
-  return pixels ? total / pixels / 255 : 0.5;
+  if (!pixels) return { lightness: 0.5, tone: "#808080" };
+
+  /* The mean colour, pulled well toward neutral. A ground carrying the
+     photograph's full average reads as a coloured wash behind it and
+     competes; carrying a sixth of it reads as the light in the room. */
+  const toward = (channel: number) =>
+    Math.round(128 + (channel / pixels - 128) * 0.35);
+
+  const hex = (n: number) =>
+    Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+
+  return {
+    lightness: luma / pixels / 255,
+    tone: `#${hex(toward(r))}${hex(toward(g))}${hex(toward(b))}`,
+  };
 }
