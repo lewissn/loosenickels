@@ -310,3 +310,18 @@ forms and press buttons.
 
 This does not affect the iOS app: its links use the `loosenickels://` scheme,
 which a mail scanner has no way to fetch at all.
+
+---
+
+## The widget's App Group
+
+One thing on the Apple Developer portal, needed before the widget can read
+anything: **Certificates, Identifiers & Profiles → Identifiers → App
+Groups** → register `group.com.lewisnichols.daily`.
+
+Then edit both App IDs — `com.lewisnichols.daily` and
+`com.lewisnichols.daily.widget` — enable **App Groups**, and tick it.
+
+If this is skipped the app and the widget still build and install, and the
+widget shows "Today is open" for ever, including on days that are recorded.
+Nothing reports an error. See `ios/README.md`.

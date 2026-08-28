@@ -1,4 +1,5 @@
 import Foundation
+import WidgetKit
 
 /*
  The archive, as the phone holds it.
@@ -45,6 +46,30 @@ final class Days: ObservableObject {
     /// Every day that has a photograph, for deciding what to remind about.
     var recorded: Set<CalendarDate> { Set(days.map(\.date)) }
 
+    /**
+     Tell the widget what it is allowed to know.
+
+     A widget cannot ask the archive anything — different process, no
+     session, a few milliseconds of budget — so this is the only way it
+     learns whether today is done. Called wherever the answer changes:
+     after a load and after a recording.
+
+     `reloadAllTimelines` is what makes it visible. Writing without it means
+     the widget shows the previous answer until iOS decides on its own to
+     refresh, which can be an hour.
+     */
+    func publishToWidget() {
+        guard let status else { return }
+        SharedStore.write(
+            DayStanding(
+                today: status.today.value,
+                todayRecorded: status.todayRecorded,
+                daysRecorded: status.daysRecorded
+            )
+        )
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     func loadIfNeeded(owner: String) async {
         guard !loaded else { return }
         await load(owner: owner)
@@ -66,6 +91,7 @@ final class Days: ObservableObject {
             days = try await archive.recentDays(owner: owner, limit: window, before: nil)
 
             loaded = true
+            publishToWidget()
         } catch let failure as ArchiveFailure {
             problem = failure.errorDescription
         } catch {
@@ -84,6 +110,7 @@ final class Days: ObservableObject {
             status?.todayRecorded = true
         }
         status?.daysRecorded = days.count
+        publishToWidget()
     }
 
     func invalidate() { loaded = false }

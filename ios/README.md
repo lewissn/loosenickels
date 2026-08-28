@@ -160,3 +160,54 @@ whenever they are travelling.
 - WeatherKit. Deliberately not enabled: the entitlement fails to sign until
   the App ID is registered for it, which would block the very first build
   for a field the app is written to do without.
+
+---
+
+## The widget
+
+`Widget/` is a WidgetKit extension showing one fact — whether today is
+recorded — and two buttons, which deep-link into the same router the
+reminders use.
+
+It shows no photograph, deliberately. A private archive drawn on a home
+screen is a private archive shown to whoever is standing behind you.
+
+### The App Group, which is the part that silently fails
+
+A widget is a separate process with no session and a few milliseconds of
+budget. It cannot ask the archive anything, so the app writes what it needs
+into a shared container and the widget reads it.
+
+That container is an **App Group**, and it has to agree in three places:
+
+1. `SharedStore.group` in `Shared/DayStanding.swift`
+2. `Daily.entitlements` and `DailyWidget.entitlements`
+3. The Apple Developer portal — **Certificates, Identifiers & Profiles →
+   Identifiers → App Groups**, registered and then enabled on both the app
+   ID and the widget's
+
+All three currently say `group.com.lewisnichols.daily`.
+
+If they disagree, `UserDefaults(suiteName:)` returns nil, both sides quietly
+do nothing, and the widget shows "Today is open" for ever — including on days
+that are recorded. There is no error anywhere. If the widget looks stuck,
+this is the first thing to check.
+
+### Adding it on the portal
+
+Register the group, then edit both App IDs (`com.lewisnichols.daily` and
+`com.lewisnichols.daily.widget`) to enable App Groups and tick it. Xcode's
+automatic signing will pick the profiles up on the next build.
+
+### Refreshing
+
+`Days.publishToWidget()` writes after every load and every recording, and
+calls `WidgetCenter.reloadAllTimelines()`. Writing without that call means
+the widget keeps showing the previous answer until iOS decides to refresh on
+its own, which can be an hour.
+
+The timeline also refreshes just after midnight, because "today" stops being
+true then whether or not anybody opens anything. And `DayStanding.isStale`
+guards the case the app has not been opened since yesterday — a stored
+`todayRecorded` from a previous day is not an answer about today, and saying
+so confidently would be a lie the widget tells on its own.
