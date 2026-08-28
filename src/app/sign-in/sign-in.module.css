@@ -145,6 +145,18 @@
   max-width: var(--measure-note);
   font-size: var(--t-body);
   line-height: var(--lh-body);
+  display: grid;
+  gap: var(--s-4);
+}
+
+/* Subordinate to the sentence above it: a standing condition of the place
+   rather than anything the reader has done wrong. */
+.aside {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-micro);
+  line-height: var(--lh-meta);
+  letter-spacing: var(--tr-label);
+  color: var(--ink-faint);
 }
 
 :root[data-js] .sent {

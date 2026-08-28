@@ -172,3 +172,80 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
 Everything above was verified without it — the app was built and run through
 `xcodebuild` and `simctl`.
+
+---
+
+## Email that actually arrives
+
+Supabase's built-in email service is for development. It sends a handful of
+messages an hour from shared infrastructure, and it is why a mistimed link
+locks you out for the best part of an hour. There is no password fallback by
+design, so that lockout is total.
+
+The app now protects you from spending the allowance by accident — the
+sign-in form refuses a second request inside a minute and counts down — but
+the allowance itself is the problem, and it needs a real sender.
+
+### The option with no DNS
+
+Sign up at [resend.com](https://resend.com) and stop there. Without a
+verified domain, Resend will only deliver to the address that owns the
+account. That is a genuine limitation and, for an archive with exactly one
+user, not a limitation at all: you are the only person who ever receives a
+link.
+
+Use `onboarding@resend.dev` as the sender. Do this if you want it working in
+ten minutes.
+
+### The option with your own domain
+
+Better, and worth doing before anybody else ever has an account. In Resend,
+add `loosenickels.com` as a domain. It will give you three DNS records to
+add wherever the domain's nameservers live:
+
+| type | purpose |
+| --- | --- |
+| `TXT` (SPF) | says Resend may send as you |
+| `TXT` (DKIM) | signs the messages so they are not forged |
+| `MX` | receives bounces, on a subdomain |
+
+None of these touch the `A`/`CNAME` records pointing the site at GitHub
+Pages, so adding them changes nothing about where the website is served
+from. Wait for Resend to mark the domain verified before going on.
+
+### Then point Supabase at it
+
+Supabase dashboard → **Authentication → Emails → SMTP Settings** → enable
+custom SMTP:
+
+```
+Host      smtp.resend.com
+Port      465
+Username  resend
+Password  <your Resend API key>
+Sender    hello@loosenickels.com   (or onboarding@resend.dev)
+Name      Loose Nickels
+```
+
+The password field takes the API key itself; the username is the literal
+word `resend`.
+
+### And raise the ceiling
+
+**Authentication → Rate Limits → Rate limit for sending emails.** The
+default is set for the built-in service and is far below what Resend will
+happily do. Something like 30 an hour is ample for one person and still low
+enough to be a brake if something goes wrong.
+
+There is a second limit worth knowing about and leaving alone: Supabase also
+enforces a minimum interval between requests *for the same address*. The
+app's own cooldown sits in front of it and is deliberately uniform across
+every address, because a message that appeared only for addresses with
+accounts would tell a stranger which addresses have accounts.
+
+### Test it the way it will fail
+
+Sign in once with your own address, and then — from a private window — ask
+for a link for an address that has no account. The two must be
+indistinguishable: same sentence, same timing, no error. If they differ, the
+form has become a way to discover who keeps an archive here.
