@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ResolvedDay } from "@/lib/archive/schema";
+import { bestRendition, type ResolvedDay } from "@/lib/archive/schema";
 import { clockTime, full, relativeDay, stamp, today, yearOf } from "@/lib/util/calendar";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
 import styles from "./DayViewer.module.css";
@@ -360,7 +360,7 @@ export function DayViewer({ days, timeZone, status }: Props) {
   /* Decode the neighbours ahead of the gesture that will reveal them. */
   useEffect(() => {
     for (const { day } of visible) {
-      const src = day.photo.urls.large;
+      const src = bestRendition(day.photo);
       if (!src) continue;
       const img = new Image();
       img.src = src;
@@ -469,7 +469,7 @@ export function DayViewer({ days, timeZone, status }: Props) {
               }}
             >
               <img
-                src={d.photo.urls.large ?? d.photo.urls.medium}
+                src={bestRendition(d.photo)}
                 alt={index === display ? d.photo.alt : ""}
                 width={d.photo.width}
                 height={d.photo.height}

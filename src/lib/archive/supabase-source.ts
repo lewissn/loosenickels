@@ -80,9 +80,20 @@ const REVISION_COLUMNS = `
   media_assets ( id, variant, storage_key, width, height )
 `;
 
+/* The embed names its foreign key, because `day_entries` reaches
+   `photo_revisions` by two of them — the entry's pointer at its current
+   revision, and every revision's pointer back at its entry — and PostgREST
+   refuses an ambiguous embed rather than guessing.
+
+   The name is the constraint's own, `current_revision_belongs_to_entry`,
+   which migration 1 states outright. This carried PostgREST's *generated*
+   form instead, which no constraint here has. The embed matched nothing and
+   returned no revision, so every day resolved to a day with no photograph in
+   it — and `submit` wrote its row, revision and asset correctly, then failed
+   reading its own work back and reported "That day has gone." */
 const DAY_COLUMNS = `
   id, user_id, entry_date, note, visibility, current_revision_id,
-  photo_revisions!day_entries_current_revision_belongs_to_entry_fkey (
+  photo_revisions!current_revision_belongs_to_entry (
     ${REVISION_COLUMNS}
   )
 `;

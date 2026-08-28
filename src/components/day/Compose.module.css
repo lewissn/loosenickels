@@ -140,16 +140,15 @@
 }
 
 .hint,
+/* One rule. There were two, the second overriding the first's colour from
+   four lines below it — which is how a refusal came to be set in the faint
+   ink used for hints and then, invisibly, in oxide. */
 .problem {
   margin: 0;
   font-family: var(--f-grotesk);
   font-size: var(--t-fine);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.problem {
   color: var(--oxide);
 }
 

@@ -449,6 +449,26 @@ export interface ResolvedPhoto {
   alt: string;
 }
 
+/**
+ * The best rendition this viewer was actually given.
+ *
+ * Surfaces asked for `urls.large` directly, which was fine against fixtures
+ * — the seed source filled every variant — and wrong against a real archive,
+ * where a photograph recorded a moment ago has only its original and no
+ * derivatives at all. The picture then rendered as a broken image with its
+ * alt text, which is a poor way to be told the resizer has not run yet.
+ *
+ * `original` is last, and it is only ever *present* for the owner:
+ * `urlsFor` removes it for everyone else, because its embedded EXIF carries
+ * the GPS tag out past any redaction of the location columns. So this
+ * falling through to it cannot disclose anything — there is nothing here to
+ * fall through to unless the viewer already owns the photograph.
+ */
+export function bestRendition(photo: ResolvedPhoto): string | undefined {
+  const { urls } = photo;
+  return urls.large ?? urls.medium ?? urls.original ?? urls.thumbnail;
+}
+
 /** A day, resolved for display: what a viewer is entitled to, and no more. */
 export interface ResolvedDay {
   date: CalendarDate;

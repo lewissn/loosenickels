@@ -312,6 +312,13 @@ export function Compose({ timeZone, existing, onRecord }: Props) {
                   </label>
 
                   <div className={styles.actions}>
+                  {/* Where a refusal is actually read. This lived only in
+                      the chooser above, which is the one panel the reader is
+                      never looking at when a submission fails — so a failed
+                      recording set this message and showed it to nobody, and
+                      the button appeared to do nothing at all. */}
+                  {problem && <p className={styles.problem}>{problem}</p>}
+
                     <button
                       type="button"
                       className={styles.submit}

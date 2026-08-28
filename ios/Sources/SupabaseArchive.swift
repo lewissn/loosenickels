@@ -99,14 +99,14 @@ private enum Columns {
         media_assets ( id, variant, width, height )
         """
 
-    /* The relationship is named explicitly. `day_entries` reaches
-       `photo_revisions` by two different foreign keys — the entry's pointer
-       at its current revision, and every revision's pointer back at its
-       entry — and PostgREST will refuse an ambiguous embed rather than
-       guess which one was meant. */
+    /* The embed names its foreign key, because `day_entries` reaches
+       `photo_revisions` by two of them, and PostgREST refuses an ambiguous
+       embed rather than guessing. The name is the constraint's own, as
+       migration 1 states it — not PostgREST's generated `..._fkey` form,
+       which is what was here and which no constraint in this schema has. */
     static let day = """
         id, user_id, entry_date, note, visibility, current_revision_id,
-        photo_revisions!day_entries_current_revision_belongs_to_entry_fkey (
+        photo_revisions!current_revision_belongs_to_entry (
         \(revision)
         )
         """
