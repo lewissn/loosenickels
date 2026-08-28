@@ -56,23 +56,30 @@ overnight.
 
 ## Pointing it somewhere
 
-`Sources/Backend.swift` has two constants to fill in, from the Supabase
-dashboard under **Project Settings → API**:
+Already done. `Sources/Backend.swift` carries the project URL and the
+publishable key, and they are committed to a public repository on purpose:
+the publishable key is the same string the website hands to every browser
+that loads it. Row level security is what stands between it and anybody's
+photographs, and if that were not true the website would already be open.
+
+The **service role key** is the opposite and must never appear here. It
+bypasses row level security entirely — every policy in the schema stops
+applying to whoever holds it.
+
+### `Site.origin` and the domain
 
 ```swift
-static let url = URL(string: "https://YOUR-PROJECT.supabase.co")!
-static let publishableKey = "YOUR-PUBLISHABLE-KEY"
+static let origin = "https://loosenickels.vercel.app"
 ```
 
-Use the **publishable (anon)** key. Never the service role key — that one
-bypasses row level security entirely and must never leave a server.
+The Vercel address, not `www.loosenickels.com`. The domain still answers
+from GitHub Pages — the old static site, which has no routes and no idea
+what an upload is — and will until it is moved deliberately.
 
-Neither value is a secret: the key is the same one the website ships to
-every browser. They are compiled in rather than put behind a settings screen
-because a settings screen only invites someone to change them.
-
-Until they are filled in the app says so on its own first screen, rather
-than failing at the first request with something unreadable.
+Pointing the app at a name that resolves to the wrong server is a failure
+with no useful message at either end: the upload simply 404s against a
+static host. When the domain moves, change this line and the Supabase
+redirect allow-list together, and not before.
 
 ## The magic link
 

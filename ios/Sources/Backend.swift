@@ -21,24 +21,43 @@ import Supabase
 /// own storage URLs, so that the rule about who may fetch a photograph is
 /// implemented once and read by both clients.
 enum Site {
-    static let origin = "https://www.loosenickels.com"
+    /* The Vercel address, not the domain.
+       `www.loosenickels.com` still answers from GitHub Pages — the old
+       static site, which has no routes and no idea what an upload is — and
+       will keep doing so until the domain is moved deliberately. Pointing
+       the app at a name that resolves to the wrong server is a failure with
+       no useful error message at either end: the upload simply 404s against
+       a static host.
+       Change this line and the redirect allow-list together, on the day the
+       domain moves, and not before. */
+    static let origin = "https://loosenickels.vercel.app"
 }
 
 enum Backend {
-    /* ---------------------------------------------------------------
-       Fill both in from the Supabase dashboard: Project Settings ->
-       API. The URL ends in `.supabase.co`; the key is the publishable
-       (anon) one, never the service role key — that one bypasses row
-       level security entirely and must never leave a server.
-       --------------------------------------------------------------- */
-    static let url = URL(string: "https://YOUR-PROJECT.supabase.co")!
-    static let publishableKey = "YOUR-PUBLISHABLE-KEY"
+    /* Both come from the Supabase dashboard, under Project Settings -> API.
+
+       They are committed, and this repository is public, which is a
+       deliberate choice rather than an oversight: the publishable key is the
+       same string the website hands to every browser that loads it. What
+       stands between it and anybody's photographs is row level security, and
+       if that were not true the website would already be wide open.
+
+       The service role key is the opposite of this and must never appear
+       here or anywhere else outside a server. It bypasses row level security
+       completely — every policy in the schema stops applying to whoever
+       holds it. */
+    static let url = URL(string: "https://yfkrdytoycksodqpljcb.supabase.co")!
+    static let publishableKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlma3JkeXRveWNrc29kcXBsamNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDE0NTEsImV4cCI6MjEwMzUxNzQ1MX0.OlbEIelZ9zj5YHCp8L1ve8fmQ0vuZ5uVUu1zk5r0XYg"
 
     /// Where a magic link comes back to. Registered in `project.yml` as a
     /// URL scheme and in the Supabase dashboard as a permitted redirect;
     /// it has to be in both or the link opens the website instead.
     static let callback = URL(string: "loosenickels://auth-callback")!
 
+    /// Kept, though both values are filled in: a fresh clone with the
+    /// placeholders restored should say so on its first screen rather than
+    /// fail at its first request.
     static var isConfigured: Bool {
         !url.absoluteString.contains("YOUR-PROJECT")
             && !publishableKey.hasPrefix("YOUR-")

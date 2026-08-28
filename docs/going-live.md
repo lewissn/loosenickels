@@ -129,9 +129,13 @@ hedge.
 
 Two more steps, after the account exists.
 
-**Fill in `ios/Sources/Backend.swift`** with the project URL and the
-publishable (anon) key from Project Settings → API. Not the service role
-key: that one bypasses row level security entirely.
+**`ios/Sources/Backend.swift` is already filled in** — project URL,
+publishable key, and `Site.origin` pointing at the Vercel address rather
+than `www.loosenickels.com`, which still answers from GitHub Pages.
+
+When you do move the domain, three things change together: `Site.origin` in
+that file, the Supabase redirect allow-list, and the domain itself. Moving
+one without the others produces failures with no useful error message.
 
 **Build it.**
 
