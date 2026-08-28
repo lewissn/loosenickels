@@ -1,0 +1,309 @@
+/* =========================================================================
+   Recording a day
+
+   The brief's one asymmetry: the archive is extravagant to read and
+   brutally practical to write. This surface is quiet, plain and quick —
+   nothing here is trying to be cinema, because the user is here to do one
+   small thing and leave.
+   ========================================================================= */
+
+.trigger {
+  position: fixed;
+  inset: auto var(--margin) var(--margin) auto;
+  z-index: var(--z-rail);
+
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: var(--s-2) 0;
+  cursor: pointer;
+
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  transition:
+    color var(--d-quick) var(--e-out),
+    opacity var(--d-base) var(--e-out);
+  /* A halo of the ground, not a shadow.
+
+     Chrome sits above the photographs and at some viewport shapes it will
+     overlap them — a landscape phone leaves almost no clear corner. Painting
+     a soft ring of the ground colour behind the letterforms keeps them
+     legible over any picture, and because it is the ground, it is completely
+     invisible whenever the chrome happens to be over the ground instead. It
+     also flips with the palette for free. */
+  text-shadow:
+    0 0 3px var(--ground),
+    0 0 10px var(--ground);
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+  color: var(--ink);
+}
+
+/* While a photograph has the screen the chrome withdraws, but stays
+   reachable. */
+:root[data-immersive] .trigger {
+  opacity: 0.25;
+}
+
+:root[data-immersive] .trigger:hover,
+:root[data-immersive] .trigger:focus-visible {
+  opacity: 1;
+}
+
+/* ---- The layer ---------------------------------------------------------- */
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-palette);
+  display: grid;
+  place-items: center;
+  padding: var(--margin);
+  background: color-mix(in oklab, var(--ground) 94%, transparent);
+  animation: rise var(--d-base) var(--e-entrance) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+  }
+}
+
+.panel {
+  position: relative;
+  width: min(56rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* This one does scroll, so it reserves its own gutter rather than the
+     document reserving one for every viewport-sized surface. */
+  scrollbar-gutter: stable;
+}
+
+.close {
+  position: absolute;
+  inset: 0 0 auto auto;
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.close:hover,
+.close:focus-visible {
+  color: var(--ink);
+}
+
+.file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- Choosing ----------------------------------------------------------- */
+
+.well {
+  display: grid;
+  place-items: center;
+  gap: var(--s-3);
+  padding: var(--s-10) var(--s-6);
+  margin-top: var(--s-7);
+  border: 1px dashed var(--rule);
+  transition: border-color var(--d-quick) var(--e-out);
+}
+
+.well:hover {
+  border-color: var(--rule-strong);
+}
+
+.well[data-busy] {
+  border-style: solid;
+}
+
+.choose {
+  font-family: var(--f-editorial);
+  font-size: var(--t-lede);
+  color: var(--ink);
+}
+
+.choose:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.hint,
+.problem {
+  margin: 0;
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.problem {
+  color: var(--oxide);
+}
+
+/* ---- Reviewing ---------------------------------------------------------- */
+
+.review {
+  display: grid;
+  gap: var(--s-6);
+  margin-top: var(--s-7);
+  align-items: start;
+}
+
+@media (min-width: 48rem) {
+  .review {
+    grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.9fr);
+    gap: var(--s-7);
+  }
+}
+
+.preview {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.preview img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 52vh;
+  object-fit: contain;
+  box-shadow:
+    0 0 0 1px var(--rule),
+    0 14px 32px -16px rgb(0 0 0 / 0.35);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.date {
+  margin: 0;
+  font-family: var(--f-editorial);
+  font-size: var(--t-title);
+  line-height: var(--lh-title);
+  letter-spacing: var(--tr-title);
+  color: var(--ink);
+}
+
+/* What the file already knew. Stated, never labelled. */
+.derived {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-3);
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.derived > span + span::before {
+  content: "·";
+  margin-right: var(--s-3);
+}
+
+/* Not a warning and not styled like one. A statement of what the archive
+   has assumed, so that the person who knows better can correct it. */
+.caution {
+  margin: 0;
+  font-family: var(--f-editorial);
+  font-style: italic;
+  font-size: var(--t-small);
+  line-height: var(--lh-body);
+  color: var(--ink-muted);
+  padding-left: var(--s-4);
+  border-left: 1px solid var(--rule);
+}
+
+.noteField {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.noteLabel {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.noteField textarea {
+  width: 100%;
+  resize: vertical;
+  padding: var(--s-3);
+  background: var(--wash);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  font-family: var(--f-editorial);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+}
+
+.noteField textarea:focus-visible {
+  border-color: var(--rule-strong);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5);
+  align-items: center;
+  margin-top: var(--s-2);
+}
+
+.submit {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: var(--s-3) var(--s-5);
+  border: 1px solid var(--ink);
+  transition:
+    background var(--d-quick) var(--e-out),
+    color var(--d-quick) var(--e-out);
+}
+
+.submit:hover,
+.submit:focus-visible {
+  background: var(--ink);
+  color: var(--ground);
+}
+
+.again {
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.again:hover,
+.again:focus-visible {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    animation-duration: 1ms;
+  }
+}

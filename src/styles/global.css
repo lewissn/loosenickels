@@ -18,8 +18,22 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-behavior: smooth;
-  /* Reserve the scrollbar so entering an overlay never shifts the layout. */
-  scrollbar-gutter: stable;
+
+  /* The ground is painted here as well as on the body, because a viewport-
+     owning surface can leave the body narrower than the window and the
+     canvas behind it would otherwise show through as a white strip. */
+  background: var(--ground);
+}
+
+/* A surface that owns the viewport says so, and the document stops being a
+   scrolling document while it does.
+
+   `scrollbar-gutter` is deliberately not reserved globally. The primary
+   surfaces of this product are viewport-sized and do not scroll, so a
+   permanently reserved gutter is 15px of the wrong colour down the right
+   of every photograph. Scrolling surfaces reserve it for themselves. */
+:root:has([data-viewport-surface]) body {
+  overflow: hidden;
 }
 
 body {
@@ -277,6 +291,29 @@ ol {
 /* Applied to <html> while a full-screen layer owns the viewport. */
 :root[data-locked] body {
   overflow: hidden;
+}
+
+/* The page does not stay put underneath a layer. It withdraws — a little
+   smaller, a little quieter — so that opening the menu reads as the
+   photograph stepping back rather than as a sheet being dropped over it. */
+/* The surface itself, not its wrapper. A viewport surface is position:fixed
+   inside a <main> that has no height of its own; transforming the wrapper
+   would make it the containing block and collapse the surface to nothing. */
+[data-viewport-surface] {
+  transition:
+    transform var(--d-considered) var(--e-inout),
+    opacity var(--d-considered) var(--e-inout);
+}
+
+:root[data-locked] [data-viewport-surface] {
+  transform: scale(0.94);
+  opacity: 0.28;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-locked] [data-viewport-surface] {
+    transform: none;
+  }
 }
 
 /* =========================================================================

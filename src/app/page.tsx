@@ -1,97 +1,63 @@
-import Link from "next/link";
-import { archive, DEPARTMENTS, format } from "@/lib/archive";
-import { Plate } from "@/components/plate/Plate";
-import { Readout } from "@/components/chrome/Readout";
-import { Reveal } from "@/components/primitives/Reveal";
-import { RecordLink } from "@/components/archive/RecordLink";
-import { monthYear } from "@/lib/util/time";
-import styles from "./page.module.css";
+import { archive, SEED_OWNER, SEED_VIEWER } from "@/lib/archive";
+import { Archive } from "@/components/day/Archive";
+import { SEED_PROFILE } from "@/content/seed";
+import type { ResolvedDay } from "@/lib/archive/schema";
 
-/* The record on display changes daily. Re-rendering hourly is enough to
-   catch the turn of the day in any timezone without the page ever being
-   built more than a handful of times. */
-export const revalidate = 3600;
+/* =========================================================================
+   Latest
 
-/** Days since the epoch. Stable within a day, different the next. */
-function today(): number {
-  return Math.floor(Date.now() / 86_400_000);
-}
+   The homepage is the most recently recorded day — not today's, necessarily.
+   If the latest photograph is yesterday's, yesterday's is what is shown, in
+   full, and the owner is told separately and quietly that today is still
+   open. An empty screen for the sin of not having posted yet would be the
+   product punishing someone for missing a day, which is precisely what it
+   must never do.
 
-export default async function Home() {
-  const [stats, featured] = await Promise.all([
-    archive.stats(),
-    archive.random(today()),
+   The viewer is signed in as the seed account, because authentication does
+   not exist yet. That is the one line in this file that will change when it
+   does: the viewer will come from the session, and every authorisation
+   decision already happens behind the archive interface rather than here.
+   ========================================================================= */
+
+const viewer = SEED_VIEWER;
+
+export default async function Latest() {
+  const [latest, status] = await Promise.all([
+    archive.latestDay(SEED_OWNER, viewer),
+    archive.status(SEED_OWNER, viewer),
   ]);
 
-  const department = featured ? DEPARTMENTS[featured.dept] : null;
+  if (!latest) {
+    return <Archive days={[]} timeZone={SEED_PROFILE.timeZone} />;
+  }
+
+  /* A window of days, walked outward from the latest, so the viewer has
+     genuine adjacency to move through. In production this becomes a paged
+     window that extends as the user travels — the shape of the call is the
+     same, only the size of the window changes. */
+  const days = await walkBack(latest, 24);
 
   return (
-    <div className={styles.vitrine}>
-      <div className={styles.composition}>
-        <div className={styles.nameplate}>
-          <Reveal as="settle" el="h1" className={styles.institution}>
-            <span>Loose</span>
-            <span className={styles.second}>Nickels</span>
-          </Reveal>
-
-          <Reveal delay={180} el="p" className={styles.charter} distance={10}>
-            An independent institute for things of questionable significance.
-          </Reveal>
-
-          <Reveal delay={340} className={styles.entrances}>
-            <Link href="/archive" className={styles.entrance}>
-              Enter the archive
-              <span className={styles.arrow} aria-hidden="true">
-                →
-              </span>
-            </Link>
-            {/* A plain anchor: /random is a route handler that redirects to
-                whichever record it drew, and must reach the server. */}
-            <a href="/random" className={styles.entrance}>
-              Draw at random
-              <span className={styles.arrow} aria-hidden="true">
-                →
-              </span>
-            </a>
-          </Reveal>
-        </div>
-
-        {featured && department && (
-          <div
-            className={styles.exhibit}
-            data-dept={featured.dept}
-            data-record={featured.id}
-          >
-            <Reveal as="wipe" delay={120}>
-              <RecordLink
-                href={`/archive/record/${featured.slug}`}
-                id={featured.id}
-                className={styles.frame}
-                aria-label={`On display: ${featured.title}, ${format(featured.id)}`}
-              >
-                <Plate id={featured.id} dept={featured.dept} />
-              </RecordLink>
-            </Reveal>
-
-            <Reveal delay={420} className={styles.caption} distance={8}>
-              <span className={styles.standing}>On display</span>
-              <span className={styles.captionId}>{format(featured.id)}</span>
-              <span className={styles.captionTitle}>{featured.title}</span>
-              <span className={styles.captionMeta}>
-                {department.name}
-                {featured.place?.region ? ` · ${featured.place.region}` : ""} ·{" "}
-                {monthYear(featured.date)}
-              </span>
-            </Reveal>
-          </div>
-        )}
-      </div>
-
-      <Readout
-        holdings={stats.total}
-        placed={stats.placed}
-        latest={stats.latest}
-      />
-    </div>
+    <Archive
+      days={days}
+      timeZone={SEED_PROFILE.timeZone}
+      status={status ? { todayRecorded: status.todayRecorded } : undefined}
+    />
   );
+}
+
+/** Newest first, following `neighbours` rather than assuming the archive is
+    contiguous — it is not, and the gaps are part of the record. */
+async function walkBack(from: ResolvedDay, limit: number): Promise<ResolvedDay[]> {
+  const days: ResolvedDay[] = [from];
+  let cursor = from;
+
+  while (days.length < limit) {
+    const { previous } = await archive.neighbours(SEED_OWNER, cursor.date, viewer);
+    if (!previous) break;
+    days.push(previous);
+    cursor = previous;
+  }
+
+  return days;
 }

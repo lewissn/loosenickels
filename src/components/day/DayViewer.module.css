@@ -1,0 +1,536 @@
+/* =========================================================================
+   The daily viewer
+
+   One composition occupying the viewport. Nothing stacks and nothing
+   scrolls.
+
+   Two columns: the writing on the left, the photographs on the right. They
+   do not overlap, and that is deliberate — an earlier version ran the year
+   underneath the picture, which looked considered on a wide landscape image
+   and simply looked obstructed on everything else. The year still bleeds off
+   the left edge of the screen, so the type is still cut by something; it is
+   cut by the viewport rather than by the photograph.
+
+   The photograph is never cropped. A picture someone chose to stand for a
+   day of their life is shown whole; it earns its presence from scale and
+   from the space around it.
+
+   ---- Motion --------------------------------------------------------------
+
+   Every transform on .slide and .type is written by the frame loop in
+   DayViewer.tsx, sixty or a hundred and twenty times a second. Nothing in
+   this file may put a transition or an animation on transform or opacity for
+   those elements: a fixed-duration ease running against a per-frame write is
+   what made the first version feel like it was lagging behind the hand.
+
+   Transitions here are only for things the gesture does not drive — the
+   ground colour, which changes once per day rather than once per frame.
+   ========================================================================= */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  padding: var(--margin);
+
+  display: grid;
+  grid-template: 1fr / 1fr;
+  gap: var(--s-6);
+
+  /* The room is lit by the photograph. A dark image both tints the ground
+     and flips the whole subtree to the night palette (see data-env in
+     tokens.css), so the surround is never a pale box with a dark picture
+     sitting in it. */
+  background: color-mix(
+    in oklab,
+    var(--ground),
+    var(--tone) calc(14% + (1 - var(--lightness)) * 26%)
+  );
+  transition: background var(--d-cinematic) var(--e-out);
+  color: var(--ink);
+
+  /* The wheel is ours. Without this the page rubber-bands and the gesture
+     reads as a failed scroll rather than as movement through time. */
+  overscroll-behavior: none;
+  /* The vertical axis is ours; the browser keeps horizontal panning and,
+     importantly, pinch-zoom. `touch-action: none` would have claimed the
+     whole surface and taken magnification away from anyone who needs it. */
+  touch-action: pan-x pinch-zoom;
+}
+
+/* Side by side whenever the viewport is *shaped* like a landscape and has
+   the width to carry two columns.
+
+   Width alone is the wrong question. A phone held sideways is 844x390 — wide
+   enough to pass a 60rem width test in neither direction and, more to the
+   point, far too short to stack a photograph above a paragraph. Asking about
+   orientation puts a landscape phone into the side-by-side layout, where it
+   belongs, and keeps a portrait tablet out of it. */
+@media (min-width: 40rem) and (orientation: landscape) {
+  .stage {
+    grid-template-columns: minmax(14rem, 25%) minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    /* Stretch, not centre. The gallery's slides are absolutely positioned, so
+       they contribute no height of their own — centring the gallery in its
+       row collapses it to nothing and the photograph escapes the viewport.
+       The writing does its own vertical centring inside its column. */
+    align-items: stretch;
+  }
+  /* Placed explicitly. Left to source order the photographs would take the
+     narrow column and the writing the wide one, which is precisely backwards
+     — and source order here is driven by paint order, not by layout. */
+  .type {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .gallery {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/* ---- The stack ----------------------------------------------------------
+   Every mounted day lives here, one on top of another. The frame loop
+   decides where each one stands: the current day at the front, the next
+   behind it and slightly smaller, the one just passed coming forward and
+   out. Depth, rather than a carousel sliding sideways. */
+
+.gallery {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  /* Establishes the stacking context the slides' z-index is resolved in, so
+     ordering photographs never competes with the writing or the register. */
+  isolation: isolate;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Written every frame. Never transitioned — see the note at the top. */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.frame {
+  display: block;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: zoom-in;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.stage[data-immersive] .frame {
+  cursor: zoom-out;
+}
+
+.slide img {
+  display: block;
+  width: auto;
+  height: auto;
+  /* Sized against the viewport, not against a box.
+
+     When the photograph's orientation matches the screen's it very nearly
+     fills it; when it does not, the leftover space is precisely where the
+     writing goes. The orientation conflict is not a problem to be solved —
+     it is what generates the composition. */
+  max-width: 100%;
+  max-height: 74vh;
+  object-fit: contain;
+
+  /* A hairline mount and a close contact shadow.
+
+     The hairline is doing real work, not ornament: the ground takes its
+     colour from the photograph, so a dark image hung in the room it has just
+     darkened has almost no edge of its own. The rule flips with the palette
+     — light on a dark ground, dark on a light one — so the print always has
+     a boundary.
+
+     The shadow stays tight. The large diffuse shadow a UI would use makes a
+     photograph read as a card floating above the page, and a card is the one
+     thing this must never look like. */
+  box-shadow:
+    0 0 0 1px var(--rule),
+    0 1px 2px rgb(0 0 0 / 0.1),
+    0 18px 44px -18px rgb(0 0 0 / 0.4);
+
+  /* A photograph is not a draggable asset; dragging one should move the
+     archive, not tear a ghost image out of the page. */
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ---- Immersive ----------------------------------------------------------
+   The looking state. The photograph takes the whole viewport, the columns
+   collapse, and everything else withdraws. Nothing is cropped: a portrait on
+   a wide screen is full height with the room dark either side, which reads
+   as a projection rather than as a letterbox because there is no longer any
+   interface around it to measure against. */
+
+.stage[data-immersive] {
+  padding: 0;
+  gap: 0;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.stage[data-immersive] .gallery {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+}
+
+.stage[data-immersive] .slide img,
+.stage[data-immersive]:has([data-shape="portrait"]) .slide img,
+.stage[data-immersive]:has([data-shape="landscape"]) .slide img,
+.stage[data-immersive]:has([data-shape="square"]) .slide img {
+  max-width: 100vw;
+  max-height: 100vh;
+  /* The mount and the contact shadow are interface. At this scale the
+     photograph is the only thing on screen and needs no help sitting on it. */
+  box-shadow: none;
+}
+
+.stage[data-immersive] .type {
+  pointer-events: none;
+}
+
+/* The register stays, quieter — you should always be able to tell which day
+   you are looking at without leaving the picture. */
+.stage[data-immersive] .position {
+  opacity: 0.55;
+}
+
+/* ---- The immersive caption ---------------------------------------------- */
+
+.caption {
+  position: absolute;
+  inset: auto auto var(--margin) var(--margin);
+  margin: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-3);
+
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+
+  /* It may land on the photograph when the shapes match, so it carries its
+     own legibility rather than relying on a scrim bar across the image. */
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.55);
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--d-base) var(--e-out);
+}
+
+.stage[data-immersive] .caption {
+  opacity: 0.82;
+}
+
+.caption > span + span::before {
+  content: "·";
+  margin-right: var(--s-3);
+  opacity: 0.5;
+}
+
+/* ---- The writing --------------------------------------------------------
+   Its own column, bottom-aligned, with the year running out past the page
+   margin behind it. Type as architecture: no labels, no colons, no table. */
+
+.type {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: end;
+  justify-items: start;
+  min-width: 0;
+  will-change: transform, opacity;
+}
+
+@media (min-width: 40rem) and (orientation: landscape) {
+  .type {
+    align-content: center;
+  }
+}
+
+/* Set at monumental scale and pulled out past two margins, so the screen
+   runs out of room for it. It is not decoration: at a glance it is the only
+   thing that says which part of a life you are standing in. */
+.monument {
+  margin: -0.24em 0 -0.34em calc(var(--margin) * -1 - 0.06em);
+
+  font-family: var(--f-editorial);
+  font-size: var(--t-monument);
+  font-optical-sizing: auto;
+  line-height: var(--lh-monument);
+  letter-spacing: var(--tr-monument);
+  color: var(--ink);
+  opacity: 0.1;
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.legend {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  max-width: 32ch;
+}
+
+.heading {
+  margin: 0;
+}
+
+.date {
+  font-family: var(--f-editorial);
+  font-size: var(--t-title);
+  font-weight: 400;
+  line-height: var(--lh-title);
+  letter-spacing: var(--tr-title);
+  color: var(--ink);
+  text-wrap: nowrap;
+}
+
+/* The one rule on the page, running only as far as the writing does. */
+.legend::before {
+  content: "";
+  position: absolute;
+  inset: auto auto 100% 0;
+  width: clamp(3rem, 8vw, 7rem);
+  height: 1px;
+  margin-bottom: var(--s-5);
+  background: var(--rule);
+}
+
+.measure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.place {
+  font-family: var(--f-editorial);
+  font-size: var(--t-lede);
+  font-style: italic;
+  line-height: var(--lh-lede);
+  color: var(--ink-muted);
+}
+
+/* Measurement is set in mono and separated by middots, never labelled.
+   "18:42 · 11°C · Light rain" — nobody needs to be told which is which. */
+.readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-3);
+  font-family: var(--f-mono);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-accession);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.readout > span + span::before {
+  content: "·";
+  margin-right: var(--s-3);
+  color: var(--ink-faint);
+}
+
+.note {
+  margin: var(--s-3) 0 0;
+  font-family: var(--f-editorial);
+  font-size: var(--t-body);
+  font-style: italic;
+  line-height: var(--lh-body);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+/* A statement of fact in the register the product uses. Not a warning, not a
+   nudge, and never coloured like one. */
+.unrecorded {
+  margin: var(--s-4) 0 0;
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---- At speed -----------------------------------------------------------
+   Past a certain velocity nobody is reading photographs, so the dates take
+   over and the images become texture moving past. This one may transition:
+   it is driven by a state change, not by the frame loop. */
+
+.scrub {
+  position: absolute;
+  inset: auto var(--margin) var(--margin) auto;
+  margin: 0;
+  z-index: 4;
+  font-family: var(--f-mono);
+  font-size: var(--t-display);
+  letter-spacing: var(--tr-display);
+  color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--d-quick) var(--e-out);
+}
+
+.stage[data-scrubbing] .scrub {
+  opacity: 0.85;
+}
+
+/* ---- Register -----------------------------------------------------------
+   Upper left. Visible position for sighted keyboard users, announced for
+   screen readers. */
+
+.position {
+  position: absolute;
+  inset: var(--margin) auto auto var(--margin);
+  margin: 0;
+  z-index: 3;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+  font-family: var(--f-grotesk);
+  font-size: var(--t-fine);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  /* A halo of the ground, not a shadow.
+
+     Chrome sits above the photographs and at some viewport shapes it will
+     overlap them — a landscape phone leaves almost no clear corner. Painting
+     a soft ring of the ground colour behind the letterforms keeps them
+     legible over any picture, and because it is the ground, it is completely
+     invisible whenever the chrome happens to be over the ground instead. It
+     also flips with the palette for free. */
+  text-shadow:
+    0 0 3px var(--ground),
+    0 0 10px var(--ground);
+}
+
+.of {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  letter-spacing: var(--tr-accession);
+  text-transform: none;
+  opacity: 0.7;
+}
+
+.empty {
+  place-self: center;
+  font-family: var(--f-editorial);
+  font-size: var(--t-lede);
+  color: var(--ink-muted);
+}
+
+/* ---- Narrow -------------------------------------------------------------
+   The same composition, not a different product: photograph above, writing
+   below, year running behind it and off the edge. */
+
+/* Stacked: portrait viewports, and anything too narrow for two columns.
+   Mutually exclusive with the rule above rather than merely later in the
+   file, so neither can half-apply. */
+@media (max-width: 39.999rem), (orientation: portrait) {
+  .stage {
+    grid-template-rows: auto auto;
+    grid-template-columns: 1fr;
+    align-content: center;
+    padding-block: calc(var(--margin) + var(--s-7));
+    gap: var(--s-6);
+  }
+  /* Sized to the photograph it is holding, so the writing sits directly
+     beneath the picture instead of after a band of leftover row. The slides
+     inside are absolutely positioned and contribute no height of their own,
+     so the frame has to be given the shape explicitly — which it can be,
+     because the current day's ratio is published on the stage. */
+  .gallery {
+    grid-row: 1;
+    width: 100%;
+    aspect-ratio: var(--ratio, 3 / 2);
+    max-height: 58vh;
+    margin-inline: auto;
+  }
+  .type {
+    grid-row: 2;
+  }
+  .slide img {
+    max-height: 100%;
+  }
+  .date {
+    font-size: var(--t-lede);
+  }
+  .monument {
+    font-size: var(--t-display);
+    margin-bottom: -0.3em;
+  }
+  .scrub {
+    font-size: var(--t-title);
+  }
+}
+
+/* ---- Short and wide ------------------------------------------------------
+   A phone held sideways is 390px tall. The composition is the right one, but
+   every vertical measurement in it was chosen against a laptop: the year runs
+   at 17vw and slices through the note, and the photograph reaches into the
+   corners where the chrome lives.
+
+   Nothing is re-laid-out here. The type simply steps down to the next size
+   already in the scale, and the frame gains enough vertical room to keep the
+   picture clear of the controls. */
+
+@media (orientation: landscape) and (max-height: 34rem) {
+  .stage {
+    padding-block: calc(var(--margin) + var(--s-5));
+  }
+  .monument {
+    font-size: var(--t-display);
+  }
+  .date {
+    font-size: var(--t-lede);
+  }
+  .place {
+    font-size: var(--t-body);
+  }
+  .note {
+    font-size: var(--t-small);
+    margin-top: var(--s-2);
+  }
+  .legend {
+    gap: var(--s-2);
+  }
+}
+
+/* ---- Reduced motion -----------------------------------------------------
+   The frame loop does not run at all under reduced motion; navigation sets
+   the day directly. So the only job here is to make sure the day that should
+   be visible is, rather than sitting at whatever opacity a transform left
+   it. */
+
+@media (prefers-reduced-motion: reduce) {
+  .slide[data-current] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+  .type {
+    opacity: 1;
+    transform: none;
+  }
+}

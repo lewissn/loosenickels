@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import styles from "./not-found.module.css";
 
 /**
- * The institution's account of its own failure.
+ * A failure, stated plainly.
  *
- * Written in the same register as everything else — no apology, no
- * exclamation mark, no cartoon. It states what happened, offers the one
- * thing it can actually do, and does not pretend the reader is at fault.
+ * The one thing worth saying to someone whose archive has just failed to
+ * load is that their photographs are not the thing that broke. This page
+ * says it, offers a retry, and does not apologise at length.
  */
 export default function Error({
   error,
@@ -18,9 +18,8 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    /* Console rather than a reporting service: there is no telemetry on
-       this site and adding some in an error boundary would be a strange
-       place to start. */
+    /* Console rather than a reporting service: there is no telemetry here
+       yet, and an error boundary would be a strange place to introduce it. */
     console.error(error);
   }, [error]);
 
@@ -30,21 +29,17 @@ export default function Error({
         <p className={styles.code}>
           {error.digest ? `FAULT ${error.digest}` : "FAULT, UNLOGGED"}
         </p>
-        <h1 className={styles.title}>Something in the stacks has given way.</h1>
+        <h1 className={styles.title}>This did not load.</h1>
         <p className={styles.note}>
-          The record may exist and may be perfectly sound; the fault is in
-          the retrieving of it. Nothing has been lost — the archive keeps no
-          state that a failed page could damage.
+          The fault is in the retrieving, not in the archive. Nothing has been
+          lost and nothing has been changed.
         </p>
         <nav className={styles.routes}>
           <button type="button" className={styles.route} onClick={reset}>
             Try again
           </button>
-          <a href="/ledger" className={styles.route}>
-            Consult the ledger
-          </a>
           <a href="/" className={styles.route}>
-            Return to the entrance
+            Return to the latest day
           </a>
         </nav>
       </div>

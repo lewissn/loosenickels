@@ -1,184 +1,314 @@
-import { byAccession } from "./accession";
-import type { MatchField, SearchableRecord } from "./search";
 import type {
-  AccessionId,
-  Collection,
-  DepartmentCode,
-  Entry,
-  EntrySummary,
-  EntryStatus,
-  ResearchPaper,
-  Significance,
+  AssetId,
+  CalendarDate,
+  DayEntry,
+  DaySummary,
+  DayVisibility,
+  Instant,
+  LocationPrecision,
+  PhotoRevision,
+  Profile,
+  ResolvedDay,
+  RevisionId,
+  UserId,
 } from "./schema";
 
 /* =========================================================================
-   ArchiveSource
+   Archive source
 
-   The seam between the archive and the website.
+   The seam between the product and its data, and the contract that the
+   website and the iOS application both speak. There are no "web posts" and
+   "app posts": both clients are presentation layers over the behaviour
+   described here, and neither is permitted to invent a rule of its own.
 
-   Every surface in the application reads through this interface and none
-   of them import a content file directly. Replacing the file-backed
-   implementation with one that speaks to Postgres — or to the API that a
-   private publishing client also writes through — is a matter of
-   supplying a different object here. No component changes.
+   Two things are different from an ordinary data layer, and both are
+   deliberate.
 
-   The methods are async even though the current implementation is
-   synchronous. That is deliberate: it is the only part of the contract
-   that would otherwise have to change later, and it costs nothing now.
+   First, every method takes a Viewer. Authorisation is not a question of
+   which buttons the interface chooses to render — hiding a control protects
+   nothing from anyone holding a fetch client. An implementation of this
+   interface is required to answer as though the caller is hostile, because
+   sooner or later one will be.
+
+   Second, the methods are async and return already-resolved shapes with
+   signed URLs, rather than rows. A caller cannot accidentally serialise a
+   private coordinate to a public page, because it was never handed one.
    ========================================================================= */
 
-export type EntryOrder =
-  | "chronological"
-  | "reverse-chronological"
-  | "accession"
-  | "recently-accessioned";
-
-export interface EntryQuery {
-  dept?: DepartmentCode | DepartmentCode[];
-  collection?: string;
-  tag?: string;
-  significance?: Significance;
-  /** Defaults to `["accessioned"]`. Withdrawn records are never public. */
-  status?: EntryStatus[];
-  /** Only records carrying coordinates. */
-  placed?: boolean;
-  order?: EntryOrder;
-  limit?: number;
-  offset?: number;
-  /** Exclude a record — used for "related" and "elsewhere in the archive". */
-  excluding?: AccessionId;
+/**
+ * Who is asking.
+ *
+ * `null` is an anonymous visitor and is the correct default: a surface that
+ * forgets to pass a viewer gets the least privilege, not the most.
+ */
+export interface Viewer {
+  userId: UserId | null;
 }
 
-export interface ArchiveStats {
-  total: number;
-  byDepartment: Record<DepartmentCode, number>;
-  collections: number;
-  /** Records carrying coordinates. */
-  placed: number;
-  /** ISO date of the oldest and newest record, by subject date. */
-  earliest?: string;
-  latest?: string;
-  /** Records whose significance remains undetermined. Usually most of them. */
-  undetermined: number;
+export const ANONYMOUS: Viewer = { userId: null };
+
+/** A profile as a visitor may see it. Never carries account or contact data. */
+export interface PublicProfile {
+  id: UserId;
+  username: string;
+  displayName: string;
+  bio?: string;
+  avatarUrl?: string;
+  /** The year of the earliest recorded day: "Recording since 2027". */
+  recordingSince?: number;
+  /** Present for the owner only. */
+  isOwner: boolean;
 }
 
-export interface SearchHit {
-  entry: EntrySummary;
-  /** Lower is better. */
-  score: number;
-  /** Which field matched, for display in the search surface. */
-  field: MatchField;
-  /** The matched text, for highlighting. */
-  excerpt?: string;
+export interface DayRange {
+  /** Inclusive. */
+  from: CalendarDate;
+  /** Inclusive. */
+  to: CalendarDate;
 }
+
+/** A day's revision history. Owner-only, in every implementation. */
+export interface RevisionHistory {
+  dayEntryId: DayEntry["id"];
+  current: RevisionId;
+  revisions: Array<{
+    id: RevisionId;
+    revisionNumber: number;
+    submittedAt: Instant;
+    thumbnailUrl?: string;
+    isCurrent: boolean;
+  }>;
+}
+
+/** What the owner is told about their own archive, and nobody else is. */
+export interface ArchiveStatus {
+  /** The user's today, in their own zone — not the server's. */
+  today: CalendarDate;
+  /** Whether today has been recorded. Drives "Today remains unrecorded." */
+  todayRecorded: boolean;
+  /** Days with an entry. Stated plainly, never as a streak. */
+  daysRecorded: number;
+  earliest?: CalendarDate;
+  latest?: CalendarDate;
+}
+
+/* ---- Submission ---------------------------------------------------------
+   Uploading is the one operation where failure costs the user something they
+   cannot get back, so the contract is unusually explicit about it. */
+
+export interface SubmitPhoto {
+  /**
+   * An asset that has already been uploaded to object storage and
+   * registered. Submission is a separate step from transfer so that a failed
+   * commit does not mean re-sending the bytes over a bad connection.
+   */
+  assetId: AssetId;
+
+  /**
+   * Which day this is for. Supplied by the client, because only the client
+   * knows the zone the photograph was taken in — but validated by the
+   * implementation, which must refuse a date the user could not plausibly be
+   * recording yet.
+   */
+  date: CalendarDate;
+
+  note?: string;
+  visibility?: DayVisibility;
+
+  capturedAt?: Instant;
+  captureTimeZone?: string;
+
+  /**
+   * A client-generated key, stable across retries of the same submission.
+   *
+   * This is what makes a retry safe. Two requests carrying the same key are
+   * the same submission, and the second returns the result of the first
+   * rather than writing a duplicate revision — which is exactly what happens
+   * on a phone that loses signal after the request left but before the
+   * response arrived.
+   */
+  idempotencyKey: string;
+}
+
+export interface SubmitResult {
+  day: ResolvedDay;
+  /** True when this call created the revision; false when it replayed one. */
+  created: boolean;
+  revisionNumber: number;
+}
+
+/* ---- The interface ------------------------------------------------------ */
 
 export interface ArchiveSource {
-  /** Listing projection. Never returns withdrawn or restricted records. */
-  entries(query?: EntryQuery): Promise<EntrySummary[]>;
+  /* -- Identity -- */
 
-  /** Full record by accession number or slug. */
-  entry(idOrSlug: string): Promise<Entry | null>;
-
-  /** Records explicitly cross-referenced by another, in declared order. */
-  related(id: AccessionId): Promise<EntrySummary[]>;
+  /** Resolve a handle. Returns null for private profiles to non-owners. */
+  profileByUsername(username: string, viewer: Viewer): Promise<PublicProfile | null>;
+  profileById(id: UserId, viewer: Viewer): Promise<PublicProfile | null>;
 
   /**
-   * Records the archive considers adjacent but which were not explicitly
-   * linked: shared collection, shared place, or nearest in the chronology.
-   */
-  adjacent(id: AccessionId, limit?: number): Promise<EntrySummary[]>;
-
-  collections(): Promise<Collection[]>;
-  collection(slug: string): Promise<Collection | null>;
-
-  research(): Promise<ResearchPaper[]>;
-  paper(slug: string): Promise<ResearchPaper | null>;
-
-  stats(): Promise<ArchiveStats>;
-
-  search(query: string, limit?: number): Promise<SearchHit[]>;
-
-  /**
-   * The searchable projection of the whole archive.
+   * The most recent recorded day.
    *
-   * Exists so the enquiry surface can score records in the browser without
-   * a component ever importing content. The interface owes the client a
-   * shape, not a file.
+   * The homepage never shows an empty screen merely because today has not
+   * been recorded yet: if the latest is yesterday's, yesterday's is what the
+   * viewer sees.
    */
-  searchable(): Promise<SearchableRecord[]>;
+  latestDay(owner: UserId, viewer: Viewer): Promise<ResolvedDay | null>;
+
+  /** One day. Null when absent, and equally null when not permitted. */
+  day(owner: UserId, date: CalendarDate, viewer: Viewer): Promise<ResolvedDay | null>;
 
   /**
-   * Random discovery is a first-class navigation mode, not a novelty, so
-   * it belongs in the source rather than in a component.
+   * The days either side, already resolved.
    *
-   * `seed` makes a draw reproducible, which matters because the server and
-   * the client must agree on what was drawn.
+   * The viewer scrolls through time, so it needs the next photograph decoded
+   * before the gesture that reveals it begins. This exists so that
+   * preloading is a property of the contract rather than something each
+   * client reinvents.
    */
-  random(seed?: number, query?: EntryQuery): Promise<EntrySummary | null>;
+  neighbours(
+    owner: UserId,
+    date: CalendarDate,
+    viewer: Viewer,
+  ): Promise<{ previous: ResolvedDay | null; next: ResolvedDay | null }>;
+
+  /**
+   * Thumbnails across a date range, for calendars, mosaics and maps.
+   *
+   * Returns only days that exist. Absent days are absent, and the caller
+   * draws the gap — the archive does not invent placeholder records for days
+   * that were never recorded.
+   */
+  summaries(owner: UserId, range: DayRange, viewer: Viewer): Promise<DaySummary[]>;
+
+  /** The same calendar date across every year that has one. */
+  onThisDay(owner: UserId, date: CalendarDate, viewer: Viewer): Promise<ResolvedDay[]>;
+
+  /** Owner-only. A visitor is not told that a day was ever revised. */
+  revisions(owner: UserId, date: CalendarDate, viewer: Viewer): Promise<RevisionHistory | null>;
+
+  /** Owner-only status. Drives the private "Today remains unrecorded." line. */
+  status(owner: UserId, viewer: Viewer): Promise<ArchiveStatus | null>;
+
+  /* -- Writes --
+     Every one of these is owner-only and every one must verify that for
+     itself. None of them may be reached by a viewer who merely knows an id. */
+
+  /**
+   * Record or replace a day's photograph.
+   *
+   * There is one method rather than a create and an update, because from the
+   * user's side there is one action: this is the photograph for this day. If
+   * the day already has one, this becomes revision n+1 and the previous
+   * revision is kept.
+   */
+  submit(owner: UserId, input: SubmitPhoto, viewer: Viewer): Promise<SubmitResult>;
+
+  /** Make an earlier revision current again. Appends; destroys nothing. */
+  restore(owner: UserId, revision: RevisionId, viewer: Viewer): Promise<ResolvedDay>;
+
+  setNote(owner: UserId, date: CalendarDate, note: string | null, viewer: Viewer): Promise<ResolvedDay>;
+
+  setDayVisibility(
+    owner: UserId,
+    date: CalendarDate,
+    visibility: DayVisibility,
+    viewer: Viewer,
+  ): Promise<ResolvedDay>;
+
+  setDayLocationPrecision(
+    owner: UserId,
+    date: CalendarDate,
+    precision: LocationPrecision,
+    viewer: Viewer,
+  ): Promise<ResolvedDay>;
+
+  /**
+   * Soft-delete a day.
+   *
+   * Deletion is explicit, reversible for a period, and is not what replacing
+   * a photograph does. Nothing in this product destroys a user's material as
+   * a side effect of something else.
+   */
+  deleteDay(owner: UserId, date: CalendarDate, viewer: Viewer): Promise<void>;
+
+  updateProfile(
+    owner: UserId,
+    patch: Partial<Pick<Profile, "displayName" | "bio" | "visibility" | "discoverable" | "timeZone" | "locationPrecision">>,
+    viewer: Viewer,
+  ): Promise<PublicProfile>;
+
+  /* -- Discovery --
+     Deliberately thin. This must never grow into a feed. */
+
+  /**
+   * Find profiles by handle or display name.
+   *
+   * Only profiles that are both public and discoverable may ever appear.
+   * Those are two separate consents and both are required.
+   */
+  findProfiles(query: string, limit?: number): Promise<PublicProfile[]>;
 }
 
-/* ---- Shared helpers -----------------------------------------------------
-   Sorting and filtering live here rather than in an implementation so that
-   a future remote source can reuse them for anything it cannot push down
-   into the query. */
+/* ---- Errors -------------------------------------------------------------
+   A refusal is a domain outcome, not an exception to be stringified into a
+   toast. Clients switch on `reason`. */
 
-export function compareByDate(a: { date: string }, b: { date: string }): number {
-  return a.date.localeCompare(b.date);
-}
+export type ArchiveErrorReason =
+  | "not-found"
+  | "forbidden"
+  | "invalid-date"
+  | "conflict"
+  | "asset-not-ready";
 
-export function orderEntries<T extends EntrySummary>(
-  list: T[],
-  order: EntryOrder = "reverse-chronological",
-): T[] {
-  const sorted = [...list];
-  switch (order) {
-    case "chronological":
-      return sorted.sort(compareByDate);
-    case "reverse-chronological":
-      return sorted.sort((a, b) => compareByDate(b, a));
-    /* Registry order, not alphabetical. Sorting the accession number as a
-       string puts the departments in the order AU, DR, FN, OB … which is
-       an order the institution uses nowhere else: every other surface
-       lists them Objects, Places, Field Notes, Photographs, Thoughts,
-       Sounds, Experiments, Research. A register that disagrees with its
-       own institution about the shape of it is not a register. */
-    case "accession":
-      return sorted.sort((a, b) => byAccession(a.id, b.id));
-    case "recently-accessioned":
-      return sorted.sort((a, b) => byAccession(b.id, a.id));
+export class ArchiveError extends Error {
+  constructor(
+    readonly reason: ArchiveErrorReason,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ArchiveError";
   }
 }
 
 /**
- * Deterministic PRNG. Used for seeded random draws so that a record chosen
- * on the server is the same record the client hydrates with.
+ * Whether a viewer is the owner.
+ *
+ * Trivial, and given a name so that every authorisation check in every
+ * implementation reads identically and can be found with one search.
  */
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return function next() {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+export function isOwner(owner: UserId, viewer: Viewer): boolean {
+  return viewer.userId !== null && viewer.userId === owner;
 }
 
-/** Great-circle distance in metres. Used by the survey plot and by `adjacent`. */
-export function haversine(
-  a: { lat: number; lon: number },
-  b: { lat: number; lon: number },
-): number {
-  const R = 6371008.8;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+/**
+ * The location precision a viewer is entitled to.
+ *
+ * The owner sees everything they recorded. Everyone else is capped by what
+ * the profile publishes, which the per-day setting can then narrow further
+ * but never widen.
+ */
+export function permittedPrecision(
+  owner: UserId,
+  profilePrecision: LocationPrecision,
+  viewer: Viewer,
+): LocationPrecision {
+  return isOwner(owner, viewer) ? "precise" : profilePrecision;
 }
 
-export type { Entry, EntrySummary, Collection, ResearchPaper };
+/** Whether a day may be shown to this viewer at all. */
+export function dayIsVisible(
+  owner: UserId,
+  day: Pick<DayEntry, "visibility" | "deletedAt">,
+  profileVisibility: Profile["visibility"],
+  viewer: Viewer,
+): boolean {
+  if (isOwner(owner, viewer)) return day.deletedAt === undefined;
+  if (day.deletedAt !== undefined) return false;
+  if (profileVisibility !== "public") return false;
+  /* Unlisted days are reachable by direct link but never listed, which is a
+     decision for the caller — this function answers reachability only. */
+  return day.visibility === "public" || day.visibility === "unlisted";
+}
+
+export type { DayEntry, PhotoRevision, Profile, ResolvedDay, DaySummary };

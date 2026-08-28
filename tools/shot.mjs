@@ -18,6 +18,12 @@
  *   node tools/shot.mjs ./shots http://localhost:3000 390 844 home=/ about=/about
  *
  * Pass height 0 for a full-page capture.
+ *
+ * From Git Bash on Windows, prefix the command with MSYS_NO_PATHCONV=1.
+ * MSYS rewrites any argument that looks like a POSIX path, so `home=/`
+ * arrives as `home=C:/Program Files/Git/` and Chrome rejects the URL with
+ * the unhelpful "Cannot navigate to invalid URL". PowerShell and cmd are
+ * unaffected.
  */
 
 import { spawn } from "node:child_process";
@@ -175,7 +181,23 @@ async function main() {
         expression: "document.fonts.ready.then(() => true)",
         awaitPromise: true,
       });
-      await sleep(900);
+
+      /* Then wait for entrance animations to finish.
+
+         Anything that reveals from zero opacity is invisible until its
+         animation has run, so capturing on fonts.ready alone photographs the
+         page mid-entrance and reports a blank composition as the truth. Ask
+         the page which animations are outstanding rather than sleeping a
+         guessed interval; the race is capped so a looping animation cannot
+         hang the capture. */
+      await client.send("Runtime.evaluate", {
+        expression: `Promise.race([
+          Promise.allSettled(document.getAnimations().map((a) => a.finished)),
+          new Promise((r) => setTimeout(r, 3000)),
+        ]).then(() => true)`,
+        awaitPromise: true,
+      });
+      await sleep(250);
 
       const shot = await client.send("Page.captureScreenshot", {
         format: "png",

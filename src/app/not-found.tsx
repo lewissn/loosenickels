@@ -3,38 +3,26 @@ import type { Metadata } from "next";
 import styles from "./not-found.module.css";
 
 export const metadata: Metadata = {
-  title: "No such record",
+  title: "No such day",
 };
 
 /**
- * The archive does not apologise and does not offer a search box. It
- * states the position, in the register's own voice, and offers the two
- * things it can actually do: show the register, or draw something at
- * random.
+ * Written in the product's register: it states the position, offers the one
+ * thing it can actually do, and does not suggest the reader is at fault.
  */
 export default function NotFound() {
   return (
     <div className={styles.page}>
       <div className={styles.body}>
-        <p className={styles.code}>LN–00–0000</p>
-        <h1 className={styles.title}>No record answering to that.</h1>
+        <h1 className={styles.title}>Nothing was recorded here.</h1>
         <p className={styles.note}>
-          The accession number may have been mistyped, or the record may never
-          have existed. Sequences are never reused, so a number that once
-          resolved will resolve again; a number that has never been issued
-          will not begin to.
+          Either that day has no photograph, or it is private. A day with
+          nothing in it is not an error — most archives have them, and they
+          are part of the record.
         </p>
         <nav className={styles.routes}>
-          <Link href="/ledger" className={styles.route}>
-            Consult the ledger
-          </Link>
-          {/* A plain anchor: /random is a route handler that redirects to
-              whichever record it drew, and must reach the server. */}
-          <a href="/random" className={styles.route}>
-            Draw something at random
-          </a>
           <Link href="/" className={styles.route}>
-            Return to the entrance
+            Return to the latest day
           </Link>
         </nav>
       </div>

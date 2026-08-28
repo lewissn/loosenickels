@@ -1,393 +1,499 @@
 import { z } from "zod";
 
 /* =========================================================================
-   LOOSE NICKELS — Archive schema
+   Schema
 
-   This file is the contract. An archive item exists independently of how
-   the public website chooses to render it: every shape below is plain,
+   The contract between the product and the data. Every shape here is plain
    serialisable JSON that maps cleanly onto Postgres columns and jsonb, so
-   the same records can later be served by an API and written by a private
-   publishing client without a migration of meaning.
+   the web client, the iOS client and the database are all describing the
+   same objects rather than three similar ones.
+
+   The whole product is one sentence of structure:
+
+       User -> DayEntry -> PhotoRevision -> MediaAsset
+
+   A user has at most one day entry per calendar date. A day entry points at
+   one current revision. A revision points at one stored image. Replacing a
+   photograph adds a revision; it never removes one.
 
    Rules observed here:
-     - No React, no MDX, no build-time-only constructs.
-     - Prose is a block array, not a compiled component.
-     - Every optional field is genuinely optional; the renderer decides
-       what is worth showing, and never shows an empty row.
+     - No React, no presentation, no rendering decisions stored on a record.
+     - Optional means genuinely optional. Photographs arrive without
+       metadata all the time and must still be accepted.
+     - Nothing is named after the codename.
    ========================================================================= */
 
-/* ---- Departments --------------------------------------------------------
-   The two-letter code is load-bearing: it appears in every accession
-   number, scopes the environmental colour, and selects the plate system. */
+/* ---- Identifiers --------------------------------------------------------
+   Postgres will issue uuids. Validating that shape here would mean seed and
+   fixture data had to carry real uuids to be legal, which buys nothing — the
+   database is the thing that actually enforces identity. So: a non-empty
+   opaque string, branded per entity so a user id cannot be passed where a
+   day id is expected. The compiler catches the mistake that would actually
+   happen; zod catches the malformed record. */
 
-export const DEPARTMENT_CODES = [
-  "OB",
-  "PL",
-  "FN",
-  "PH",
-  "TH",
-  "AU",
-  "XP",
-  "DR",
+const opaqueId = z.string().min(1);
+
+export const userId = opaqueId.brand<"UserId">();
+export const dayEntryId = opaqueId.brand<"DayEntryId">();
+export const revisionId = opaqueId.brand<"RevisionId">();
+export const assetId = opaqueId.brand<"AssetId">();
+
+export type UserId = z.infer<typeof userId>;
+export type DayEntryId = z.infer<typeof dayEntryId>;
+export type RevisionId = z.infer<typeof revisionId>;
+export type AssetId = z.infer<typeof assetId>;
+
+/* ---- Time ---------------------------------------------------------------
+   The most important distinction in this schema, and the one most easily got
+   wrong.
+
+   A CalendarDate is a date in the human sense: the day the photograph
+   belongs to, as the person who took it would name it. It is not a moment,
+   and it is never derived by converting a UTC timestamp — a photograph taken
+   at 23:40 in Tokyo belongs to that Tokyo day regardless of where the server
+   happens to live.
+
+   An Instant is a genuine moment, stored as ISO 8601 with an offset. Capture
+   time and submission time are instants. The date an entry belongs to is not.
+
+   The two are separate branded types precisely so that nobody can assign one
+   to the other by accident. */
+
+export const calendarDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, {
+    message: "A calendar date takes the form YYYY-MM-DD.",
+  })
+  .brand<"CalendarDate">();
+
+export type CalendarDate = z.infer<typeof calendarDate>;
+
+export const instant = z.iso.datetime({ offset: true }).brand<"Instant">();
+export type Instant = z.infer<typeof instant>;
+
+/** IANA zone name — "Europe/London", "Asia/Tokyo". Never a raw offset:
+    offsets do not survive daylight saving and cannot be reasoned about. */
+export const timeZone = z.string().min(1);
+
+/* ---- Visibility ---------------------------------------------------------
+   Private by default, everywhere, without exception. Every default in this
+   file that concerns who can see something resolves to the closed option, so
+   that forgetting to set a value can never leak anything. */
+
+export const dayVisibility = z.enum(["private", "public", "unlisted"]);
+export type DayVisibility = z.infer<typeof dayVisibility>;
+
+export const profileVisibility = z.enum(["private", "public"]);
+export type ProfileVisibility = z.infer<typeof profileVisibility>;
+
+/* ---- Location precision -------------------------------------------------
+   A photograph can carry the coordinates of someone's front door. The
+   product stores that precisely, because a private map is one of the things
+   that makes an archive worth keeping, and publishes only what the owner has
+   chosen to publish.
+
+   The ladder is strictly monotonic in how much it reveals, which is what
+   makes it safe to reason about: a comparison is then enough to decide
+   whether a given field may be shown.
+
+     hidden       nothing at all
+     region       "Scotland", "Kansai"
+     locality     "Reykjavik, Iceland"
+     approximate  coordinates deliberately blurred to roughly a kilometre
+     precise      the coordinates as recorded
+
+   The brief lists these in a slightly different order. They are ordered here
+   by disclosure rather than by kind, because the whole value of the ladder is
+   that a >= comparison means "reveals at least as much". */
+
+export const LOCATION_PRECISION = [
+  "hidden",
+  "region",
+  "locality",
+  "approximate",
+  "precise",
 ] as const;
 
-export const departmentCode = z.enum(DEPARTMENT_CODES);
-export type DepartmentCode = z.infer<typeof departmentCode>;
+export const locationPrecision = z.enum(LOCATION_PRECISION);
+export type LocationPrecision = z.infer<typeof locationPrecision>;
 
-export interface Department {
-  code: DepartmentCode;
-  /** Plural, as it appears in navigation. */
-  name: string;
-  /** Singular, as it appears on a record. */
-  singular: string;
-  /** URL segment. */
-  slug: string;
-  /** One line, institutional register, no wink. */
-  charter: string;
-  /** Which generative plate system represents an un-digitised record. */
-  plate: "contour" | "topography" | "isobar" | "halftone" | "rule" | "waveform" | "lattice" | "diagram";
+/** Rank on the disclosure ladder. Higher reveals more. */
+export function precisionRank(p: LocationPrecision): number {
+  return LOCATION_PRECISION.indexOf(p);
 }
 
-export const DEPARTMENTS: Record<DepartmentCode, Department> = {
-  OB: {
-    code: "OB",
-    name: "Objects",
-    singular: "Object",
-    slug: "objects",
-    charter: "Physical material retained without a stated reason.",
-    plate: "contour",
-  },
-  PL: {
-    code: "PL",
-    name: "Places",
-    singular: "Place",
-    slug: "places",
-    charter: "Locations recorded against their coordinates.",
-    plate: "topography",
-  },
-  FN: {
-    code: "FN",
-    name: "Field Notes",
-    singular: "Field Note",
-    slug: "field-notes",
-    charter: "Observations made at a particular time, in a particular weather.",
-    plate: "isobar",
-  },
-  PH: {
-    code: "PH",
-    name: "Photographs",
-    singular: "Photograph",
-    slug: "photographs",
-    charter: "Images held for their own sake.",
-    plate: "halftone",
-  },
-  TH: {
-    code: "TH",
-    name: "Thoughts",
-    singular: "Thought",
-    slug: "thoughts",
-    charter: "Fragments too short to be essays and too settled to be questions.",
-    plate: "rule",
-  },
-  AU: {
-    code: "AU",
-    name: "Sounds",
-    singular: "Recording",
-    slug: "sounds",
-    charter: "Audio taken from rooms, weather, machinery and open ground.",
-    plate: "waveform",
-  },
-  XP: {
-    code: "XP",
-    name: "Experiments",
-    singular: "Experiment",
-    slug: "experiments",
-    charter: "Interactive material produced because it could be.",
-    plate: "lattice",
-  },
-  DR: {
-    code: "DR",
-    name: "Research",
-    singular: "Paper",
-    slug: "research",
-    charter: "Investigations into questions that did not require answering.",
-    plate: "diagram",
-  },
-};
+/** Whether `have` may be shown to someone allowed only `allowed`. */
+export function precisionPermits(
+  allowed: LocationPrecision,
+  have: LocationPrecision,
+): boolean {
+  return precisionRank(have) <= precisionRank(allowed);
+}
 
-export const DEPARTMENT_LIST: Department[] = DEPARTMENT_CODES.map(
-  (code) => DEPARTMENTS[code],
-);
-
-/* ---- Accession ----------------------------------------------------------
-   LN–XX–0000. The en-dashes are presentational only; the canonical stored
-   form uses hyphens so the value survives URLs, filenames and SQL intact. */
-
-export const accessionId = z
-  .string()
-  .regex(/^LN-(OB|PL|FN|PH|TH|AU|XP|DR)-\d{4}$/, {
-    message: "Accession numbers take the form LN-XX-0000.",
-  });
-
-export type AccessionId = z.infer<typeof accessionId>;
-
-/* ---- Significance -------------------------------------------------------
-   Recorded on every item, presented entirely straight. `undetermined` is
-   the honest default and by far the most common value in the archive. */
-
-export const SIGNIFICANCE = [
-  "undetermined",
-  "negligible",
-  "personal",
-  "contested",
-  "considerable",
-] as const;
-
-export const significance = z.enum(SIGNIFICANCE);
-export type Significance = z.infer<typeof significance>;
-
-/* ---- Status & visibility ------------------------------------------------ */
-
-export const entryStatus = z.enum(["accessioned", "provisional", "withdrawn"]);
-export type EntryStatus = z.infer<typeof entryStatus>;
-
-export const visibility = z.enum(["public", "restricted"]);
-export type Visibility = z.infer<typeof visibility>;
-
-/* ---- Geography ----------------------------------------------------------
-   Coordinates are decimal degrees, WGS 84. `precision` records how much
-   the archive is willing to claim: an object found "somewhere along a
-   forestry road" should not be plotted to six decimal places. */
+/* ---- Coordinates -------------------------------------------------------- */
 
 export const coordinates = z.object({
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
-  /** Metres of uncertainty. Drives marker treatment on the survey plot. */
-  precision: z.number().positive().optional(),
+  /** Metres of uncertainty as reported by the capturing device, if it said. */
+  accuracy: z.number().positive().optional(),
   /** Metres above sea level, where known. */
   elevation: z.number().optional(),
 });
 
 export type Coordinates = z.infer<typeof coordinates>;
 
-export const place = z.object({
-  /** As the archive refers to it, which is not always its real name. */
-  name: z.string(),
+/**
+ * Where a photograph was taken.
+ *
+ * `coordinates` is the private truth and is never serialised to a client
+ * that has not earned it. `label` is the human place name, resolved once at
+ * processing time and then kept. `precision` is the most that may be
+ * disclosed to anyone who is not the owner.
+ */
+export const location = z.object({
+  coordinates: coordinates.optional(),
+  /** "Reykjavik, Iceland". Resolved when the entry is processed, then kept. */
+  label: z.string().optional(),
+  /** The broader containing area, for when only `region` may be shown. */
   region: z.string().optional(),
   country: z.string().optional(),
-  coordinates: coordinates.optional(),
+  /** Defaults closed. Opening it is always a deliberate act. */
+  precision: locationPrecision.default("hidden"),
 });
 
-export type Place = z.infer<typeof place>;
+export type EntryLocation = z.infer<typeof location>;
 
-/* ---- Media --------------------------------------------------------------
-   Sources are declared, never inferred at render time. `plate: true` marks
-   a record as not yet digitised: the site draws a generative plate from
-   the accession number instead, and does so deliberately rather than as a
-   fallback. Real media, once present, always takes precedence. */
+/* ---- Weather ------------------------------------------------------------
+   Resolved once, when the entry is processed, and then stored. The
+   alternative — querying a weather service every time an old photograph is
+   viewed — would be slower, would cost money forever, and would quietly
+   rewrite history as providers revise their records.
 
-export const imageMedia = z.object({
-  kind: z.literal("image"),
-  src: z.string(),
-  alt: z.string(),
+   Supplementary, always. A memory is not a weather dashboard. */
+
+export const weather = z.object({
+  /** Degrees Celsius. Presentation converts; storage does not. */
+  temperatureC: z.number().optional(),
+  /** Short human phrase: "Light rain", "Clear". */
+  conditions: z.string().optional(),
+  /** Millimetres in the hour of capture. */
+  precipitationMm: z.number().nonnegative().optional(),
+  /** Metres per second. */
+  windMs: z.number().nonnegative().optional(),
+  sunrise: instant.optional(),
+  sunset: instant.optional(),
+  /** Whether the photograph was taken between sunrise and sunset. */
+  daylight: z.boolean().optional(),
+});
+
+export type Weather = z.infer<typeof weather>;
+
+/* ---- Camera -------------------------------------------------------------
+   Read from EXIF where it exists. Screenshots, exports and edited images
+   carry none of this, and that must never block a submission. */
+
+export const camera = z.object({
+  make: z.string().optional(),
+  model: z.string().optional(),
+  lens: z.string().optional(),
+  /** Millimetres, as recorded — not 35mm-equivalent unless the file said so. */
+  focalLength: z.number().positive().optional(),
+  /** The denominator of the aperture: 1.8 for f/1.8. */
+  aperture: z.number().positive().optional(),
+  /** Seconds. 0.004 for 1/250. */
+  shutterSpeed: z.number().positive().optional(),
+  iso: z.number().int().positive().optional(),
+});
+
+export type Camera = z.infer<typeof camera>;
+
+/* ---- Media assets -------------------------------------------------------
+   A stored image, independent of whatever points at it.
+
+   Originals are preserved and never served into a mosaic. The client asks
+   for a variant by intent — a thumbnail for a year view, a large for the
+   cinematic viewer — never by pixel dimension, so that changing the ladder
+   later stays a server-side decision.
+
+   `storageKey` is an object-storage key, not a URL. URLs are minted at read
+   time, signed and expiring, because a permanent guessable URL to a private
+   photograph is a permanent leak. */
+
+export const VARIANTS = ["thumb", "medium", "large"] as const;
+export const variantName = z.enum(VARIANTS);
+export type VariantName = z.infer<typeof variantName>;
+
+export const variant = z.object({
+  storageKey: z.string().min(1),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
-  /** Normalised 0–1 focal point, for art-directed crops. */
-  focal: z.tuple([z.number(), z.number()]).optional(),
-  /** Base64 LQIP, generated by the ingest pipeline. */
+  byteSize: z.number().int().positive().optional(),
+});
+
+export type Variant = z.infer<typeof variant>;
+
+/**
+ * How far an upload has got.
+ *
+ * The interface must remain usable at every one of these states. A
+ * photograph that has been received but not yet resized is a photograph the
+ * user has successfully recorded: the day is done. It simply displays from
+ * whatever is ready.
+ */
+export const processingState = z.enum(["pending", "ready", "failed"]);
+export type ProcessingState = z.infer<typeof processingState>;
+
+export const mediaAsset = z.object({
+  id: assetId,
+  ownerId: userId,
+
+  /** Key of the preserved original. Never served directly into a mosaic. */
+  storageKey: z.string().min(1),
+  mimeType: z.string().min(1),
+  byteSize: z.number().int().positive(),
+  /** SHA-256 of the original bytes. This is what makes retries idempotent. */
+  checksum: z.string().min(1).optional(),
+
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+
+  /**
+   * Normalised 0-1 focal point. The viewer composes around the image rather
+   * than centre-cropping it, and this is where it learns what matters.
+   */
+  focal: z
+    .tuple([z.number().min(0).max(1), z.number().min(0).max(1)])
+    .optional(),
+
+  /** Tiny inline base64 image, shown while the real one decodes. */
   placeholder: z.string().optional(),
-  caption: z.string().optional(),
-  /** Capture time from EXIF, where available. */
-  captured: z.string().optional(),
+
+  /**
+   * Average perceived lightness, 0-1, and a restrained ambient tone drawn
+   * from the image. The interface adapts to the photograph rather than the
+   * photograph being forced into the interface.
+   */
+  lightness: z.number().min(0).max(1).optional(),
+  tone: z.string().optional(),
+
+  processing: processingState.default("pending"),
+  /* Partial: an asset that has only just arrived has no variants yet, and
+     one that failed halfway may have some but not all. The interface is
+     required to cope with either. */
+  variants: z.partialRecord(variantName, variant).default({}),
+
+  createdAt: instant,
 });
 
-export const audioMedia = z.object({
-  kind: z.literal("audio"),
-  src: z.string(),
-  /** Spoken description of the recording, for screen readers. */
-  alt: z.string(),
-  /** Seconds. */
-  duration: z.number().positive(),
-  /** Pre-computed normalised 0–1 amplitude samples for the waveform. */
-  peaks: z.array(z.number()).optional(),
-  caption: z.string().optional(),
-  captured: z.string().optional(),
+export type MediaAsset = z.infer<typeof mediaAsset>;
+
+/* ---- Photo revisions ----------------------------------------------------
+   One submitted photograph, for one day.
+
+   Revisions are append-only. Replacing today's photograph writes revision
+   n+1 and repoints the day entry; restoring an earlier one repoints the day
+   entry again. Neither destroys anything. */
+
+export const photoRevision = z.object({
+  id: revisionId,
+  dayEntryId: dayEntryId,
+  assetId: assetId,
+
+  /** 1-based, per day entry, and never reused even after a restore. */
+  revisionNumber: z.number().int().positive(),
+
+  /** When the photograph was taken, if the file knew. */
+  capturedAt: instant.optional(),
+  /** The zone it was taken in, which is how the calendar date was decided. */
+  captureTimeZone: timeZone.optional(),
+  /** When it reached us. Always known, because we were there. */
+  submittedAt: instant,
+
+  location: location.optional(),
+  weather: weather.optional(),
+  camera: camera.optional(),
+
+  createdAt: instant,
 });
 
-export const media = z.discriminatedUnion("kind", [imageMedia, audioMedia]);
+export type PhotoRevision = z.infer<typeof photoRevision>;
 
-export type ImageMedia = z.infer<typeof imageMedia>;
-export type AudioMedia = z.infer<typeof audioMedia>;
-export type Media = z.infer<typeof media>;
+/* ---- Day entries --------------------------------------------------------
+   The day itself. At most one per user per calendar date — a constraint the
+   database enforces with a unique index on (user_id, entry_date), not
+   something the application hopes to remember.
 
-/* ---- Prose blocks -------------------------------------------------------
-   A small, closed set. Anything that cannot be expressed here does not
-   belong in an archive record — it belongs in a Research paper, which has
-   its own richer block set. */
+   A day with no entry is not a failure and is not stored as anything. It is
+   simply absent, and the interface draws the absence. */
 
-export const proseBlock = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("p"), text: z.string() }),
-  /** Set larger, leads a record. At most one per entry. */
-  z.object({ type: z.literal("lede"), text: z.string() }),
-  /** Indented, quieter, in the institution's own voice. */
-  z.object({ type: z.literal("note"), text: z.string() }),
-  z.object({
-    type: z.literal("quote"),
-    text: z.string(),
-    attribution: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("list"),
-    items: z.array(z.string()),
-    ordered: z.boolean().optional(),
-  }),
-  /** Two-column measured data, set in mono. */
-  z.object({
-    type: z.literal("measurements"),
-    rows: z.array(z.tuple([z.string(), z.string()])),
-  }),
-  /** References a media index on the same entry. */
-  z.object({
-    type: z.literal("figure"),
-    media: z.number().int().nonnegative(),
-    caption: z.string().optional(),
-    /** How much of the page the figure claims. */
-    scale: z.enum(["inset", "column", "full", "bleed"]).default("column"),
-  }),
-]);
+export const dayEntry = z.object({
+  id: dayEntryId,
+  userId: userId,
 
-export type ProseBlock = z.infer<typeof proseBlock>;
+  /** The day this belongs to, in the user's terms. See CalendarDate above. */
+  date: calendarDate,
 
-/* ---- Footnotes ----------------------------------------------------------
-   Archival footnotes are one of the places the institution's character
-   lives. They are referenced from prose by index and rendered in the
-   margin on wide viewports. */
+  /** The revision currently standing as the day's photograph. */
+  currentRevisionId: revisionId,
 
-export const footnote = z.object({
-  marker: z.string(),
-  text: z.string(),
+  /** Optional, one sentence usually. Never required, never prompted for. */
+  note: z.string().optional(),
+
+  visibility: dayVisibility.default("private"),
+
+  createdAt: instant,
+  updatedAt: instant,
+  /** Soft deletion. Set, not destroyed, and recoverable for a period. */
+  deletedAt: instant.optional(),
 });
 
-export type Footnote = z.infer<typeof footnote>;
+export type DayEntry = z.infer<typeof dayEntry>;
 
-/* ---- Entry --------------------------------------------------------------
-   The central record. Everything the public site renders derives from
-   this; nothing about presentation is stored on it. */
+/* ---- Profiles -----------------------------------------------------------
+   Identity, separate from the account. The account is credentials and is the
+   authentication layer's business; the profile is the person as the product
+   presents them, and is the only half that is ever public. */
 
-export const entry = z.object({
-  id: accessionId,
-  dept: departmentCode,
-  /** URL segment. Stable once published — the accession number also resolves. */
-  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+export const username = z
+  .string()
+  .min(2)
+  .max(30)
+  .regex(/^[a-z0-9](?:[a-z0-9_]*[a-z0-9])?$/, {
+    message:
+      "A username is lowercase letters, digits and underscores, and does not begin or end with an underscore.",
+  });
 
-  title: z.string(),
-  /** One or two lines. Used in the index, on cards, and in metadata. */
-  summary: z.string().optional(),
+export const profile = z.object({
+  id: userId,
 
-  body: z.array(proseBlock).default([]),
-  footnotes: z.array(footnote).default([]),
+  username,
+  displayName: z.string().min(1).max(60),
+  bio: z.string().max(280).optional(),
+  avatarAssetId: assetId.optional(),
 
-  /** ISO 8601 date the item is *about*. Sorts the chronology. */
-  date: z.string(),
-  /** When the archive took possession, if that differs meaningfully. */
-  acquired: z.string().optional(),
+  /** Closed by default. Opening a profile is always deliberate. */
+  visibility: profileVisibility.default("private"),
+  /**
+   * Whether a public profile may also be found by searching. Separate from
+   * visibility on purpose: public and findable are different consents, and a
+   * private profile can never be discoverable regardless of this value.
+   */
+  discoverable: z.boolean().default(false),
 
-  place: place.optional(),
+  /**
+   * The zone this user's days are reckoned in. Governs which calendar date a
+   * photograph submitted near midnight belongs to, and therefore has to live
+   * on the profile rather than being guessed per request.
+   */
+  timeZone: timeZone.default("Etc/UTC"),
 
-  /** Collection slugs. An entry may belong to any number, including none. */
-  collections: z.array(z.string()).default([]),
-  tags: z.array(z.string()).default([]),
+  /** Public location precision ceiling. Per-day settings cannot exceed it. */
+  locationPrecision: locationPrecision.default("hidden"),
 
-  media: z.array(media).default([]),
-
-  /* Descriptive fields. Shown only where they carry information — the
-     renderer omits any row whose value is absent. */
-  material: z.string().optional(),
-  dimensions: z.string().optional(),
-  mass: z.string().optional(),
-  weather: z.string().optional(),
-  source: z.string().optional(),
-
-  significance: significance.default("undetermined"),
-  status: entryStatus.default("accessioned"),
-  visibility: visibility.default("public"),
-
-  /** Accession numbers of related records. Rendered as cross-references. */
-  related: z.array(accessionId).default([]),
-
-  /** Free-form institutional annotation. Rarely present, always dry. */
-  remark: z.string().optional(),
+  createdAt: instant,
+  updatedAt: instant,
 });
 
-export type Entry = z.infer<typeof entry>;
-/** The shape as authored, before defaults are applied. */
-export type EntryInput = z.input<typeof entry>;
+export type Profile = z.infer<typeof profile>;
+export type ProfileInput = z.input<typeof profile>;
 
-/* ---- Collections --------------------------------------------------------
-   Curated rather than folder-like: a collection is an editorial act with
-   its own title, note and environmental identity, and an entry may sit in
-   several at once. */
+/* ---- Composed shapes ----------------------------------------------------
+   What the interface actually receives. The tables above are the storage
+   truth; a surface wants a day and its photograph together, already resolved
+   and already stripped of anything this viewer may not see. */
 
-export const collection = z.object({
-  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  title: z.string(),
-  /** The curatorial note. Written straight. */
-  note: z.string(),
-  /** Optional environmental override; otherwise inherits per-entry. */
-  dept: departmentCode.optional(),
-  /** Accession number of the record that represents the collection. */
-  keystone: accessionId.optional(),
-  opened: z.string(),
-  closed: z.string().optional(),
-});
-
-export type Collection = z.infer<typeof collection>;
-
-/* ---- Research -----------------------------------------------------------
-   Department of Unnecessary Research. A paper is an entry with a longer
-   body and a stated question it did not need to answer. */
-
-export const researchPaper = entry.extend({
-  dept: z.literal("DR"),
-  /** The question. Displayed prominently, answered eventually or not. */
-  question: z.string(),
-  /** The finding, if one was reached. */
-  finding: z.string().optional(),
-  /** Methods, where the joke is that they are rigorous. */
-  method: z.array(z.string()).default([]),
-});
-
-export type ResearchPaper = z.infer<typeof researchPaper>;
-
-/* ---- Derived shapes ----------------------------------------------------- */
-
-/** The projection used by the index, search and any listing surface. */
-export interface EntrySummary {
-  id: AccessionId;
-  dept: DepartmentCode;
-  slug: string;
-  title: string;
-  summary?: string;
-  date: string;
-  place?: Place;
-  collections: string[];
-  significance: Significance;
-  /** First image, where one exists. Absent means: draw a plate. */
-  thumbnail?: ImageMedia;
+/** A photograph, resolved for display, with URLs already minted. */
+export interface ResolvedPhoto {
+  assetId: AssetId;
+  width: number;
+  height: number;
+  focal?: [number, number];
+  placeholder?: string;
+  lightness?: number;
+  tone?: string;
+  processing: ProcessingState;
+  /** Signed, expiring URLs by intent. Absent variants are not yet generated. */
+  urls: Partial<Record<VariantName, string>>;
+  alt: string;
 }
 
-export function toSummary(e: Entry): EntrySummary {
-  const thumbnail = e.media.find((m): m is ImageMedia => m.kind === "image");
+/** A day, resolved for display: what a viewer is entitled to, and no more. */
+export interface ResolvedDay {
+  date: CalendarDate;
+  note?: string;
+  visibility: DayVisibility;
+  photo: ResolvedPhoto;
+  capturedAt?: Instant;
+  captureTimeZone?: string;
+  /** Already reduced to the precision this viewer is allowed. */
+  place?: { label?: string; coordinates?: Coordinates };
+  weather?: Weather;
+  camera?: Camera;
+  /** Present only for the owner. Visitors are not told that a day was revised. */
+  revisionCount?: number;
+}
+
+/** The listing projection: a year mosaic, a calendar, a map cluster. */
+export interface DaySummary {
+  date: CalendarDate;
+  /** Thumbnail only. A year view must never fetch full-size images. */
+  thumbnailUrl?: string;
+  width: number;
+  height: number;
+  placeholder?: string;
+  tone?: string;
+}
+
+/**
+ * Reduce a location to what a given precision permits.
+ *
+ * The single place this decision is made. Every surface that shows a place
+ * goes through here, so there is exactly one function to get right and
+ * exactly one to audit.
+ */
+export function discloseLocation(
+  loc: EntryLocation | undefined,
+  allowed: LocationPrecision,
+): { label?: string; coordinates?: Coordinates } | undefined {
+  if (!loc) return undefined;
+
+  /* The entry's own setting and the viewer's allowance are both ceilings.
+     The stricter of the two wins. */
+  const ceiling: LocationPrecision = precisionPermits(allowed, loc.precision)
+    ? loc.precision
+    : allowed;
+
+  switch (ceiling) {
+    case "hidden":
+      return undefined;
+    case "region":
+      return { label: loc.region ?? loc.country };
+    case "locality":
+      return { label: loc.label ?? loc.region ?? loc.country };
+    case "approximate":
+      return {
+        label: loc.label ?? loc.region,
+        coordinates: loc.coordinates && blur(loc.coordinates),
+      };
+    case "precise":
+      return { label: loc.label ?? loc.region, coordinates: loc.coordinates };
+  }
+}
+
+/**
+ * Round coordinates to roughly a kilometre.
+ *
+ * Two decimal places is about 1.1km of latitude, and less of longitude away
+ * from the equator — which is the right direction to err. Rounding rather
+ * than jittering is deliberate: a random offset applied afresh on each read
+ * would let anyone average repeated requests back to the true position.
+ */
+function blur(c: Coordinates): Coordinates {
   return {
-    id: e.id,
-    dept: e.dept,
-    slug: e.slug,
-    title: e.title,
-    summary: e.summary,
-    date: e.date,
-    place: e.place,
-    collections: e.collections,
-    significance: e.significance,
-    thumbnail,
+    ...c,
+    lat: Math.round(c.lat * 100) / 100,
+    lon: Math.round(c.lon * 100) / 100,
+    accuracy: Math.max(c.accuracy ?? 0, 1000),
   };
 }

@@ -1,28 +1,39 @@
-import { localSource } from "./local-source";
+import { seedSource } from "./seed-source";
 import type { ArchiveSource } from "./source";
 
 /* =========================================================================
    The archive
 
    One binding. Every page, every component and every route handler reads
-   through it and none of them know or care what is behind it.
+   through it, and none of them know or care what is behind it.
 
-   To move the archive onto a database, write a second ArchiveSource and
-   change this line. Nothing else in the application is aware of the
-   difference.
+   It is the seed source today because there is no database yet. Moving onto
+   Postgres and object storage is a matter of writing a second ArchiveSource
+   and changing the line below — the surfaces above it are already written
+   against the contract rather than against an implementation, and the
+   authorisation rules already live on this side of the seam rather than in
+   the interface.
    ========================================================================= */
 
-export const archive: ArchiveSource = localSource;
+export const archive: ArchiveSource = seedSource;
 
 export * from "./schema";
-export * from "./accession";
+export {
+  ANONYMOUS,
+  ArchiveError,
+  dayIsVisible,
+  isOwner,
+  permittedPrecision,
+} from "./source";
 export type {
   ArchiveSource,
-  ArchiveStats,
-  EntryQuery,
-  EntryOrder,
-  SearchHit,
+  ArchiveStatus,
+  ArchiveErrorReason,
+  DayRange,
+  PublicProfile,
+  RevisionHistory,
+  SubmitPhoto,
+  SubmitResult,
+  Viewer,
 } from "./source";
-export { haversine, mulberry32, orderEntries } from "./source";
-export { runSearch, scoreRecord, toSearchable, normalise } from "./search";
-export type { SearchableRecord, Match, MatchField } from "./search";
+export { SEED_OWNER, SEED_VIEWER } from "./seed-source";
