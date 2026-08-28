@@ -27,6 +27,10 @@ import {
 const request = z.object({
   contentType: z.string(),
   byteSize: z.number().int().positive().max(MAX_ORIGINAL_BYTES),
+  /* `source` is a device transcode of an original the server cannot decode.
+     Defaulted, so a browser — which only ever sends formats sharp reads —
+     needs to know nothing about any of this. */
+  variant: z.enum(["original", "source"]).default("original"),
 });
 
 const problem = (status: number, said: string) =>
@@ -44,9 +48,9 @@ export async function POST(req: Request) {
   const asked = request.safeParse(body);
   if (!asked.success) return problem(400, "That request does not make sense.");
 
-  const { contentType, byteSize } = asked.data;
+  const { contentType, byteSize, variant } = asked.data;
 
-  if (!extensionFor("original", contentType)) {
+  if (!extensionFor(variant, contentType)) {
     return problem(415, `${contentType} is not a photograph this can read.`);
   }
 
@@ -54,7 +58,7 @@ export async function POST(req: Request) {
      client never chooses. It is not derived from anything a visitor can
      see, and the store has no public access, so it is unguessable in both
      directions. */
-  const key = objectKey(randomUUID(), "original", contentType);
+  const key = objectKey(randomUUID(), variant, contentType);
 
   return NextResponse.json(
     {

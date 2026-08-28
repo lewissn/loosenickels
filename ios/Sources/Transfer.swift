@@ -62,25 +62,76 @@ enum Transfer {
         var problem: String?
     }
 
-    static func send(_ photo: Photograph.Prepared) async throws -> String {
+    /// What the archive needs to attach: the original, and where the server
+    /// cannot decode it, a transcode for the pipeline to read.
+    struct Sent {
+        var assetId: String
+        var sourceAssetId: String?
+    }
+
+    static func send(_ photo: Photograph.Prepared) async throws -> Sent {
         let token = try await bearer()
 
+        let assetId = try await one(
+            photo.data,
+            contentType: photo.contentType,
+            variant: "original",
+            width: photo.width,
+            height: photo.height,
+            token: token
+        )
+
+        /* Only for a format the server cannot open. The original above is
+           already safe at this point, which is why this is allowed to be a
+           second request rather than something the first depends on. */
+        var sourceAssetId: String?
+        if let source = photo.source, let type = photo.sourceContentType {
+            sourceAssetId = try await one(
+                source,
+                contentType: type,
+                variant: "source",
+                width: photo.width,
+                height: photo.height,
+                token: token
+            )
+        }
+
+        return Sent(assetId: assetId, sourceAssetId: sourceAssetId)
+    }
+
+    /// Reserve, PUT, register. One object.
+    private static func one(
+        _ bytes: Data,
+        contentType: String,
+        variant: String,
+        width: Int,
+        height: Int,
+        token: String
+    ) async throws -> String {
         let reserved: Reserved = try await json(
             to: "/api/uploads",
             token: token,
-            body: ["contentType": photo.contentType, "byteSize": photo.data.count]
+            body: [
+                "contentType": contentType,
+                "byteSize": bytes.count,
+                "variant": variant,
+            ]
         )
 
-        try await put(photo.data, to: reserved.uploadUrl, contentType: photo.contentType)
+        try await put(bytes, to: reserved.uploadUrl, contentType: contentType)
 
         let registered: Registered = try await json(
             to: "/api/uploads/register",
             token: token,
             body: [
                 "storageKey": reserved.storageKey,
-                "contentType": photo.contentType,
-                "width": photo.width,
-                "height": photo.height,
+                "contentType": contentType,
+                "variant": variant,
+                /* The shape of the photograph, not of these particular
+                   bytes: a transcode is the same picture at the same size,
+                   and the pipeline overwrites both from what it decodes. */
+                "width": width,
+                "height": height,
             ]
         )
 

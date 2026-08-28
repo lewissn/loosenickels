@@ -46,22 +46,28 @@ export async function processPending(limit = BATCH): Promise<Processed> {
 
   const { data: waiting } = await db
     .from("photo_revisions")
-    .select("id, user_id, media_assets!inner ( id, variant, storage_key )")
+    .select("id, user_id, media_assets ( id, variant, storage_key )")
     .eq("state", "pending")
-    .eq("media_assets.variant", "original")
     .order("created_at", { ascending: true })
     .limit(limit)
     .returns<
       Array<{
         id: string;
         user_id: string;
-        media_assets: Array<{ storage_key: string }>;
+        media_assets: Array<{ variant: string; storage_key: string }>;
       }>
     >();
 
   for (const revision of waiting ?? []) {
-    const original = revision.media_assets?.[0];
-    if (!original) continue;
+    /* `source` first, because it only exists when the device already knew
+       the original was unreadable here — an iPhone HEIC. Where there is no
+       source, the original is the source. */
+    const assets = revision.media_assets ?? [];
+    const readable =
+      assets.find((a) => a.variant === "source") ??
+      assets.find((a) => a.variant === "original");
+
+    if (!readable) continue;
 
     out.attempted += 1;
 
@@ -80,7 +86,7 @@ export async function processPending(limit = BATCH): Promise<Processed> {
     if (!claimed) continue;
 
     try {
-      const derived = await derive(revision.id, original.storage_key);
+      const derived = await derive(revision.id, readable.storage_key);
 
       const { error: written } = await db.from("media_assets").upsert(
         derived.variants.map((v) => ({

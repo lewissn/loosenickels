@@ -16,8 +16,11 @@ import type { VariantName } from "@/lib/archive/schema";
    nothing requests is storage nobody reads.
    ========================================================================= */
 
+/** What this pipeline writes. `original` and `source` are what it reads. */
+export type Rendition = Extract<VariantName, "large" | "medium" | "thumbnail">;
+
 /** Longest edge, in pixels. Never upscaled — a small original stays small. */
-const EDGES: Record<Exclude<VariantName, "original">, number> = {
+const EDGES: Record<Rendition, number> = {
   large: 2400,
   medium: 1200,
   thumbnail: 400,
@@ -34,7 +37,7 @@ const PLACEHOLDER_EDGE = 20;
 
 export interface Derived {
   variants: Array<{
-    variant: Exclude<VariantName, "original">;
+    variant: Rendition;
     storageKey: string;
     width: number;
     height: number;
@@ -117,9 +120,7 @@ export async function derive(
 
   const variants: Derived["variants"] = [];
 
-  for (const [name, edge] of Object.entries(EDGES) as Array<
-    [Exclude<VariantName, "original">, number]
-  >) {
+  for (const [name, edge] of Object.entries(EDGES) as Array<[Rendition, number]>) {
     const rendered = await base
       .clone()
       .resize(edge, edge, { fit: "inside", withoutEnlargement: true })

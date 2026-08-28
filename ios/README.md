@@ -124,6 +124,14 @@ second copy of the same day.
 file forever. Object storage removed that reason. Full resolution, original
 format, and the EXIF intact.
 
+**And a second upload, when the server cannot read the first.** sharp has no
+HEVC decoder, so an iPhone HEIC is an original nothing on the server can
+resize. This phone has a decoder, so the conversion happens where it is
+possible: `Photograph.read` attaches a JPEG transcode as `source`, uploaded
+alongside the original and used by the pipeline as its input. The camera's
+file is still kept. `source` is owner-only, exactly as the original is,
+because it carries exactly the same EXIF.
+
 **EXIF capture time is local time at the camera.** `Photograph.swift` parses
 `DateTimeOriginal` in the zone the offset tag names, or the device's zone if
 the file carries none — never as UTC. Parsing it as UTC is exactly what

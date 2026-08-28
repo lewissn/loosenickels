@@ -321,10 +321,12 @@ struct SupabaseArchive: ArchiveSource {
 
         /* `photo_revision_id is null` is the guard that matters: an asset
            already attached to a day must not be moved to another one. */
+        let toAttach = [photo.assetId, photo.sourceAssetId].compactMap { $0 }
+
         let attached: [AssetIdRow] = try await run {
             try await db.from("media_assets")
                 .update(["photo_revision_id": revision.id])
-                .eq("id", value: photo.assetId)
+                .in("id", values: toAttach)
                 .eq("user_id", value: owner)
                 .is("photo_revision_id", value: nil)
                 .select("id")
@@ -332,7 +334,12 @@ struct SupabaseArchive: ArchiveSource {
                 .value
         }
 
-        guard attached.first != nil else { throw ArchiveFailure.assetNotReady }
+        /* The original is the one that must have landed. A missing transcode
+           is survivable — the pipeline tries the original and fails honestly,
+           which beats refusing a photograph already safe in storage. */
+        guard attached.contains(where: { $0.id == photo.assetId }) else {
+            throw ArchiveFailure.assetNotReady
+        }
 
         _ = try? await db.from("photo_revisions")
             .update(
@@ -463,10 +470,12 @@ struct SupabaseArchive: ArchiveSource {
 
         var urls: [MediaVariant: URL] = [:]
         for asset in assets {
-            /* The original is withheld from everyone but its owner however
-               carefully the location columns were redacted: the embedded
-               EXIF carries the GPS tag out past all of it. */
-            if asset.variant == .original && !mine { continue }
+            /* Withheld from everyone but the owner however carefully the
+               location columns were redacted: the embedded EXIF carries the
+               GPS tag out past all of it. `source` is a faithful transcode
+               and carries exactly the same tag, which is why the rule is a
+               property of the variant rather than a test for one. */
+            if asset.variant.isOwnerOnly && !mine { continue }
             if let url = mediaURL(asset.id) { urls[asset.variant] = url }
         }
 

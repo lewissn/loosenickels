@@ -177,16 +177,22 @@ function one<T>(embedded: T[] | T | null): T | null {
   return Array.isArray(embedded) ? (embedded[0] ?? null) : embedded;
 }
 
-/** A revision's variants, each signed for this reader and this visit.
-    The original is never among them for anyone but the owner: it still
-    carries its EXIF, and the GPS tag with it. */
+/** The variants a viewer who is not the owner may never be given.
+
+    Both are faithful copies of what the camera wrote, EXIF and all, so both
+    carry the GPS tag out past any redaction of the location columns. Listing
+    them here rather than testing for `original` in three places is what stops
+    the next variant of this kind being forgotten. */
+const OWNER_ONLY: ReadonlySet<VariantName> = new Set(["original", "source"]);
+
+/** A revision's variants, each signed for this reader and this visit. */
 async function urlsFor(
   assets: AssetRow[],
   owner: UserId,
   viewer: Viewer,
 ): Promise<Partial<Record<VariantName, string>>> {
   const permitted = assets.filter(
-    (a) => a.variant !== "original" || isOwner(owner, viewer),
+    (a) => !OWNER_ONLY.has(a.variant) || isOwner(owner, viewer),
   );
 
   const signed = await Promise.all(
@@ -726,14 +732,26 @@ export function supabaseArchive(client?: Db): ArchiveSource {
          move somebody's photograph from one date to a different one. RLS
          has already restricted this to the caller's own assets; this stops
          them doing it to themselves. */
-      const { data: attached } = await db
+      const toAttach = [input.assetId, input.sourceAssetId].filter(
+        (id): id is NonNullable<typeof id> => id !== undefined,
+      );
+
+      const { data: attachedRows } = await db
         .from("media_assets")
         .update({ photo_revision_id: revision.id })
-        .eq("id", input.assetId)
+        .in("id", toAttach)
         .eq("user_id", owner)
         .is("photo_revision_id", null)
-        .select("id, width, height")
-        .maybeSingle<{ id: string; width: number; height: number }>();
+        .select("id, variant, width, height")
+        .returns<
+          Array<{ id: string; variant: string; width: number; height: number }>
+        >();
+
+      /* The original is what must have landed. A source that went missing is
+         survivable — the pipeline will try the original and fail honestly,
+         which is a better outcome than refusing a photograph that is safely
+         in storage. */
+      const attached = (attachedRows ?? []).find((a) => a.id === input.assetId);
 
       if (!attached) {
         throw new ArchiveError(

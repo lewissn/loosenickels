@@ -153,7 +153,18 @@ enum ProcessingState: String, Codable {
 }
 
 enum MediaVariant: String, Codable {
-    case original, large, medium, thumbnail
+    case original
+    /// A decodable transcode of an original the server cannot open — an
+    /// HEIC, in practice. Made on the device, which has an HEVC decoder
+    /// where the server does not.
+    case source
+    case large, medium, thumbnail
+
+    /// Never handed to anyone but the owner. Both are faithful copies of
+    /// what the camera wrote, EXIF and all, so both carry the GPS tag out
+    /// past any redaction of the location columns. Only the resized
+    /// renditions are safe to publish.
+    var isOwnerOnly: Bool { self == .original || self == .source }
 }
 
 // MARK: - Values
@@ -207,10 +218,15 @@ struct ResolvedPhoto: Identifiable, Equatable {
 
     var id: String { assetId }
 
-    /// The largest rendition this viewer was given. The original is only
-    /// ever among them for the owner.
+    /// The largest rendition this viewer was given.
+    ///
+    /// `original` is late in the list and `source` is absent: a photograph
+    /// recorded a moment ago has no renditions yet, and showing its original
+    /// is better than showing nothing — but a transcode made purely for the
+    /// resizer is never the thing to display. Neither is present at all
+    /// unless the viewer owns the photograph.
     var best: URL? {
-        urls[.large] ?? urls[.medium] ?? urls[.original] ?? urls[.thumbnail]
+        urls[.large] ?? urls[.medium] ?? urls[.thumbnail] ?? urls[.original]
     }
 
     var aspect: Double {

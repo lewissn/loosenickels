@@ -242,7 +242,17 @@ export type Camera = z.infer<typeof camera>;
    other and the pipeline has to be able to name it — but it is the one
    variant never handed to a non-owner, because its embedded EXIF carries the
    GPS tag out past any redaction of the location columns. */
-export const VARIANTS = ["original", "large", "medium", "thumbnail"] as const;
+export const VARIANTS = [
+  "original",
+  /* A decodable transcode of an original the server cannot open — an iPhone
+     HEIC, in practice. It exists only so the pipeline has something to read,
+     is owner-only exactly as the original is (it carries the same EXIF, and
+     the same GPS tag with it), and may be swept once the renditions exist. */
+  "source",
+  "large",
+  "medium",
+  "thumbnail",
+] as const;
 export const variantName = z.enum(VARIANTS);
 export type VariantName = z.infer<typeof variantName>;
 

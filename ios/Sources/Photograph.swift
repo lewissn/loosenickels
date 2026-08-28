@@ -22,9 +22,25 @@ import CoreLocation
 
 enum Photograph {
     struct Prepared {
-        /// The original bytes, untouched. This is what is uploaded.
+        /// The original bytes, untouched. Preserved exactly as the camera
+        /// wrote them, whatever the server can or cannot read.
         var data: Data
         var contentType: String
+
+        /// A JPEG transcode, present only when `data` is a format the server
+        /// cannot decode — an HEIC, in practice.
+        ///
+        /// sharp reads HEIC metadata and decodes none of it: the prebuilt
+        /// binaries ship without an HEVC decoder for licensing reasons. This
+        /// phone has one, so the conversion happens where it is possible
+        /// rather than where it would be convenient. Uploaded alongside the
+        /// original as the `source` variant, purely so the pipeline has
+        /// something to read; it is owner-only and may be swept afterwards.
+        var source: Data?
+        var sourceContentType: String? { source == nil ? nil : "image/jpeg" }
+
+        /// Whether the original needs the transcode above to be usable.
+        var needsSource: Bool { source != nil }
 
         /// Pixel dimensions with EXIF orientation already resolved, so the
         /// stored shape is the shape it displays at. A rotated photograph
@@ -51,9 +67,9 @@ enum Photograph {
     private static let placeholderEdge: CGFloat = 20
 
     static func read(_ data: Data, filename: String?) -> Prepared? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        guard let cgSource = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
 
-        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
+        let properties = CGImageSourceCopyPropertiesAtIndex(cgSource, 0, nil) as? [CFString: Any] ?? [:]
         let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any] ?? [:]
         let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] ?? [:]
         let gps = properties[kCGImagePropertyGPSDictionary] as? [CFString: Any] ?? [:]
@@ -63,9 +79,12 @@ enum Photograph {
 
         let capture = captureMoment(exif: exif, tiff: tiff)
 
+        let type = contentType(for: cgSource, filename: filename)
+
         return Prepared(
             data: data,
-            contentType: contentType(for: source, filename: filename),
+            contentType: type,
+            source: DECODABLE_BY_SERVER.contains(type) ? nil : transcode(image),
             width: Int(size.width),
             height: Int(size.height),
             placeholder: image.flatMap(placeholder),
@@ -194,6 +213,22 @@ enum Photograph {
 
         guard let jpeg = tiny.jpegData(compressionQuality: 0.4) else { return nil }
         return "data:image/jpeg;base64,\(jpeg.base64EncodedString())"
+    }
+
+    // MARK: Transcoding
+
+    /* What the server's own pipeline can decode. Everything else needs the
+       phone to do it first. AVIF is absent on purpose: sharp reports it
+       unsupported in the same build, so it would fail exactly as HEIC does. */
+    private static let DECODABLE_BY_SERVER: Set<String> = [
+        "image/jpeg", "image/png", "image/webp",
+    ]
+
+    /// Quality 0.92: visually indistinguishable at any size the archive
+    /// shows, and this is a working copy rather than the kept one — the
+    /// original is uploaded untouched beside it.
+    private static func transcode(_ image: UIImage?) -> Data? {
+        image?.jpegData(compressionQuality: 0.92)
     }
 
     // MARK: Type

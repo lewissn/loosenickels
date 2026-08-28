@@ -210,7 +210,36 @@ signing key never leaves the server, and a reader is only ever handed a URL
 already signed for a single pathname.
 
 The `original` is never served to anyone but the owner. It still carries
-its EXIF, and the GPS tag with it.
+its EXIF, and the GPS tag with it. Neither is `source`, for exactly the same
+reason — see below.
+
+### HEIC, and why there are two uploads
+
+sharp reads HEIC metadata and decodes none of it: the prebuilt binaries ship
+without an HEVC decoder, for licensing reasons rather than technical ones. An
+iPhone shooting its default format therefore produces an original the server
+cannot turn into a thumbnail.
+
+The one-line fix is to transcode on the phone and upload the JPEG as the
+original, which throws the camera's own file away for ever on a product whose
+whole claim is that it keeps what you gave it. So both are kept:
+
+| variant | what it is | who may see it |
+| --- | --- | --- |
+| `original` | exactly what the camera wrote | the owner |
+| `source` | a JPEG transcode, made on the device | the owner |
+| `large` `medium` `thumbnail` | WebP, made by the pipeline | anyone the day is visible to |
+
+`source` exists only so the pipeline has something to read, and only when the
+original is a format the server cannot open — a browser never sends one,
+because a browser cannot decode HEIC either. It is owner-only because it is a
+faithful transcode and carries the same EXIF, and the same GPS tag. Once the
+renditions exist it has no further purpose and may be swept.
+
+`processPending` prefers `source` and falls back to `original`. Where neither
+can be decoded the revision goes to `failed` and stays there, with a reason
+the owner can read: retrying a HEIC on a schedule costs money and changes
+nothing.
 
 ### Environment
 

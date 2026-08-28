@@ -1,0 +1,25 @@
+-- =========================================================================
+-- A decodable rendition, for originals the server cannot open.
+--
+-- sharp reads HEIC metadata and decodes none of it: the prebuilt binaries
+-- ship without an HEVC decoder, for licensing reasons rather than technical
+-- ones. An iPhone shooting its default format therefore produces an original
+-- that nothing on the server can turn into a thumbnail.
+--
+-- The obvious answer is to transcode on the phone and upload the JPEG as the
+-- original. That is one line of Swift and it throws the camera's own file
+-- away for ever — on a product whose whole claim is that it keeps what you
+-- gave it. An original nothing can open is a problem; an original that no
+-- longer exists is a different and worse one.
+--
+-- So both are kept. The device uploads the HEIC as `original`, preserved and
+-- never served to anyone but its owner, and a JPEG as `source`, which exists
+-- only so the pipeline has something to read. Once the renditions are made,
+-- `source` has no further purpose and may be swept.
+--
+-- `source` is owner-only for the same reason `original` is: it is a faithful
+-- transcode, EXIF and all, so it carries the GPS tag exactly as the original
+-- does. Only the resized renditions are safe to publish.
+-- =========================================================================
+
+alter type media_variant add value if not exists 'source';

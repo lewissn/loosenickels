@@ -45,6 +45,10 @@ export const MAX_ORIGINAL_BYTES = 50 * 1024 * 1024;
 export type MediaVariant = VariantName;
 
 export function extensionFor(variant: MediaVariant, contentType: string) {
+  /* `source` is accepted from a client like an original, not made here like
+     a rendition — it is the phone's transcode of a format the server cannot
+     open — but it is always one of the two types this pipeline writes, so it
+     reads from the narrower table. */
   const table = variant === "original" ? ORIGINAL_TYPES : DERIVATIVE_TYPES;
   return table[contentType];
 }

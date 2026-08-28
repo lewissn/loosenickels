@@ -25,6 +25,7 @@ const request = z.object({
      nobody else anything. */
   width: z.number().int().positive().max(100_000),
   height: z.number().int().positive().max(100_000),
+  variant: z.enum(["original", "source"]).default("original"),
 });
 
 const problem = (status: number, said: string) =>
@@ -42,9 +43,9 @@ export async function POST(req: Request) {
   const asked = request.safeParse(body);
   if (!asked.success) return problem(400, "That request does not make sense.");
 
-  const { storageKey, contentType, width, height } = asked.data;
+  const { storageKey, contentType, width, height, variant } = asked.data;
 
-  if (!extensionFor("original", contentType)) {
+  if (!extensionFor(variant, contentType)) {
     return problem(415, `${contentType} is not a photograph this can read.`);
   }
 
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
     .insert({
       user_id: user.id,
       photo_revision_id: null,
-      variant: "original",
+      variant,
       storage_key: storageKey,
       content_type: object.contentType,
       byte_size: object.byteSize,

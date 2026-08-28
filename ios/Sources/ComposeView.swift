@@ -195,9 +195,9 @@ struct ComposeView: View {
         problem = nil
 
         Task {
-            let assetId: String
+            let sent: Transfer.Sent
             do {
-                assetId = try await Transfer.send(photo)
+                sent = try await Transfer.send(photo)
             } catch {
                 problem = (error as? LocalizedError)?.errorDescription
                     ?? "The photograph did not finish sending."
@@ -209,7 +209,8 @@ struct ComposeView: View {
                 let result = try await archive.submit(
                     owner: owner,
                     photo: SubmitPhoto(
-                        assetId: assetId,
+                        assetId: sent.assetId,
+                        sourceAssetId: sent.sourceAssetId,
                         date: date,
                         note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                             ? nil

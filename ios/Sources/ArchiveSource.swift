@@ -55,6 +55,12 @@ enum ArchiveFailure: LocalizedError, Equatable {
 /// first, separately, so a failed commit does not mean sending them again.
 struct SubmitPhoto {
     var assetId: String
+
+    /// A decodable transcode of `assetId`, where the original is a format the
+    /// server cannot open. Both attach to the same revision: the original is
+    /// kept because it is what the camera wrote, and this exists only so the
+    /// pipeline has something to read.
+    var sourceAssetId: String?
     var date: CalendarDate
     var note: String?
     var visibility: DayVisibility = .private

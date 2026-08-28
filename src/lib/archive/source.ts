@@ -117,6 +117,17 @@ export interface SubmitPhoto {
   assetId: AssetId;
 
   /**
+   * A decodable transcode of `assetId`, where the original is a format the
+   * server cannot open.
+   *
+   * Both are attached to the same revision. The original is kept because it
+   * is what the camera wrote; this exists only so the pipeline has something
+   * to read, and may be swept once the renditions are made. A browser never
+   * sends one — it cannot decode an HEIC either, so it never has one.
+   */
+  sourceAssetId?: AssetId;
+
+  /**
    * Which day this is for. Supplied by the client, because only the client
    * knows the zone the photograph was taken in — but validated by the
    * implementation, which must refuse a date the user could not plausibly be
