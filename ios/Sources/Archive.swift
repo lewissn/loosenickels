@@ -68,6 +68,8 @@ enum Significance: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
+    var name: String { rawValue.capitalized }
+
     var note: String {
         switch self {
         case .undetermined: return "The archive has not formed a view."
@@ -149,6 +151,12 @@ enum Accession {
     /// `LN-OB-0007`
     static func format(_ dept: Department, _ sequence: Int) -> String {
         "LN-\(dept.rawValue)-" + String(format: "%04d", sequence)
+    }
+
+    /// `LN–OB–0007`. En-dashes are presentational only — the stored form
+    /// keeps hyphens so it survives URLs, filenames and SQL intact.
+    static func display(_ id: String) -> String {
+        id.replacingOccurrences(of: "-", with: "\u{2013}")
     }
 
     /// The sequence number in a filename like `LN-OB-0007.json`, if it is one.

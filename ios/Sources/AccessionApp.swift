@@ -6,7 +6,7 @@ struct AccessionApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CaptureView()
+            RootView()
                 .environmentObject(settings)
         }
     }

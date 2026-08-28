@@ -95,6 +95,11 @@ struct GitHub {
         var type: String
     }
 
+    private struct FileBody: Decodable {
+        var content: String
+        var encoding: String
+    }
+
     private struct CreateBody: Encodable {
         var message: String
         var content: String
@@ -171,6 +176,29 @@ struct GitHub {
         } catch GitHubError.notFound {
             return []
         }
+    }
+
+    /**
+     The contents of one file.
+
+     GitHub returns the bytes base64-encoded and line-wrapped, which is
+     why the decode ignores unknown characters rather than trusting the
+     string to be clean.
+     */
+    func file(at path: String) async throws -> Data {
+        let endpoint = "repos/\(repository.owner)/\(repository.name)/contents/\(path)"
+        let request = try request("GET", path: endpoint, query: [
+            URLQueryItem(name: "ref", value: repository.branch)
+        ])
+
+        let data = try await send(request, describing: path)
+        let body = try JSONDecoder().decode(FileBody.self, from: data)
+
+        guard body.encoding == "base64",
+              let decoded = Data(base64Encoded: body.content, options: .ignoreUnknownCharacters)
+        else { throw GitHubError.malformedResponse }
+
+        return decoded
     }
 
     /// Creates a file. Fails rather than overwrites if the path is taken.
