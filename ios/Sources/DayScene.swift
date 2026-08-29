@@ -28,6 +28,7 @@ struct DayScene: View {
     let onTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var breathing = false
 
     private var composition: Composition { Composition.of(day.photo) }
     private var room: Room { Room.lit(by: day.photo) }
@@ -68,7 +69,24 @@ struct DayScene: View {
                the crop, and the picture settles into its whole shape. */
             Plate(photo: day.photo, room: room, fill: dressed)
                 .frame(width: size.width, height: size.height)
+                /* §18: a trace of life in a settled composition, and no more
+                   than a trace. One and a half percent over half a minute,
+                   which is below the threshold of noticing and above the
+                   threshold of feeling — enough that a full-screen still does
+                   not read as frozen.
+
+                   Only when it fills the screen: a seated photograph has an
+                   edge against the ground, and anything moving inside that
+                   edge is visible as movement rather than felt as breath. */
+                .scaleEffect(dressed && !reduceMotion && breathing ? 1.015 : 1.0)
+                .animation(
+                    reduceMotion
+                        ? nil
+                        : .easeInOut(duration: 34).repeatForever(autoreverses: true),
+                    value: breathing
+                )
                 .clipped()
+                .onAppear { breathing = true }
 
             if dressed {
                 writing(over: true)
@@ -291,15 +309,18 @@ struct Scrim: View {
 
     var body: some View {
         LinearGradient(
-            /* Four stops, not three. With three the middle sat at the
-               halfway point and the fade began immediately, so text placed
-               anywhere but the very edge fell into thin gradient. Holding
-               near full strength for the first third gives the writing a
-               band to sit in rather than a slope to slide down. */
+            /* Four stops, not three: with three the fade began immediately
+               from the edge, so text anywhere but pressed against it fell
+               into thin gradient. The writing needs a band to sit in.
+
+               But the band was then made both strong and tall, and the two
+               compound — a wash covering a sixth of the photograph. The job
+               is to lift a line of small text, which needs far less than it
+               seems: strong briefly, gone quickly. */
             colors: [
-                base.opacity(0.86),
-                base.opacity(0.78),
-                base.opacity(0.34),
+                base.opacity(0.62),
+                base.opacity(0.50),
+                base.opacity(0.16),
                 base.opacity(0),
             ],
             startPoint: strongest == .top ? .top : .bottom,

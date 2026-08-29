@@ -31,7 +31,9 @@ struct ArchiveView: View {
     /// The day currently filling the screen. The rail takes its light from
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
-    @State private var visible: String?
+    /// Which day is on screen, by position rather than by id — the viewer
+    /// moves between neighbours and needs to know where it is in the run.
+    @State private var at = 0
     /// Whether the interface is showing. Held here rather than per-day, so a
     /// tap on one photograph does not leave the next one dressed differently.
     @State private var dressed = {
@@ -77,7 +79,11 @@ struct ArchiveView: View {
                            strong part and the transition to the photograph
                            happens well below them. */
                         Scrim(dark: railOverDark, strongest: .top)
-                            .frame(height: 240)
+                            /* Tall enough to cover the status bar and the
+                               rail with a little fade beyond, and no taller.
+                               240 put a wash across a sixth of every
+                               photograph to lift two short lines. */
+                            .frame(height: 150)
                             .ignoresSafeArea(edges: .top)
                             .frame(maxHeight: .infinity, alignment: .top)
                             .transition(.opacity)
@@ -114,6 +120,10 @@ struct ArchiveView: View {
         .sheet(isPresented: $composing) {
             ComposeView(owner: profile.id, timeZone: days.timeZone) { recorded in
                 days.merge(recorded)
+                /* A recorded day goes to the top of the run, so the reader
+                   is shown what they just did rather than left wherever they
+                   happened to be. */
+                at = days.days.firstIndex { $0.date == recorded.date } ?? 0
                 Task { await settleReminders(after: recorded.date) }
             }
         }
@@ -176,8 +186,7 @@ struct ArchiveView: View {
     }
 
     private var room: Room {
-        let day = days.days.first { $0.id == visible } ?? days.days.first
-        return day.map { Room.lit(by: $0.photo) } ?? .unlit
+        currentDay.map { Room.lit(by: $0.photo) } ?? .unlit
     }
 
     /**
@@ -287,46 +296,32 @@ struct ArchiveView: View {
     }
 
     private var currentDay: ResolvedDay? {
-        days.days.first { $0.id == visible } ?? days.days.first
+        days.days.indices.contains(at) ? days.days[at] : days.days.first
     }
 
     // MARK: Days
 
     private var pages: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(days.days.enumerated()), id: \.element.id) { index, day in
-                    DayScene(
-                        day: day,
-                        timeZone: days.timeZone,
-                        dressed: dressed
-                    ) {
-                        /* §5: one tap takes the interface away and leaves
-                           the photograph. A gesture rather than a control,
-                           because a control to hide the controls is a
-                           contradiction. */
-                        withAnimation(Tempo.considered) { dressed.toggle() }
-                    }
-                        .containerRelativeFrame(.vertical)
-                        .id(day.id)
-                }
+        Viewer(count: days.days.count, index: $at) { i in
+            DayScene(
+                day: days.days[i],
+                timeZone: days.timeZone,
+                dressed: dressed
+            ) {
+                /* §5: one tap takes the interface away and leaves the
+                   photograph. A gesture rather than a control, because a
+                   control to hide the controls is a contradiction. */
+                withAnimation(Tempo.considered) { dressed.toggle() }
             }
-            .scrollTargetLayout()
         }
-        .scrollTargetBehavior(.paging)
-        .scrollIndicators(.hidden)
-        .scrollPosition(id: $visible)
-        /* Fetch the days on either side of wherever the reader is, so the
-           next photograph is usually already held by the time the gesture
-           that reveals it finishes. Two ahead and one behind: scrolling back
-           is common enough to be worth one, and rare enough not to be worth
-           two. */
-        .onChange(of: visible) { _, now in
-            guard let now, let at = days.days.firstIndex(where: { $0.id == now })
-            else { return }
-
+        .onChange(of: at) { _, now in
+            /* Fetch the days on either side of wherever the reader is, so
+               the next photograph is usually already held by the time the
+               gesture that reveals it finishes. Two ahead and one behind:
+               scrolling back is common enough to be worth one, and rare
+               enough not to be worth two. */
             let window = days.days[
-                max(0, at - 1)...min(days.days.count - 1, at + 2)
+                max(0, now - 1)...min(days.days.count - 1, now + 2)
             ]
 
             let wanted = window.compactMap { day -> (assetId: String, url: URL)? in
@@ -335,22 +330,6 @@ struct ArchiveView: View {
             }
 
             Task { await Photographs.shared.prefetch(wanted) }
-        }
-        .ignoresSafeArea(edges: .bottom)
-        .overlay(alignment: .bottomTrailing) {
-            if days.todayRecorded {
-                /* Recording is still reachable when today is done, because
-                   replacing today's photograph is an ordinary thing to want
-                   and so is filling in a day that was missed. */
-                Button { composing = true } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: Size.lede, weight: .light))
-                        .foregroundStyle(Tone.ground)
-                        .frame(width: 52, height: 52)
-                        .background(Circle().fill(Tone.ink))
-                }
-                .padding(Space.s5)
-            }
         }
     }
 
