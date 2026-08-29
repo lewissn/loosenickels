@@ -37,6 +37,7 @@ private struct RevisionRow: Decodable {
     var placeholder: String?
     var lightness: Double?
     var tone: String?
+    var regions: [Region]?
     var width: Int?
     var height: Int?
     var captured_at: Date?
@@ -133,7 +134,7 @@ private enum Columns {
         "id, handle, display_name, bio, visibility, time_zone, location_precision"
 
     static let revision = """
-        id, revision_number, state, placeholder, lightness, tone, width, height,
+        id, revision_number, state, placeholder, lightness, tone, regions, width, height,
         captured_at, capture_timezone,
         camera_make, camera_model, lens, focal_length_mm, aperture,
         exposure_seconds, iso,
@@ -571,6 +572,7 @@ struct SupabaseArchive: ArchiveSource {
                 placeholder: revision.placeholder,
                 lightness: revision.lightness,
                 tone: revision.tone,
+                regions: revision.regions,
                 processing: revision.state,
                 urls: urls,
                 alt: "Photograph for \(row.entry_date.value)"

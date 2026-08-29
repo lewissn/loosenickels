@@ -52,7 +52,23 @@ export interface Derived {
   lightness: number;
   /** One restrained colour from the image, `#rrggbb`, for the ground. */
   tone: string;
+  /** Where the photograph is quiet and where it is busy. See `regionsOf`. */
+  regions: Region[];
 }
+
+/** One cell of the grid: how bright it is, and how much it varies. */
+export interface Region {
+  /** Mean Rec. 709 luma, 0–1. Decides whether ink over it is pale or dark. */
+  l: number;
+  /** Normalised variance within the cell, 0–1. Decides whether ink over it
+      is legible at all — even tone holds text, busy detail swallows it. */
+  v: number;
+}
+
+/** Columns and rows of the grid. Coarse on purpose: this is for choosing
+    between a top half and a bottom half, not for finding a face. */
+const COLUMNS = 4;
+const ROWS = 6;
 
 /**
  * A photograph this pipeline cannot read.
@@ -148,6 +164,7 @@ export async function derive(
     height,
     placeholder: await placeholderFor(base, width, height),
     ...(await environmentOf(base)),
+    regions: await regionsOf(base),
   };
 }
 
@@ -225,4 +242,73 @@ async function environmentOf(
     lightness: luma / pixels / 255,
     tone: `#${hex(toward(r))}${hex(toward(g))}${hex(toward(b))}`,
   };
+}
+
+/**
+ * A coarse map of where the photograph is quiet.
+ *
+ * Taken from a 32x48 sample — coarse enough to be one pass over a few
+ * thousand pixels, fine enough that a 4x6 grid of it means something. Each
+ * cell reports its mean luma and how much the luma varies inside it.
+ *
+ * Variance is what makes this useful rather than decorative. A cell can be
+ * mid-grey because it is an even wall, or mid-grey because it is half black
+ * branches and half white sky, and those are opposite answers to "may I put
+ * a date here". Luma alone cannot tell them apart; variance can.
+ *
+ * Normalised against a standard deviation of 64/255, which is roughly the
+ * point at which text stops being readable over an area. Anything above that
+ * is clamped to 1: past unreadable there is no further to go.
+ */
+async function regionsOf(base: Sharp): Promise<Region[]> {
+  const w = 32;
+  const h = 48;
+
+  const { data, info } = await base
+    .clone()
+    .resize(w, h, { fit: "fill" })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const cellW = Math.floor(info.width / COLUMNS);
+  const cellH = Math.floor(info.height / ROWS);
+  const regions: Region[] = [];
+
+  for (let row = 0; row < ROWS; row += 1) {
+    for (let col = 0; col < COLUMNS; col += 1) {
+      let sum = 0;
+      let squares = 0;
+      let n = 0;
+
+      for (let y = row * cellH; y < (row + 1) * cellH; y += 1) {
+        for (let x = col * cellW; x < (col + 1) * cellW; x += 1) {
+          const i = (y * info.width + x) * info.channels;
+          const luma =
+            0.2126 * data[i]! + 0.7152 * data[i + 1]! + 0.0722 * data[i + 2]!;
+          sum += luma;
+          squares += luma * luma;
+          n += 1;
+        }
+      }
+
+      if (!n) {
+        regions.push({ l: 0.5, v: 0.5 });
+        continue;
+      }
+
+      const mean = sum / n;
+      /* Population variance, then its root, then normalised. Clamped at zero
+         first because floating point makes this very slightly negative for a
+         perfectly flat cell. */
+      const deviation = Math.sqrt(Math.max(0, squares / n - mean * mean));
+
+      regions.push({
+        l: Number((mean / 255).toFixed(3)),
+        v: Number(Math.min(1, deviation / 64).toFixed(3)),
+      });
+    }
+  }
+
+  return regions;
 }

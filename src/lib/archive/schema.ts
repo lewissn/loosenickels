@@ -445,6 +445,14 @@ export type ProfileInput = z.input<typeof profile>;
    and already stripped of anything this viewer may not see. */
 
 /** A photograph, resolved for display, with URLs already minted. */
+/** One cell of the photograph's coarse map. See `regions` below. */
+export interface Region {
+  /** Mean Rec. 709 luma, 0–1. */
+  l: number;
+  /** Normalised variance, 0–1. High means busy, and busy swallows text. */
+  v: number;
+}
+
 export interface ResolvedPhoto {
   assetId: AssetId;
   width: number;
@@ -454,6 +462,15 @@ export interface ResolvedPhoto {
   lightness?: number;
   tone?: string;
   processing: ProcessingState;
+  /**
+   * A 4x6 grid, row-major from the top-left, of how bright and how busy each
+   * part of the photograph is. What lets a surface put the writing where the
+   * picture leaves room rather than always in the same place.
+   *
+   * Absent for anything processed before this existed, so every reader must
+   * cope without it.
+   */
+  regions?: Region[];
   /** Signed, expiring URLs by intent. Absent variants are not yet generated. */
   urls: Partial<Record<VariantName, string>>;
   alt: string;

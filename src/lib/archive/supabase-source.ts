@@ -19,6 +19,7 @@ import {
   type LocationPrecision,
   type ProfileVisibility,
   type ResolvedDay,
+  type Region,
   type ResolvedPhoto,
   type UserId,
   type VariantName,
@@ -70,7 +71,7 @@ type Db = SupabaseClient;
 
 const REVISION_COLUMNS = `
   id, day_entry_id, user_id, revision_number, state, placeholder,
-  lightness, tone,
+  lightness, tone, regions,
   width, height, orientation,
   captured_at, capture_timezone, submitted_at,
   camera_make, camera_model, lens, focal_length_mm, aperture,
@@ -118,6 +119,7 @@ interface RevisionRow {
   placeholder: string | null;
   lightness: number | null;
   tone: string | null;
+  regions: Region[] | null;
   width: number | null;
   height: number | null;
   orientation: number | null;
@@ -239,6 +241,7 @@ async function resolvePhoto(
     placeholder: r.placeholder ?? undefined,
     lightness: r.lightness ?? undefined,
     tone: r.tone ?? undefined,
+    regions: r.regions ?? undefined,
     processing: r.state,
     urls: await urlsFor(assets, owner, viewer),
     /* Alt text is not yet a field anybody fills in. Saying what the

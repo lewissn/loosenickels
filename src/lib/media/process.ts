@@ -2,6 +2,8 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { derive, UndecodableImage } from "./derive";
+import { weatherAt } from "./weather";
+import { placeAt } from "./place";
 
 /* =========================================================================
    The work queue.
@@ -58,7 +60,9 @@ export async function processPending(
 
   let pending = db
     .from("photo_revisions")
-    .select("id, user_id, media_assets ( id, variant, storage_key )")
+    .select(
+      "id, user_id, latitude, longitude, captured_at, weather, place_name, media_assets ( id, variant, storage_key )",
+    )
     .eq("state", "pending");
 
   if (owner) pending = pending.eq("user_id", owner);
@@ -70,6 +74,11 @@ export async function processPending(
       Array<{
         id: string;
         user_id: string;
+        latitude: number | null;
+        longitude: number | null;
+        captured_at: string | null;
+        weather: unknown | null;
+        place_name: string | null;
         media_assets: Array<{ variant: string; storage_key: string }>;
       }>
     >();
@@ -130,16 +139,54 @@ export async function processPending(
         throw new Error(`The renditions could not be recorded: ${written.message}`);
       }
 
+      /* Looked up alongside the resize rather than in a step of its own,
+         because the pipeline is already the thing that runs once per
+         photograph and knows when it is finished. Only where the photograph
+         says where it was — no coordinates, no weather, and that is a fact
+         about the photograph rather than a failure. */
+      let weather = revision.weather ?? undefined;
+      let placed;
+
+      if (revision.latitude !== null && revision.longitude !== null) {
+        /* Both looked up together and neither allowed to fail anything: the
+           photograph is already recorded, and a day without a temperature is
+           still a day. */
+        const [w, p] = await Promise.all([
+          weather || !revision.captured_at
+            ? Promise.resolve(weather)
+            : weatherAt(
+                revision.latitude,
+                revision.longitude,
+                new Date(revision.captured_at),
+              ),
+          revision.place_name
+            ? Promise.resolve(undefined)
+            : placeAt(revision.latitude, revision.longitude),
+        ]);
+        weather = w;
+        placed = p;
+      }
+
       await db
         .from("photo_revisions")
         .update({
           state: "ready",
+          weather: weather ?? null,
+          ...(placed
+            ? {
+                place_name: placed.placeName ?? null,
+                locality: placed.locality ?? null,
+                region: placed.region ?? null,
+                country: placed.country ?? null,
+              }
+            : {}),
           failure_reason: null,
           width: derived.width,
           height: derived.height,
           placeholder: derived.placeholder,
           lightness: derived.lightness,
           tone: derived.tone,
+          regions: derived.regions,
         })
         .eq("id", revision.id);
 

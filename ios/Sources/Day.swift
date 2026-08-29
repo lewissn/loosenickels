@@ -233,6 +233,21 @@ struct Camera: Codable, Equatable {
 // to, with URLs already signed — a caller cannot accidentally show a private
 // coordinate, because it was never given one.
 
+/**
+ One cell of the photograph's coarse map.
+
+ `l` says whether ink over this area should be pale or dark. `v` says whether
+ it should be there at all: a cell of even tone is sky or wall or water and
+ will hold text, while a cell of high variance is branches or a crowd and
+ will swallow it. Luma alone cannot tell a grey wall from half-black-half-
+ white branches; variance can, and that difference is the whole of what makes
+ the layout photograph-aware rather than decorative.
+ */
+struct Region: Codable, Equatable {
+    var l: Double
+    var v: Double
+}
+
 struct ResolvedPhoto: Identifiable, Equatable {
     var assetId: String
     var width: Int
@@ -242,6 +257,9 @@ struct ResolvedPhoto: Identifiable, Equatable {
     var lightness: Double?
     /// One restrained colour from the image, `#rrggbb`, for the ground.
     var tone: String?
+    /// A 4x6 grid, row-major from the top-left. Absent for anything resized
+    /// before this existed, so every reader must cope without it.
+    var regions: [Region]?
     var processing: ProcessingState
     /// Signed and expiring, by intent. An absent variant is not yet made.
     var urls: [MediaVariant: URL]
