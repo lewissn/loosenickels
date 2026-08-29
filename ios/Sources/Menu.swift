@@ -61,7 +61,7 @@ struct Menu: View {
 
         var ready: Bool {
             switch self {
-            case .latest, .calendar: return true
+            case .latest, .calendar, .timeline: return true
             default: return false
             }
         }

@@ -33,7 +33,7 @@ struct ArchiveView: View {
     @State private var showing: Layer?
     @State private var yearSummaries: [DaySummary] = []
 
-    enum Layer: Equatable { case menu, year(Int) }
+    enum Layer: Equatable { case menu, year(Int), timeline }
     /// The day currently filling the screen. The rail takes its light from
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
@@ -150,6 +150,14 @@ struct ArchiveView: View {
                 }
                 .transition(.opacity)
 
+            case .timeline:
+                Timeline(summaries: yearSummaries, room: room) { day in
+                    open(day)
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = nil }
+                }
+                .transition(.opacity)
+
             case nil:
                 EmptyView()
             }
@@ -168,6 +176,10 @@ struct ArchiveView: View {
                    now. */
                 if CommandLine.arguments.contains("-menu") {
                     showing = .menu
+                }
+                if CommandLine.arguments.contains("-timeline") {
+                    yearSummaries = Fixtures.year(2026)
+                    showing = .timeline
                 }
                 if CommandLine.arguments.contains("-year") {
                     yearSummaries = Fixtures.year(2026)
@@ -270,6 +282,11 @@ struct ArchiveView: View {
             let which = currentDay.map(\.date.year) ?? Calendar.current.component(.year, from: Date())
             withAnimation(Tempo.considered) { showing = .year(which) }
             Task { await loadYear(which) }
+        case .timeline:
+            let which = currentDay.map(\.date.year) ?? Calendar.current.component(.year, from: Date())
+            withAnimation(Tempo.considered) { showing = .timeline }
+            Task { await loadYear(which) }
+
         default:
             break
         }

@@ -189,34 +189,3 @@ struct YearView: View {
         return months[max(0, min(11, month - 1))]
     }
 }
-
-/// One day in the field. Small enough that the placeholder is often all
-/// there is time for, and often enough.
-private struct Thumbnail: View {
-    let summary: DaySummary
-    let room: Room
-
-    @State private var image: UIImage?
-
-    var body: some View {
-        ZStack {
-            room.ink.opacity(0.06)
-
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .transition(.opacity)
-            }
-        }
-        .animation(Tempo.out, value: image != nil)
-        .task(id: summary.id) {
-            guard let url = summary.thumbnailUrl else { return }
-            if let held = await Photographs.shared.cached(summary.id) {
-                image = held
-                return
-            }
-            image = await Photographs.shared.image(for: summary.id, at: url)
-        }
-    }
-}
