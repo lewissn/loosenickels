@@ -33,7 +33,7 @@ struct ArchiveView: View {
     @State private var showing: Layer?
     @State private var yearSummaries: [DaySummary] = []
 
-    enum Layer: Equatable { case menu, year(Int), timeline }
+    enum Layer: Equatable { case menu, year(Int), timeline, details(String) }
     /// The day currently filling the screen. The rail takes its light from
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
@@ -158,6 +158,14 @@ struct ArchiveView: View {
                 }
                 .transition(.opacity)
 
+            case .details(let id):
+                if let day = days.days.first(where: { $0.id == id }) {
+                    DetailsView(day: day, timeZone: days.timeZone, room: room) {
+                        withAnimation(Tempo.considered) { showing = nil }
+                    }
+                    .transition(.opacity)
+                }
+
             case nil:
                 EmptyView()
             }
@@ -176,6 +184,9 @@ struct ArchiveView: View {
                    now. */
                 if CommandLine.arguments.contains("-menu") {
                     showing = .menu
+                }
+                if CommandLine.arguments.contains("-details") {
+                    showing = .details(Fixtures.days().first?.id ?? "")
                 }
                 if CommandLine.arguments.contains("-timeline") {
                     yearSummaries = Fixtures.year(2026)
@@ -461,6 +472,10 @@ struct ArchiveView: View {
                    photograph. A gesture rather than a control, because a
                    control to hide the controls is a contradiction. */
                 withAnimation(Tempo.considered) { dressed.toggle() }
+            } onDetails: {
+                withAnimation(Tempo.considered) {
+                    showing = .details(days.days[i].id)
+                }
             }
         }
         .onChange(of: at) { _, now in

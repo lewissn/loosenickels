@@ -26,6 +26,9 @@ struct DayScene: View {
     /// so a tap on one day does not leave the next one dressed differently.
     let dressed: Bool
     let onTap: () -> Void
+    /// §43: tap metadata, get details. The same gesture everywhere it
+    /// appears, rather than a different way in from each screen.
+    let onDetails: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var breathing = false
@@ -198,11 +201,19 @@ struct DayScene: View {
         ].compactMap { $0 }
 
         if !parts.isEmpty {
-            Text(parts.joined(separator: "   ·   "))
-                .font(Face.mono(Size.micro))
-                .tracking(0.3)
-                .foregroundStyle(faint)
-                .padding(.top, Space.s1)
+            Button(action: onDetails) {
+                Text(parts.joined(separator: "   ·   "))
+                    .font(Face.mono(Size.micro))
+                    .tracking(0.3)
+                    .foregroundStyle(faint)
+                    .padding(.top, Space.s1)
+                    /* A tap target the height of a finger, over a line of
+                       eleven-point type. Without this the only way in is to
+                       hit the glyphs themselves. */
+                    .contentShape(Rectangle().inset(by: -12))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Details for this day")
         }
     }
 
