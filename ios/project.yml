@@ -7,7 +7,9 @@
 # project is disposable — regenerate it rather than editing it, and keep
 # any change you want to survive in here.
 #
-# The one thing to set before generating is DEVELOPMENT_TEAM, below.
+# Everything needed to sign is in here, so a regenerated project is
+# immediately buildable and nothing has to be re-entered in Xcode's UI.
+# See "Signing" below.
 
 name: Daily
 
@@ -31,6 +33,28 @@ options:
 
 settings:
   base:
+    # ---------------------------------------------------------------
+    # Signing
+    #
+    # Set once, at the project level, so both the app and the widget
+    # inherit it. Setting it in Xcode's Signing & Capabilities tab
+    # instead would work exactly until the next `xcodegen`, which
+    # rewrites the project file and takes the answer with it.
+    # ---------------------------------------------------------------
+    DEVELOPMENT_TEAM: 5789FTFX36
+    CODE_SIGN_STYLE: Automatic
+
+    # Automatic signing rewrites an entitlements file when it reconciles
+    # capabilities against the provisioning profile, and Xcode treats a
+    # file changed mid-build as an error rather than doing it quietly.
+    # The alternative is re-signing by hand after every regeneration.
+    #
+    # The warning attached to this setting is about entitlements drifting
+    # from what was intended. That does not apply here: both files are
+    # generated from the properties below on every `xcodegen`, so the
+    # intent is version-controlled and any modification is overwritten
+    # the next time the project is built from source.
+    CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
     # Swift 6 strict concurrency wants annotations this code does not
     # carry. Nothing here needs the newer language mode.
     SWIFT_VERSION: "5.0"
@@ -55,6 +79,9 @@ targets:
 
     entitlements:
       path: Daily.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.lewisnichols.daily
 
     settings:
       base:
@@ -67,18 +94,6 @@ targets:
 
         # iPhone only. Nothing here wants a larger canvas.
         TARGETED_DEVICE_FAMILY: "1"
-
-        CODE_SIGN_STYLE: Automatic
-
-        # ---------------------------------------------------------------
-        # Put your ten-character Apple Developer Team ID here. Xcode →
-        # Settings → Accounts → your account → the Team ID column.
-        #
-        # Leaving it empty still generates a working project; Xcode will
-        # ask for a team on the Signing & Capabilities tab, but that
-        # choice is lost the next time this file is regenerated.
-        # ---------------------------------------------------------------
-        DEVELOPMENT_TEAM: ""
 
         # WeatherKit is deliberately NOT enabled here. The entitlement
         # fails to sign until the App ID is registered for WeatherKit on
@@ -164,6 +179,9 @@ targets:
 
     entitlements:
       path: DailyWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.lewisnichols.daily
 
     settings:
       base:
@@ -172,8 +190,6 @@ targets:
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"
-        CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: ""
         SKIP_INSTALL: YES
 
     info:

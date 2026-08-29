@@ -43,10 +43,28 @@ anyway:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-Put your ten-character Team ID in `project.yml` under `DEVELOPMENT_TEAM`
-before generating. Leaving it empty still produces a working project, but
-Xcode will ask for a team on the Signing & Capabilities tab and that choice
-is lost the next time the project is regenerated.
+Signing is already set. `DEVELOPMENT_TEAM` lives in `project.yml` at the
+project level, so both the app and the widget inherit it and a regenerated
+project is buildable straight away.
+
+### Do not set capabilities in Xcode's UI
+
+`xcodegen` rewrites the project file, and anything entered in Signing &
+Capabilities goes with it. Both entitlements files are generated from
+`project.yml` for the same reason: the App Group is declared there once, and
+regenerating restores it rather than losing it.
+
+If you hit:
+
+    Entitlements file "DailyWidget.entitlements" was modified during the
+    build, which is not supported.
+
+that is automatic signing reconciling capabilities against the provisioning
+profile and rewriting the file mid-build. `CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION`
+is set to `YES` in `project.yml` to permit it. The warning attached to that
+setting is about entitlements drifting from what was intended, which does not
+apply here — the intent is in `project.yml`, under version control, and any
+modification is overwritten by the next `xcodegen`.
 
 One dependency, resolved by Xcode on first build: **supabase-swift**. It
 carries the session — keychain storage, refresh before expiry, and parsing
