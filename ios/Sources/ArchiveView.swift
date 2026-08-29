@@ -34,11 +34,12 @@ struct ArchiveView: View {
     /// Which year `yearSummaries` holds, so stepping across a boundary knows
     /// it must fetch and stepping within one knows it need not.
     @State private var yearLoaded: Int?
+    @State private var placedDays: [PlacedDay] = []
     @State private var fresh: Profile?
     @State private var revisions: [Revision] = []
 
     enum Layer: Equatable {
-        case menu, year(Int), month(Int, Int), timeline
+        case menu, year(Int), month(Int, Int), timeline, map
         case details(String), settings, versions(String)
     }
     /// The day currently filling the screen. The rail takes its light from
@@ -183,6 +184,14 @@ struct ArchiveView: View {
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.90)))
 
+            case .map:
+                MapView(days: placedDays, room: room) { day in
+                    open(day)
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = nil }
+                }
+                .transition(.opacity)
+
             case .timeline:
                 Timeline(summaries: yearSummaries, room: room) { day in
                     open(day)
@@ -269,6 +278,10 @@ struct ArchiveView: View {
                 if CommandLine.arguments.contains("-timeline") {
                     yearSummaries = Fixtures.year(2026)
                     showing = .timeline
+                }
+                if CommandLine.arguments.contains("-map") {
+                    placedDays = Fixtures.placed()
+                    showing = .map
                 }
                 if CommandLine.arguments.contains("-month") {
                     yearSummaries = Fixtures.year(2026)
@@ -374,6 +387,9 @@ struct ArchiveView: View {
             let which = currentDay.map(\.date.year) ?? Calendar.current.component(.year, from: Date())
             withAnimation(Tempo.considered) { showing = .timeline }
             Task { await loadYear(which) }
+        case .map:
+            withAnimation(Tempo.considered) { showing = .map }
+            Task { await loadPlaced() }
 
         default:
             break
@@ -459,6 +475,25 @@ struct ArchiveView: View {
             yearLoaded = year
         }
         withAnimation(Tempo.inOut) { showing = .month(year, month) }
+    }
+
+    private func loadPlaced() async {
+        if let fixtures {
+            _ = fixtures
+            #if DEBUG
+            placedDays = Fixtures.placed()
+            #endif
+            return
+        }
+
+        /* A cap rather than everything, because the map is the one screen
+           whose cost grows with the whole archive rather than with what is
+           on screen. Two thousand days is five and a half years and well
+           past the point where individual dots stop being distinguishable. */
+        placedDays = (try? await SupabaseArchive().placed(
+            owner: profile.id,
+            limit: 2000
+        )) ?? []
     }
 
     private func loadYear(_ which: Int) async {

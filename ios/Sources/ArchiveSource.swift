@@ -91,6 +91,32 @@ struct SubmitPhoto {
 }
 
 /// One version of a day's photograph.
+/**
+ A day, reduced to where it happened.
+
+ Separate from `DaySummary` because the map needs one thing that a listing
+ never does and does not need most of what a listing carries. Chiefly it
+ needs the coordinate, which is the one field the archive is most careful
+ about handing out: this shape only ever describes the owner's own days, and
+ the coordinate in it is the one the camera recorded rather than whatever
+ coarsening a visitor would be given.
+ */
+struct PlacedDay: Identifiable, Equatable {
+    let date: CalendarDate
+    let coordinates: Coordinates
+    let place: Place?
+    let thumbnailUrl: URL?
+
+    var id: String { date.value }
+
+    /// The shortest true name for where this was, in the order a person
+    /// would say it. Nil rather than a coordinate rendered as text — a
+    /// decimal pair is not a place name and should not be dressed as one.
+    var name: String? {
+        place?.label ?? place?.region ?? place?.country
+    }
+}
+
 struct Revision: Identifiable, Equatable {
     let id: String
     /// Assigned by the database, and never reused: replacing a photograph
@@ -131,6 +157,11 @@ protocol ArchiveSource {
     /// are absent, and the caller draws the gap. The archive does not
     /// invent placeholder records for days that were never recorded.
     func summaries(owner: String, from: CalendarDate, to: CalendarDate) async throws -> [DaySummary]
+
+    /// Every day that knows where it was, newest first. Only days carrying
+    /// coordinates come back — a day without them is not a day at an unknown
+    /// place, it is a day the map has nothing to say about.
+    func placed(owner: String, limit: Int) async throws -> [PlacedDay]
 
     /// A day's versions, newest first. Owner-only in every implementation —
     /// a visitor is not told that a day was ever revised, and an empty

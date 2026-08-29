@@ -122,6 +122,32 @@ private struct ProfileRow: Decodable {
     var location_precision: LocationPrecision
 }
 
+private struct PlacedRow: Decodable {
+    var entry_date: CalendarDate
+    var photo_revisions: Embedded<PlacedRevisionRow>?
+}
+
+private struct PlacedRevisionRow: Decodable {
+    var id: String
+    var latitude: Double?
+    var longitude: Double?
+    var place_name: String?
+    var locality: String?
+    var region: String?
+    var country: String?
+    /* Its own asset shape, not `AssetRow`. That one requires width and
+       height, the map's select does not ask for them, and a non-optional
+       field missing from the response fails the whole decode — which is
+       exactly how the last embed mistake presented: not as a wrong value
+       but as no rows at all. */
+    var media_assets: [PlacedAssetRow]?
+}
+
+private struct PlacedAssetRow: Decodable {
+    var id: String
+    var variant: MediaVariant
+}
+
 private struct AssetIdRow: Decodable { var id: String }
 private struct RevisionIdRow: Decodable { var id: String; var revision_number: Int }
 private struct DayIdRow: Decodable { var id: String }
@@ -148,6 +174,18 @@ private enum Columns {
        embed rather than guessing. The name is the constraint's own, as
        migration 1 states it — not PostgREST's generated `..._fkey` form,
        which is what was here and which no constraint in this schema has. */
+    /* The map's own select, rather than the day's. A map of a decade is a
+       few thousand rows, and asking each of them for its camera settings,
+       its weather and its region grid to plot one dot is most of a megabyte
+       spent on fields nothing draws. */
+    static let placed = """
+        entry_date,
+        photo_revisions!current_revision_belongs_to_entry (
+        id, latitude, longitude, place_name, locality, region, country,
+        media_assets ( id, variant )
+        )
+        """
+
     static let day = """
         id, user_id, entry_date, note, visibility, current_revision_id,
         photo_revisions!current_revision_belongs_to_entry (
@@ -323,6 +361,55 @@ struct SupabaseArchive: ArchiveSource {
             earliest: dates.first?.entry_date,
             latest: dates.last?.entry_date
         )
+    }
+
+    func placed(owner: String, limit: Int) async throws -> [PlacedDay] {
+        let rows: [PlacedRow] = try await run {
+            try await db.from("day_entries")
+                .select(Columns.placed)
+                .eq("user_id", value: owner)
+                .not("current_revision_id", operator: .is, value: AnyJSON.null)
+                .order("entry_date", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+        }
+
+        /* Days without a coordinate are dropped here rather than by the
+           database. PostgREST can filter on an embedded column given an
+           inner join, and that is the right query for an archive large
+           enough to feel this; at the size a life reaches it is a few
+           thousand narrow rows, and the version that cannot fail on an embed
+           hint is worth more than the one that saves a round of filtering.
+           The hint in this file has been wrong once already. */
+        let plottable = rows.compactMap { row -> (PlacedRow, PlacedRevisionRow, Coordinates)? in
+            guard let revision = row.photo_revisions?.first,
+                  let lat = revision.latitude,
+                  let lon = revision.longitude
+            else { return nil }
+            return (row, revision, Coordinates(lat: lat, lon: lon))
+        }
+
+        let thumbs = plottable.compactMap { _, revision, _ in
+            (revision.media_assets ?? []).first { $0.variant == .thumbnail }?.id
+        }
+        let signed = await signedURLs(for: thumbs)
+
+        return plottable.map { row, revision, coordinates in
+            let thumb = (revision.media_assets ?? []).first { $0.variant == .thumbnail }
+
+            return PlacedDay(
+                date: row.entry_date,
+                coordinates: coordinates,
+                place: Place(
+                    label: revision.place_name ?? revision.locality,
+                    region: revision.region,
+                    country: revision.country,
+                    coordinates: coordinates
+                ),
+                thumbnailUrl: thumb.flatMap { signed[$0.id] }
+            )
+        }
     }
 
     func revisions(owner: String, date: CalendarDate) async throws -> [Revision] {

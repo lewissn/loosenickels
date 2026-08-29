@@ -176,6 +176,52 @@ enum Fixtures {
     /// Four versions of one day, for looking at §19. The submission dates
     /// deliberately trail the capture date: a photograph replaced weeks
     /// later is the case the two timestamps exist to distinguish.
+    /* Somewhere real, and spread the way a life actually spreads: most of it
+       in one city, a handful in another, and two on a coast a long way off.
+       An even scatter is the one distribution a map of a person never has,
+       and it is the one that makes clustering look like it works when it
+       does not. */
+    static func placed() -> [PlacedDay] {
+        var seed = UInt64(0x2545F4914F6CDD1D)
+        let random = { () -> Double in
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Double((seed >> 33) % 10_000) / 10_000
+        }
+
+        let homes: [(String, Double, Double, Double, Int)] = [
+            ("London", 51.5072, -0.1276, 0.09, 22),
+            ("Edinburgh", 55.9533, -3.1883, 0.04, 6),
+            ("Lisbon", 38.7223, -9.1393, 0.03, 3),
+            ("Sennen Cove", 50.0761, -5.7003, 0.01, 2)
+        ]
+
+        var out: [PlacedDay] = []
+        var day = 0
+
+        for (name, lat, lon, spread, count) in homes {
+            for _ in 0..<count {
+                day += 1
+                let (url, _, _) = drawn(width: 900, height: 900, dark: day % 5 == 0)
+                let date = Calendar.current.date(
+                    byAdding: .day, value: -day * 3, to: Date()
+                ) ?? Date()
+
+                out.append(
+                    PlacedDay(
+                        date: CalendarDate(date, in: .gmt),
+                        coordinates: Coordinates(
+                            lat: lat + (random() - 0.5) * spread,
+                            lon: lon + (random() - 0.5) * spread
+                        ),
+                        place: Place(label: name, region: nil, country: nil, coordinates: nil),
+                        thumbnailUrl: url
+                    )
+                )
+            }
+        }
+        return out.sorted { $0.date > $1.date }
+    }
+
     static func revisions() -> [Revision] {
         let plates = (0..<4).map { i -> URL in
             drawn(width: 900, height: 1200, dark: i == 1).0
