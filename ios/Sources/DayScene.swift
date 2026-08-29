@@ -54,12 +54,19 @@ struct DayScene: View {
 
     private func fullBleed(in size: CGSize) -> some View {
         ZStack(alignment: composition.placement == .overlaidHigh ? .top : .bottom) {
-            /* Filled rather than fitted, and this is the one place the
-               product crops. §4 permits it for portraits and §6 forbids it
-               for everything else, which is the right division: a portrait
-               photograph on a portrait screen loses a sliver of its long
-               edge, where a landscape one would lose its subject. */
-            Plate(photo: day.photo, room: room, fill: true)
+            /* Filled while dressed, fitted while not.
+
+               Filling is the one place the product crops, and §4 permits it
+               for portraits: a portrait photograph on a portrait screen
+               loses a sliver of its long edge, where a landscape one would
+               lose its subject.
+
+               But §5 asks that a tap let the image "be appreciated
+               completely unobstructed", and a cropped photograph is
+               obstructed by the frame. Taking the interface away and leaving
+               a crop answers half the request. So isolating also releases
+               the crop, and the picture settles into its whole shape. */
+            Plate(photo: day.photo, room: room, fill: dressed)
                 .frame(width: size.width, height: size.height)
                 .clipped()
 
@@ -73,25 +80,14 @@ struct DayScene: View {
                        the writing legible, and a gradient of the room's own
                        ground does that without smearing the photograph. */
                     .background(
-                        LinearGradient(
-                            colors: [
-                                scrim.opacity(0),
-                                scrim.opacity(0.55),
-                                scrim.opacity(0.80),
-                            ],
-                            startPoint: composition.placement == .overlaidHigh ? .bottom : .top,
-                            endPoint: composition.placement == .overlaidHigh ? .top : .bottom
+                        Scrim(
+                            dark: overlaidOnDark,
+                            strongest: composition.placement == .overlaidHigh ? .top : .bottom
                         )
                     )
                     .transition(.opacity)
             }
         }
-    }
-
-    /// Black over a bright area, the room's own dark over a dark one — so the
-    /// scrim reads as the photograph shading off rather than as a panel.
-    private var scrim: Color {
-        overlaidOnDark ? Color.black : Color.black
     }
 
     private var overlaidOnDark: Bool {
@@ -136,12 +132,16 @@ struct DayScene: View {
         let ink = photograph
             ? (overlaidOnDark ? Tone.inkNight : Tone.inkDay)
             : room.ink
-        let muted = photograph
-            ? (overlaidOnDark ? Tone.inkMutedNight : Tone.inkMutedDay)
-            : room.inkMuted
-        let faint = photograph
-            ? (overlaidOnDark ? Tone.inkFaintNight : Tone.inkFaintDay)
-            : room.inkFaint
+
+        /* Over a photograph the ladder is opacity on the primary rather than
+           the muted and faint tokens. Those are tuned against a known ground
+           and a scrim is not one: a photograph sitting near the light/dark
+           threshold gave a mid-grey scrim under a mid-grey "SATURDAY", which
+           is the weakest thing on the screen at exactly the moment it should
+           not be. Relative opacity keeps the three ranks apart whatever is
+           underneath. */
+        let muted = photograph ? ink.opacity(0.78) : room.inkMuted
+        let faint = photograph ? ink.opacity(0.62) : room.inkFaint
 
         return VStack(alignment: .leading, spacing: Space.s3) {
             DateMark(
@@ -262,5 +262,50 @@ enum InlineImage {
               let data = Data(base64Encoded: String(inline[inline.index(after: comma)...]))
         else { return nil }
         return UIImage(data: data)
+    }
+}
+
+/*
+ A gradient that makes writing legible over a photograph.
+
+ Not a blur — §6 rejects those, and the argument holds here: the point is to
+ let the writing be read, and a blur smears the picture to do it.
+
+ The colour follows what is underneath. Over a dark area it darkens, over a
+ bright one it lightens, so the band reads as the photograph shading off at
+ its edge rather than as a panel laid on top. Always darkening would be more
+ reliable and would put a heavy bar across the top of every bright sky.
+ */
+struct Scrim: View {
+    let dark: Bool
+    /// The edge the scrim is *strongest* at, and fades away from.
+    ///
+    /// Named for the strong end rather than the gradient's start point,
+    /// which is what it was and which I read backwards the first time —
+    /// the rail's scrim came out transparent at the top and opaque at the
+    /// bottom, leaving a hard line under it and doing nothing for the
+    /// writing it was there to lift.
+    let strongest: Edge
+
+    enum Edge { case top, bottom }
+
+    var body: some View {
+        LinearGradient(
+            colors: [
+                base.opacity(0.78),
+                base.opacity(0.40),
+                base.opacity(0),
+            ],
+            startPoint: strongest == .top ? .top : .bottom,
+            endPoint: strongest == .top ? .bottom : .top
+        )
+        .allowsHitTesting(false)
+    }
+
+    /* Not pure black and not pure white. The archive's own ground and ink,
+       so a scrim over a photograph is the same two colours as everything
+       else in the product rather than a third thing. */
+    private var base: Color {
+        dark ? Color(fixed: 0x0c0c09) : Color(fixed: 0xe8e5da)
     }
 }

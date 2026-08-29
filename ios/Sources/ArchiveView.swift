@@ -34,7 +34,16 @@ struct ArchiveView: View {
     @State private var visible: String?
     /// Whether the interface is showing. Held here rather than per-day, so a
     /// tap on one photograph does not leave the next one dressed differently.
-    @State private var dressed = true
+    @State private var dressed = {
+        #if DEBUG
+        /* `-undressed` starts in pure-photograph mode. The harness cannot
+           tap, and this is the state where the crop is released — which is
+           precisely the thing worth looking at and the only way to see it. */
+        return !CommandLine.arguments.contains("-undressed")
+        #else
+        return true
+        #endif
+    }()
 
     var body: some View {
         ZStack {
@@ -54,7 +63,18 @@ struct ArchiveView: View {
                     pages.ignoresSafeArea()
 
                     if dressed {
-                        rail.transition(.opacity)
+                        rail
+                            /* The same scrim the writing gets. Without it the
+                               brand mark and the date sat unreadable over a
+                               bright, busy canopy — dark ink was the right
+                               choice and still lost, because variance beats
+                               contrast: text over branches is illegible at
+                               any tone. */
+                            .background(
+                                Scrim(dark: railOverDark, strongest: .top)
+                                    .ignoresSafeArea(edges: .top)
+                            )
+                            .transition(.opacity)
                     }
                 }
             }
@@ -228,12 +248,24 @@ struct ArchiveView: View {
        what is behind it rather than from the room — which for a portrait is
        the top of the picture, not the ground. */
     private var railInk: Color {
-        guard let day = days.days.first(where: { $0.id == visible }) ?? days.days.first
-        else { return Tone.ink }
+        guard onPhotograph else { return room.ink }
+        return railOverDark ? Tone.inkNight : Tone.inkDay
+    }
 
-        let composition = Composition.of(day.photo)
-        guard composition.shape == .portrait else { return room.ink }
-        return day.photo.lightnessBehind(.overlaidHigh) < 0.55 ? Tone.inkNight : Tone.inkDay
+    /// Whether the rail is floating over a picture at all — only portraits
+    /// reach the top of the screen; everything else has ground up there.
+    private var onPhotograph: Bool {
+        guard let day = currentDay else { return false }
+        return Composition.of(day.photo).shape == .portrait
+    }
+
+    private var railOverDark: Bool {
+        guard let day = currentDay else { return room.isNight }
+        return day.photo.lightnessBehind(.overlaidHigh) < 0.55
+    }
+
+    private var currentDay: ResolvedDay? {
+        days.days.first { $0.id == visible } ?? days.days.first
     }
 
     // MARK: Days

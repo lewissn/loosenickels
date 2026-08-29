@@ -59,7 +59,11 @@ enum Fixtures {
        only thing that makes the placement logic do anything. */
     private static func all() -> [ResolvedDay] {
         [
-            day("2026-08-29", aspect: 0.75, dark: false, busyBottom: false,
+            /* Bright and busy at the top: a canopy. The case that showed the
+               rail was illegible, which smooth gradients never would have —
+               dark ink over bright branches is lost at any tone, and only a
+               scrim fixes it. */
+            day("2026-08-29", aspect: 0.75, dark: false, busyBottom: false, busyTop: true,
                 note: "The beeches at the top of the hill, looking straight up. I have walked past them for eleven years and never once looked up.",
                 place: "Hampstead Heath",
                 weather: Weather(temperatureC: 19, conditions: "Clear", precipitationMm: 0, windMs: 2.1, daylight: true)),
@@ -122,13 +126,14 @@ enum Fixtures {
         aspect: Double,
         dark: Bool,
         busyBottom: Bool,
+        busyTop: Bool = false,
         note: String?,
         place: String?,
         weather: Weather?
     ) -> ResolvedDay {
         let height = 1400
         let width = Int(Double(height) * aspect)
-        let (url, lightness, tone) = drawn(width: width, height: height, dark: dark)
+        let (url, lightness, tone) = drawn(width: width, height: height, dark: dark, busy: busyTop)
 
         return ResolvedDay(
             date: CalendarDate(date)!,
@@ -159,7 +164,7 @@ enum Fixtures {
     /// what `AsyncImage` takes and it keeps the viewer itself unaware that
     /// any of this exists.
     private static func drawn(
-        width: Int, height: Int, dark: Bool
+        width: Int, height: Int, dark: Bool, busy: Bool = false
     ) -> (URL, Double, String) {
         let size = CGSize(width: width, height: height)
         let format = UIGraphicsImageRendererFormat.default()
@@ -194,10 +199,41 @@ enum Fixtures {
                     CGRect(x: 0, y: CGFloat(i), width: size.width, height: 62)
                 )
             }
+
+            /* Branches, for the fixtures that need to be genuinely busy
+               rather than merely mid-toned. High-frequency dark detail over
+               a bright ground is what actually defeats overlaid text, and a
+               gradient — however dark — never reproduces it. */
+            if busy {
+                var seed = UInt64(0x9E3779B97F4A7C15)
+                let random = { () -> Double in
+                    seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                    return Double((seed >> 33) % 10_000) / 10_000
+                }
+
+                ctx.cgContext.setLineCap(.round)
+                for _ in 0..<220 {
+                    let x = random() * size.width
+                    let y = random() * size.height * 0.55
+                    let length = 40 + random() * 190
+                    let angle = (random() - 0.5) * 2.4
+
+                    UIColor(white: 0.10, alpha: 0.30 + random() * 0.45).setStroke()
+                    ctx.cgContext.setLineWidth(1.5 + random() * 5)
+                    ctx.cgContext.move(to: CGPoint(x: x, y: y))
+                    ctx.cgContext.addLine(
+                        to: CGPoint(
+                            x: x + cos(angle) * length,
+                            y: y + sin(angle) * length
+                        )
+                    )
+                    ctx.cgContext.strokePath()
+                }
+            }
         }
 
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("fixture-\(width)x\(height)-\(dark).jpg")
+            .appendingPathComponent("fixture-\(width)x\(height)-\(dark)-\(busy).jpg")
         try? image.jpegData(compressionQuality: 0.9)?.write(to: url)
 
         return (
