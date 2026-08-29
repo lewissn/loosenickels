@@ -115,8 +115,18 @@ final class Days: ObservableObject {
 
     func invalidate() { loaded = false }
 
+    #if DEBUG
+    /// Pretend a load is in flight. Harness only — see `-slow`.
+    func beginLoading() {
+        isLoading = true
+        days = []
+        status = nil
+    }
+    #endif
+
     /// Show these and load nothing. Used only by the design harness.
     func present(_ fixtures: [ResolvedDay]) {
+        isLoading = false
         days = fixtures
         loaded = true
         status = ArchiveStatus(

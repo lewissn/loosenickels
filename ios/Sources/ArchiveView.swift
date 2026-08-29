@@ -54,8 +54,25 @@ struct ArchiveView: View {
             /* The rail floats over the photograph rather than sitting on a
                shelf above it — §19, and the reason portraits can fill the
                screen at all. */
-            if days.isEmpty {
-                VStack(spacing: 0) { rail; nothingYet }
+            /* Branching on the array itself, not on `Days.isEmpty` — which
+               means "empty *and* finished loading" and is therefore false at
+               launch, when the array is empty and the load is in flight.
+
+               That is what crashed the app on opening: this took the second
+               branch, the viewer asked for day zero of an array with no days
+               in it, and the index was out of range. The design harness never
+               reached it because fixtures fill the array synchronously and a
+               real load does not — the one difference between the two paths,
+               and it hid the only crash in the app. */
+            if days.days.isEmpty {
+                if days.isLoading {
+                    /* Nothing at all, on the archive's own ground. A
+                       spinner here would be the first thing a reader sees
+                       every morning, in place of a photograph. */
+                    Color.clear
+                } else {
+                    VStack(spacing: 0) { rail; nothingYet }
+                }
             } else {
                 /* The photograph ignores the safe area entirely and the rail
                    does not — §19. Stacked rather than overlaid, because an
@@ -104,6 +121,18 @@ struct ArchiveView: View {
         .animation(Tempo.considered, value: room)
         .task {
             if let fixtures {
+                #if DEBUG
+                /* `-slow` holds the fixtures back for a moment, so the
+                   harness goes through the state a real load does: array
+                   empty, loading true, view already on screen. That state
+                   crashed the app on every launch and the harness could not
+                   reach it, because `present` fills synchronously. It can
+                   now. */
+                if CommandLine.arguments.contains("-slow") {
+                    days.beginLoading()
+                    try? await Task.sleep(for: .seconds(1.5))
+                }
+                #endif
                 days.present(fixtures)
                 #if DEBUG
                 /* `-compose` opens the sheet straight away, because its

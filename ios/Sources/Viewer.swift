@@ -47,16 +47,24 @@ struct Viewer<Content: View>: View {
             let height = screen.size.height
             let progress = max(-1, min(1, -offset / height))
 
+            /* Clamped rather than trusted. The caller is meant to guarantee
+               a valid index and did not, once, at launch — and the failure
+               was a crash rather than a blank screen, which is the worst way
+               for a view to be wrong about its own bounds. */
+            let here = max(0, min(count - 1, index))
+
             ZStack {
                 /* Drawn back to front: the day arriving is beneath the day
                    leaving, and rises through it. */
-                if let next = neighbour(after: progress) {
+                if count > 0, let next = neighbour(after: progress, from: here) {
                     content(next)
                         .modifier(Arriving(progress: abs(progress), flat: reduceMotion))
                 }
 
-                content(index)
-                    .modifier(Leaving(progress: abs(progress), flat: reduceMotion))
+                if count > 0 {
+                    content(here)
+                        .modifier(Leaving(progress: abs(progress), flat: reduceMotion))
+                }
             }
             .frame(width: screen.size.width, height: height)
             .contentShape(Rectangle())
@@ -75,11 +83,11 @@ struct Viewer<Content: View>: View {
 
     // MARK: Which day is arriving
 
-    private func neighbour(after progress: CGFloat) -> Int? {
+    private func neighbour(after progress: CGFloat, from here: Int) -> Int? {
         /* Dragging up moves forward through the archive, which is backwards
            through time — the days are newest first, so up goes older. That
            matches the website, where down and right go backward in time. */
-        let wanted = progress > 0 ? index + 1 : index - 1
+        let wanted = progress > 0 ? here + 1 : here - 1
         guard progress != 0, wanted >= 0, wanted < count else { return nil }
         return wanted
     }
