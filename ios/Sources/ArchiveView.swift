@@ -28,6 +28,12 @@ struct ArchiveView: View {
     @State private var offeringReminders = false
     @State private var composing = false
     @State private var showingAccount = false
+    /// What is over the archive, if anything. One value rather than a
+    /// boolean each, so two things cannot be open at once.
+    @State private var showing: Layer?
+    @State private var yearSummaries: [DaySummary] = []
+
+    enum Layer: Equatable { case menu, year(Int) }
     /// The day currently filling the screen. The rail takes its light from
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
@@ -116,6 +122,38 @@ struct ArchiveView: View {
            the status bar goes dark over a pale picture without being asked.
            Setting each of those by hand would be the same decision made in
            nine places, and eight of them would eventually disagree. */
+        /* The archive steps back rather than being covered — the same
+           relationship as the day transition, and what stops a second screen
+           feeling like a different application. */
+        .scaleEffect(showing == nil ? 1 : 0.93)
+        .opacity(showing == nil ? 1 : 0.5)
+        .animation(Tempo.considered, value: showing)
+        .overlay {
+            switch showing {
+            case .menu:
+                Menu(room: room) { place in
+                    go(place)
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = nil }
+                }
+                .transition(.opacity)
+
+            case .year(let which):
+                YearView(
+                    year: which,
+                    summaries: yearSummaries,
+                    room: room
+                ) { day in
+                    open(day)
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = nil }
+                }
+                .transition(.opacity)
+
+            case nil:
+                EmptyView()
+            }
+        }
         .preferredColorScheme(room.isNight ? .dark : .light)
         .statusBarHidden(!dressed)
         .animation(Tempo.considered, value: room)
@@ -128,6 +166,13 @@ struct ArchiveView: View {
                    crashed the app on every launch and the harness could not
                    reach it, because `present` fills synchronously. It can
                    now. */
+                if CommandLine.arguments.contains("-menu") {
+                    showing = .menu
+                }
+                if CommandLine.arguments.contains("-year") {
+                    yearSummaries = Fixtures.year(2026)
+                    showing = .year(2026)
+                }
                 if CommandLine.arguments.contains("-slow") {
                     days.beginLoading()
                     try? await Task.sleep(for: .seconds(1.5))
@@ -214,6 +259,59 @@ struct ArchiveView: View {
         )
     }
 
+    private func go(_ place: Menu.Destination) {
+        switch place {
+        case .latest:
+            withAnimation(Tempo.considered) {
+                at = 0
+                showing = nil
+            }
+        case .calendar:
+            let which = currentDay.map(\.date.year) ?? Calendar.current.component(.year, from: Date())
+            withAnimation(Tempo.considered) { showing = .year(which) }
+            Task { await loadYear(which) }
+        default:
+            break
+        }
+    }
+
+    /// Open a day from a wider view, and close the wider view behind it.
+    private func open(_ date: CalendarDate) {
+        if let index = days.days.firstIndex(where: { $0.date == date }) {
+            at = index
+            withAnimation(Tempo.considered) { showing = nil }
+            return
+        }
+
+        /* A day the loaded window does not reach. Fetching it and putting it
+           at the front is honest about what has happened — the archive is
+           now showing that day — where silently doing nothing would look
+           like a broken tap. */
+        Task {
+            guard let day = try? await SupabaseArchive().day(owner: profile.id, date: date)
+            else { return }
+            days.merge(day)
+            at = days.days.firstIndex { $0.date == date } ?? 0
+            withAnimation(Tempo.considered) { showing = nil }
+        }
+    }
+
+    private func loadYear(_ which: Int) async {
+        if let fixtures {
+            _ = fixtures
+            #if DEBUG
+            yearSummaries = Fixtures.year(which)
+            #endif
+            return
+        }
+
+        yearSummaries = (try? await SupabaseArchive().summaries(
+            owner: profile.id,
+            from: CalendarDate("\(which)-01-01")!,
+            to: CalendarDate("\(which)-12-31")!
+        )) ?? []
+    }
+
     private var room: Room {
         currentDay.map { Room.lit(by: $0.photo) } ?? .unlit
     }
@@ -233,12 +331,17 @@ struct ArchiveView: View {
      */
     private var rail: some View {
         HStack(alignment: .firstTextBaseline) {
-            Signage(
-                text: "Loose Nickels",
-                size: Size.micro,
-                tone: railInk.opacity(0.82),
-                weight: .semibold
-            )
+            Button {
+                withAnimation(Tempo.considered) { showing = .menu }
+            } label: {
+                Signage(
+                    text: "Loose Nickels",
+                    size: Size.micro,
+                    tone: railInk.opacity(0.82),
+                    weight: .semibold
+                )
+            }
+            .accessibilityLabel("Menu")
 
             Spacer()
 

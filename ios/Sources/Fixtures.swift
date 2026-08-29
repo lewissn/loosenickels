@@ -94,6 +94,68 @@ enum Fixtures {
         ]
     }
 
+    /**
+     A year of days, for designing anything that zooms out.
+
+     Four recorded days is not a density any of the wider views can be judged
+     at — a calendar of a year with four cells filled tells you nothing about
+     whether the calendar works. This is a year with the gaps a real one has:
+     dense stretches, thin months, and a handful of weeks missing entirely,
+     because a mosaic whose whole point is that absences are visible has to
+     be looked at with absences in it.
+
+     Twelve drawn images reused across the year rather than 366 of them. The
+     layouts care about shape, tone and presence; drawing each day its own
+     picture would cost seconds at launch and prove nothing extra.
+     */
+    static func year(_ which: Int = 2026) -> [DaySummary] {
+        var summaries: [DaySummary] = []
+        var seed = UInt64(0xD1B54A32D192ED03)
+        let random = { () -> Double in
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Double((seed >> 33) % 10_000) / 10_000
+        }
+
+        let plates: [(URL, Int, Int, Double, String)] = (0..<12).map { i in
+            let dark = i % 4 == 0
+            let aspect = [0.75, 0.75, 1.0, 1.5, 0.72][i % 5]
+            let height = 900
+            let width = Int(Double(height) * aspect)
+            let (url, lightness, tone) = drawn(width: width, height: height, dark: dark)
+            return (url, width, height, lightness, tone)
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/London")!
+
+        for month in 1...12 {
+            /* Some months are thin and one is nearly empty. A year of
+               perfect attendance is not what this product produces and is
+               not what its calendar has to look good against. */
+            let attendance: Double = month == 2 ? 0.18 : (month % 4 == 0 ? 0.55 : 0.86)
+            let days = calendar.range(
+                of: .day, in: .month,
+                for: calendar.date(from: DateComponents(year: which, month: month, day: 1))!
+            )!
+
+            for day in days {
+                guard random() < attendance else { continue }
+                let plate = plates[(month * 31 + day) % plates.count]
+                summaries.append(
+                    DaySummary(
+                        date: CalendarDate(String(format: "%04d-%02d-%02d", which, month, day))!,
+                        thumbnailUrl: plate.0,
+                        width: plate.1,
+                        height: plate.2,
+                        placeholder: nil
+                    )
+                )
+            }
+        }
+
+        return summaries
+    }
+
     /* A plausible 4x6 map. Not measured from the drawn image — these are
        gradients and would map as uniformly quiet, which would exercise
        nothing. Invented so the placement logic has something to decide
