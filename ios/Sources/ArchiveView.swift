@@ -35,12 +35,14 @@ struct ArchiveView: View {
     /// it must fetch and stepping within one knows it need not.
     @State private var yearLoaded: Int?
     @State private var placedDays: [PlacedDay] = []
+    @State private var anniversaries: [Anniversary] = []
     @State private var fresh: Profile?
     @State private var revisions: [Revision] = []
 
     enum Layer: Equatable {
         case menu, year(Int), month(Int, Int), timeline, map
         case places, place(Chapter)
+        case onThisDay(Int, Int)
         case details(String), settings, versions(String)
     }
     /// The day currently filling the screen. The rail takes its light from
@@ -193,6 +195,18 @@ struct ArchiveView: View {
                 }
                 .transition(.opacity)
 
+            case .onThisDay(let month, let day):
+                OnThisDayView(
+                    month: month,
+                    day: day,
+                    years: anniversaries
+                ) { date in
+                    open(date)
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = nil }
+                }
+                .transition(.opacity)
+
             case .places:
                 PlacesView(days: placedDays, room: room) { chapter in
                     withAnimation(Tempo.considered) { showing = .place(chapter) }
@@ -295,6 +309,10 @@ struct ArchiveView: View {
                 if CommandLine.arguments.contains("-timeline") {
                     yearSummaries = Fixtures.year(2026)
                     showing = .timeline
+                }
+                if CommandLine.arguments.contains("-onthisday") {
+                    anniversaries = Fixtures.anniversaries()
+                    showing = .onThisDay(8, 29)
                 }
                 if CommandLine.arguments.contains("-places") {
                     placedDays = Fixtures.placed()
@@ -422,6 +440,16 @@ struct ArchiveView: View {
                they are stood together. */
             withAnimation(Tempo.considered) { showing = .places }
             Task { await loadPlaced() }
+        case .onThisDay:
+            /* Whatever day the reader is looking at, not today. Opening this
+               from a photograph taken in March and being shown August would
+               be the screen answering a question nobody asked. */
+            let date = currentDay?.date ?? days.status?.today
+                ?? CalendarDate(Date(), in: days.timeZone)
+            let month = Int(date.value.dropFirst(5).prefix(2)) ?? 1
+            let day = Int(date.value.suffix(2)) ?? 1
+            withAnimation(Tempo.considered) { showing = .onThisDay(month, day) }
+            Task { await loadAnniversaries(month: month, day: day) }
 
         default:
             break
@@ -507,6 +535,31 @@ struct ArchiveView: View {
             yearLoaded = year
         }
         withAnimation(Tempo.inOut) { showing = .month(year, month) }
+    }
+
+    private func loadAnniversaries(month: Int, day: Int) async {
+        if let fixtures {
+            _ = fixtures
+            #if DEBUG
+            anniversaries = Fixtures.anniversaries(month: month, day: day)
+            #endif
+            return
+        }
+
+        /* From the first year recorded to this one. The archive knows when
+           it began; asking for years before that is asking for years that
+           were never lived in it. */
+        let first = days.status?.earliest?.year
+            ?? Calendar.current.component(.year, from: Date())
+        let last = days.status?.today.year
+            ?? Calendar.current.component(.year, from: Date())
+
+        anniversaries = (try? await SupabaseArchive().onThisDay(
+            owner: profile.id,
+            month: month,
+            day: day,
+            years: Array(min(first, last)...max(first, last))
+        )) ?? []
     }
 
     private func loadPlaced() async {

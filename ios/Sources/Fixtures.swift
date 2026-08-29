@@ -226,6 +226,27 @@ enum Fixtures {
         return out.sorted { $0.date > $1.date }
     }
 
+    /* Six years, not consecutive. A gap in the middle is the case the
+       screen has to look right in — the date is constant and the years are
+       not evenly spaced, which is the whole uncanny effect and the thing an
+       even run of six would hide. */
+    static func anniversaries(month: Int = 8, day: Int = 29) -> [Anniversary] {
+        let years = [2026, 2025, 2024, 2022, 2021, 2019]
+
+        return years.enumerated().map { i, year in
+            let dark = i % 3 == 1
+            let (url, lightness, tone) = drawn(
+                width: 1050, height: 1400, dark: dark, busy: i % 2 == 0
+            )
+            return Anniversary(
+                date: CalendarDate(String(format: "%04d-%02d-%02d", year, month, day))!,
+                photograph: Rendition(id: "anniversary-\(year)", url: url),
+                lightness: lightness,
+                tone: tone
+            )
+        }
+    }
+
     static func revisions() -> [Revision] {
         let plates = (0..<4).map { i -> URL in
             drawn(width: 900, height: 1200, dark: i == 1).0

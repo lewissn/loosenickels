@@ -48,9 +48,18 @@ struct Room: Equatable {
      whole interface, which reads as a fault rather than as an atmosphere.
      */
     static func lit(by photo: ResolvedPhoto) -> Room {
-        guard let lightness = photo.lightness else { return .unlit }
+        lit(lightness: photo.lightness, tone: photo.tone)
+    }
 
-        let night = lightness < 0.42
+    /// The same, from the two fields it actually reads. Surfaces that carry
+    /// a reduced shape rather than a whole resolved photograph — a listing,
+    /// an anniversary — have these and nothing else, and should not have to
+    /// assemble a fake photograph to be given a room.
+    static func lit(lightness: Double?, tone: String?) -> Room {
+        guard let lightness else { return .unlit }
+        let photo = (lightness: lightness, tone: tone)
+
+        let night = photo.lightness < 0.42
         let base = photo.tone.flatMap(Color.init(hex:))
             ?? (night ? Tone.groundNight : Tone.groundDay)
 

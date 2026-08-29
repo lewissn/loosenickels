@@ -138,6 +138,24 @@ struct PlacedDay: Identifiable, Equatable {
     }
 }
 
+/**
+ The same date, one year of it.
+
+ Carries the lightness and tone rather than a resolved photograph because
+ the only thing this screen does with them is decide whether the year over
+ the picture should be written in light or dark — and fetching a whole day
+ to answer that would be a request per year.
+ */
+struct Anniversary: Identifiable, Equatable {
+    let date: CalendarDate
+    let photograph: Rendition?
+    let lightness: Double?
+    let tone: String?
+
+    var id: String { date.value }
+    var year: Int { date.year }
+}
+
 struct Revision: Identifiable, Equatable {
     let id: String
     /// Assigned by the database, and never reused: replacing a photograph
@@ -183,6 +201,17 @@ protocol ArchiveSource {
     /// coordinates come back — a day without them is not a day at an unknown
     /// place, it is a day the map has nothing to say about.
     func placed(owner: String, limit: Int) async throws -> [PlacedDay]
+
+    /**
+     One date, in every year that has it.
+
+     Years are supplied rather than discovered because the range is a fact
+     about the archive that the caller already holds, and a query that
+     guessed at it would either miss the first year or ask for decades that
+     never happened. Days without a photograph are not returned: a year with
+     nothing in it is not an anniversary.
+     */
+    func onThisDay(owner: String, month: Int, day: Int, years: [Int]) async throws -> [Anniversary]
 
     /// A day's versions, newest first. Owner-only in every implementation —
     /// a visitor is not told that a day was ever revised, and an empty

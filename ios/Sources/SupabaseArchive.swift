@@ -122,6 +122,18 @@ private struct ProfileRow: Decodable {
     var location_precision: LocationPrecision
 }
 
+private struct AnniversaryRow: Decodable {
+    var entry_date: CalendarDate
+    var photo_revisions: Embedded<AnniversaryRevisionRow>?
+}
+
+private struct AnniversaryRevisionRow: Decodable {
+    var id: String
+    var lightness: Double?
+    var tone: String?
+    var media_assets: [PlacedAssetRow]?
+}
+
 private struct PlacedRow: Decodable {
     var entry_date: CalendarDate
     var photo_revisions: Embedded<PlacedRevisionRow>?
@@ -183,6 +195,13 @@ private enum Columns {
         photo_revisions!current_revision_belongs_to_entry (
         id, latitude, longitude, place_name, locality, region, country,
         media_assets ( id, variant )
+        )
+        """
+
+    static let anniversary = """
+        entry_date,
+        photo_revisions!current_revision_belongs_to_entry (
+        id, lightness, tone, media_assets ( id, variant )
         )
         """
 
@@ -361,6 +380,66 @@ struct SupabaseArchive: ArchiveSource {
             earliest: dates.first?.entry_date,
             latest: dates.last?.entry_date
         )
+    }
+
+    func onThisDay(
+        owner: String,
+        month: Int,
+        day: Int,
+        years: [Int]
+    ) async throws -> [Anniversary] {
+        /* Built as a list of exact dates rather than as a comparison on the
+           month and the day. Postgres would do that comparison happily and
+           PostgREST cannot express it, and the list has a second virtue: it
+           states what a leap day means. The twenty-ninth of February exists
+           in one year in four, and asking for it in the others is asking for
+           a date that did not happen — so those years are simply not in the
+           list, rather than returning nothing and looking like a fault. */
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+
+        let dates: [String] = years.compactMap { year in
+            var parts = DateComponents()
+            parts.year = year
+            parts.month = month
+            parts.day = day
+            guard let date = calendar.date(from: parts),
+                  calendar.component(.day, from: date) == day
+            else { return nil }
+            return CalendarDate(date, in: .gmt).value
+        }
+        guard !dates.isEmpty else { return [] }
+
+        let rows: [AnniversaryRow] = try await run {
+            try await db.from("day_entries")
+                .select(Columns.anniversary)
+                .eq("user_id", value: owner)
+                .not("current_revision_id", operator: .is, value: AnyJSON.null)
+                .in("entry_date", values: dates)
+                .order("entry_date", ascending: false)
+                .execute()
+                .value
+        }
+
+        let wanted = rows.compactMap { row in
+            (row.photo_revisions?.first?.media_assets ?? [])
+                .first { $0.variant == .medium }?.id
+        }
+        let signed = await signedURLs(for: wanted)
+
+        return rows.compactMap { row in
+            guard let revision = row.photo_revisions?.first else { return nil }
+            let asset = (revision.media_assets ?? []).first { $0.variant == .medium }
+
+            return Anniversary(
+                date: row.entry_date,
+                photograph: asset.flatMap { asset in
+                    signed[asset.id].map { Rendition(id: asset.id, url: $0) }
+                },
+                lightness: revision.lightness,
+                tone: revision.tone
+            )
+        }
     }
 
     func placed(owner: String, limit: Int) async throws -> [PlacedDay] {
