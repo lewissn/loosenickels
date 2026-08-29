@@ -457,6 +457,44 @@ struct SupabaseArchive: ArchiveSource {
         try await patch(owner: owner, date: date) { $0.visibility = visibility }
     }
 
+    func updateProfile(
+        owner: String,
+        visibility: ProfileVisibility?,
+        locationPrecision: LocationPrecision?,
+        timeZone: String?
+    ) async throws -> Profile {
+        /* Only what was asked for. Sending the whole profile back would make
+           every save a chance to overwrite a field another device changed a
+           second ago. */
+        var patch: [String: String] = [:]
+        if let visibility { patch["visibility"] = visibility.rawValue }
+        if let locationPrecision { patch["location_precision"] = locationPrecision.rawValue }
+        if let timeZone { patch["time_zone"] = timeZone }
+
+        guard !patch.isEmpty, let existing = try await ownerProfile(owner) else {
+            throw ArchiveFailure.notFound
+        }
+
+        let rows: [ProfileRow] = try await run {
+            try await db.from("profiles")
+                .update(patch)
+                .eq("id", value: owner)
+                .select(Columns.profile)
+                .execute()
+                .value
+        }
+
+        guard let row = rows.first else {
+            /* The update reached the database and came back with nothing,
+               which under row level security means it was refused rather
+               than lost. */
+            _ = existing
+            throw ArchiveFailure.forbidden
+        }
+
+        return profile(from: row)
+    }
+
     // MARK: Plumbing
 
     private func patch(

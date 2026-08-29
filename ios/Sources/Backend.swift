@@ -110,6 +110,10 @@ enum Standing: Equatable {
 @MainActor
 final class Session: ObservableObject {
     @Published private(set) var standing: Standing = .unknown
+    /// The address the session belongs to. On the auth user rather than the
+    /// profile, which carries a handle and never an email — the two are
+    /// different facts and only one of them is ever shown to anybody else.
+    @Published private(set) var email: String?
     @Published private(set) var isWorking = false
 
     /// Set after a link is requested, and deliberately not cleared by an
@@ -148,8 +152,11 @@ final class Session: ObservableObject {
            is not a logout. */
         guard let user = try? await Backend.client.auth.session.user else {
             standing = .signedOut
+            email = nil
             return
         }
+
+        email = user.email
 
         do {
             if let profile = try await archive.me() {

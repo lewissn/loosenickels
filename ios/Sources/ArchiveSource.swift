@@ -131,4 +131,23 @@ protocol ArchiveSource {
     func setNote(owner: String, date: CalendarDate, note: String?) async throws -> ResolvedDay
 
     func setVisibility(owner: String, date: CalendarDate, visibility: DayVisibility) async throws -> ResolvedDay
+
+    /**
+     Change the account's own settings.
+
+     Only the fields somebody can actually reach a control for. `handle` is
+     absent on purpose: it is an address, other people may be holding it, and
+     renaming it is not a settings toggle.
+
+     Everything here is a ceiling rather than a state. `visibility` decides
+     whether the archive answers at all; `locationPrecision` is the most any
+     visitor may ever be told about where a photograph was taken, which each
+     day can narrow further and none can widen past.
+     */
+    func updateProfile(
+        owner: String,
+        visibility: ProfileVisibility?,
+        locationPrecision: LocationPrecision?,
+        timeZone: String?
+    ) async throws -> Profile
 }

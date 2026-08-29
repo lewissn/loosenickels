@@ -27,13 +27,13 @@ struct ArchiveView: View {
     @StateObject private var reminders = Reminders()
     @State private var offeringReminders = false
     @State private var composing = false
-    @State private var showingAccount = false
     /// What is over the archive, if anything. One value rather than a
     /// boolean each, so two things cannot be open at once.
     @State private var showing: Layer?
     @State private var yearSummaries: [DaySummary] = []
+    @State private var fresh: Profile?
 
-    enum Layer: Equatable { case menu, year(Int), timeline, details(String) }
+    enum Layer: Equatable { case menu, year(Int), timeline, details(String), settings }
     /// The day currently filling the screen. The rail takes its light from
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
@@ -166,6 +166,21 @@ struct ArchiveView: View {
                     .transition(.opacity)
                 }
 
+            case .settings:
+                SettingsView(
+                    profile: settingsProfile,
+                    email: session.email,
+                    room: room,
+                    reminders: reminders
+                ) { visibility, precision in
+                    await save(visibility: visibility, precision: precision)
+                } onSignOut: {
+                    Task { await session.signOut() }
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = nil }
+                }
+                .transition(.opacity)
+
             case nil:
                 EmptyView()
             }
@@ -184,6 +199,9 @@ struct ArchiveView: View {
                    now. */
                 if CommandLine.arguments.contains("-menu") {
                     showing = .menu
+                }
+                if CommandLine.arguments.contains("-settings") {
+                    showing = .settings
                 }
                 if CommandLine.arguments.contains("-details") {
                     showing = .details(Fixtures.days().first?.id ?? "")
@@ -236,22 +254,17 @@ struct ArchiveView: View {
         .alert("Remind you?", isPresented: $offeringReminders) {
             Button("Yes, remind me") {
                 Task {
-                    _ = await reminders.ask()
+                    guard await reminders.ask() else { return }
+                    /* Saying yes has to turn them on as well as grant
+                       permission. Granting alone left the schedule disabled
+                       and the answer meaningless. */
+                    reminders.schedule.enabled = true
                     await scheduleReminders()
                 }
             }
             Button("No", role: .cancel) {}
         } message: {
             Text("Three times a day, and none once the day is recorded. Nothing leaves your phone.")
-        }
-        .confirmationDialog(
-            profile.displayName ?? profile.handle,
-            isPresented: $showingAccount,
-            titleVisibility: .visible
-        ) {
-            Button("Sign out", role: .destructive) {
-                Task { await session.signOut() }
-            }
         }
     }
 
@@ -321,6 +334,31 @@ struct ArchiveView: View {
             days.merge(day)
             at = days.days.firstIndex { $0.date == date } ?? 0
             withAnimation(Tempo.considered) { showing = nil }
+        }
+    }
+
+    /// The profile as settings should show it — the loaded one, or whatever
+    /// was passed in before a load has happened.
+    private var settingsProfile: Profile { fresh ?? profile }
+
+    private func save(visibility: ProfileVisibility?, precision: LocationPrecision?) async {
+        guard let updated = try? await SupabaseArchive().updateProfile(
+            owner: profile.id,
+            visibility: visibility,
+            locationPrecision: precision,
+            timeZone: nil
+        ) else { return }
+
+        fresh = updated
+
+        /* A change to how precisely places are shown changes what every
+           already-loaded day discloses, and those were resolved against the
+           old ceiling. Reloading is the honest response: the alternative is
+           a screen still showing exact positions under a setting that now
+           says "region". */
+        if precision != nil {
+            days.invalidate()
+            await days.load(owner: profile.id)
         }
     }
 
@@ -415,13 +453,15 @@ struct ArchiveView: View {
                     : "Today is not recorded. Record today."
             )
 
-            Button { showingAccount = true } label: {
+            Button {
+                withAnimation(Tempo.considered) { showing = .settings }
+            } label: {
                 Image(systemName: "person")
                     .font(.system(size: Size.small, weight: .light))
                     .foregroundStyle(railInk.opacity(0.7))
             }
             .padding(.leading, Space.s4)
-            .accessibilityLabel("Account")
+            .accessibilityLabel("Settings")
         }
         .padding(.horizontal, Space.margin)
         .padding(.top, Space.s2)
