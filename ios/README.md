@@ -211,3 +211,33 @@ true then whether or not anybody opens anything. And `DayStanding.isStale`
 guards the case the app has not been opened since yesterday — a stored
 `todayRecorded` from a previous day is not an answer about today, and saying
 so confidently would be a lie the widget tells on its own.
+
+---
+
+## The icon
+
+`Tools/icon.swift` draws it. Run it to regenerate:
+
+```bash
+swift ios/Tools/icon.swift ios/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+```
+
+Committed as source rather than as a file somebody has to open Photoshop to
+change — it is forty lines of Core Graphics and the colours come from the
+same tokens as everything else.
+
+It is the product's one idea, drawn: a photograph lighting the room it is
+in. A dark warm ground, a pale plate with a horizon in it, and the ground
+glowing faintly where the plate touches it. No letterform, because the name
+is a codename and will not survive. No camera, no aperture, no shutter — the
+subject is the photograph, not the apparatus.
+
+The horizon earns its place. A flat pale rectangle is a card, and at sixty
+pixels it is a white blob among other white blobs, which is the exact problem
+the icon exists to solve.
+
+One trap, if you regenerate it: the render builds an explicit 1x bitmap
+rather than using `NSImage.lockFocus`, which renders at the main display's
+scale and silently produces a 2048-pixel file on any Retina Mac. Xcode then
+refuses it with "the app icon set named AppIcon did not have any applicable
+content", which does not mention size at all.
