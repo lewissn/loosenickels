@@ -90,6 +90,18 @@ struct SubmitPhoto {
     var idempotencyKey: String
 }
 
+/// One version of a day's photograph.
+struct Revision: Identifiable, Equatable {
+    let id: String
+    /// Assigned by the database, and never reused: replacing a photograph
+    /// writes n+1 and the previous one keeps its number and its bytes.
+    let number: Int
+    let submittedAt: Date
+    let capturedAt: Date?
+    let thumbnailUrl: URL?
+    let isCurrent: Bool
+}
+
 struct SubmitResult {
     var day: ResolvedDay
     /// True when this call created the revision; false when it replayed one.
@@ -119,6 +131,14 @@ protocol ArchiveSource {
     /// are absent, and the caller draws the gap. The archive does not
     /// invent placeholder records for days that were never recorded.
     func summaries(owner: String, from: CalendarDate, to: CalendarDate) async throws -> [DaySummary]
+
+    /// A day's versions, newest first. Owner-only in every implementation —
+    /// a visitor is not told that a day was ever revised, and an empty
+    /// history would tell them it was not.
+    func revisions(owner: String, date: CalendarDate) async throws -> [Revision]
+
+    /// Make an earlier version current again. Appends; destroys nothing.
+    func restore(owner: String, revision: String) async throws -> ResolvedDay
 
     /// Owner-only. Drives the private "Today remains unrecorded." line.
     func status(owner: String) async throws -> ArchiveStatus?

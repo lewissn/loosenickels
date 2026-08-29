@@ -32,8 +32,9 @@ struct ArchiveView: View {
     @State private var showing: Layer?
     @State private var yearSummaries: [DaySummary] = []
     @State private var fresh: Profile?
+    @State private var revisions: [Revision] = []
 
-    enum Layer: Equatable { case menu, year(Int), timeline, details(String), settings }
+    enum Layer: Equatable { case menu, year(Int), timeline, details(String), settings, versions(String) }
     /// The day currently filling the screen. The rail takes its light from
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
@@ -160,7 +161,15 @@ struct ArchiveView: View {
 
             case .details(let id):
                 if let day = days.days.first(where: { $0.id == id }) {
-                    DetailsView(day: day, timeZone: days.timeZone, room: room) {
+                    DetailsView(
+                        day: day,
+                        timeZone: days.timeZone,
+                        room: room,
+                        onVersions: {
+                            withAnimation(Tempo.considered) { showing = .versions(id) }
+                            Task { await loadRevisions(day.date) }
+                        }
+                    ) {
                         withAnimation(Tempo.considered) { showing = nil }
                     }
                     .transition(.opacity)
@@ -181,6 +190,21 @@ struct ArchiveView: View {
                 }
                 .transition(.opacity)
 
+            case .versions(let id):
+                if let day = days.days.first(where: { $0.id == id }) {
+                    RevisionsView(
+                        date: day.date,
+                        timeZone: days.timeZone,
+                        revisions: revisions,
+                        room: room
+                    ) { revision in
+                        Task { await restore(revision, on: day.date) }
+                    } onClose: {
+                        withAnimation(Tempo.considered) { showing = .details(id) }
+                    }
+                    .transition(.opacity)
+                }
+
             case nil:
                 EmptyView()
             }
@@ -199,6 +223,10 @@ struct ArchiveView: View {
                    now. */
                 if CommandLine.arguments.contains("-menu") {
                     showing = .menu
+                }
+                if CommandLine.arguments.contains("-versions") {
+                    revisions = Fixtures.revisions()
+                    showing = .versions(Fixtures.days().first?.id ?? "")
                 }
                 if CommandLine.arguments.contains("-settings") {
                     showing = .settings
@@ -360,6 +388,24 @@ struct ArchiveView: View {
             days.invalidate()
             await days.load(owner: profile.id)
         }
+    }
+
+    private func loadRevisions(_ date: CalendarDate) async {
+        revisions = (try? await SupabaseArchive().revisions(owner: profile.id, date: date)) ?? []
+    }
+
+    private func restore(_ revision: Revision, on date: CalendarDate) async {
+        guard let day = try? await SupabaseArchive().restore(
+            owner: profile.id,
+            revision: revision.id
+        ) else { return }
+
+        days.merge(day)
+        at = days.days.firstIndex { $0.date == date } ?? at
+        await loadRevisions(date)
+        /* Back to the day itself rather than to the list. The thing that was
+           asked for has happened and the screen that asked is finished. */
+        withAnimation(Tempo.considered) { showing = nil }
     }
 
     private func loadYear(_ which: Int) async {

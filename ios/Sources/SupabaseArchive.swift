@@ -325,6 +325,86 @@ struct SupabaseArchive: ArchiveSource {
         )
     }
 
+    func revisions(owner: String, date: CalendarDate) async throws -> [Revision] {
+        guard let row = try await dayRow(owner: owner, date: date),
+              let current = row.current_revision_id
+        else { return [] }
+
+        struct Row: Decodable {
+            var id: String
+            var revision_number: Int
+            var submitted_at: Date
+            var captured_at: Date?
+            var media_assets: [AssetRow]?
+        }
+
+        let rows: [Row] = try await run {
+            try await db.from("photo_revisions")
+                .select("id, revision_number, submitted_at, captured_at, media_assets ( id, variant, width, height )")
+                .eq("day_entry_id", value: row.id)
+                .order("revision_number", ascending: false)
+                .execute()
+                .value
+        }
+
+        /* Thumbnails for every version in one request, the same way the
+           viewer does it — a history of eight versions would otherwise be
+           eight round trips to draw a column of small pictures. */
+        let wanted = rows.compactMap { r in
+            (r.media_assets ?? []).first { $0.variant == .thumbnail }?.id
+        }
+        let signed = await signedURLs(for: wanted)
+
+        return rows.map { r in
+            let thumb = (r.media_assets ?? []).first { $0.variant == .thumbnail }
+            return Revision(
+                id: r.id,
+                number: r.revision_number,
+                submittedAt: r.submitted_at,
+                capturedAt: r.captured_at,
+                thumbnailUrl: thumb.flatMap { signed[$0.id] },
+                isCurrent: r.id == current
+            )
+        }
+    }
+
+    func restore(owner: String, revision: String) async throws -> ResolvedDay {
+        struct Found: Decodable {
+            var id: String
+            var day_entry_id: String
+            var day_entries: Embedded<DateRow>?
+        }
+
+        let rows: [Found] = try await run {
+            try await db.from("photo_revisions")
+                .select("id, day_entry_id, day_entries ( entry_date )")
+                .eq("id", value: revision)
+                .eq("user_id", value: owner)
+                .limit(1)
+                .execute()
+                .value
+        }
+
+        guard let found = rows.first,
+              let date = found.day_entries?.first?.entry_date
+        else { throw ArchiveFailure.notFound }
+
+        /* Repointing, not copying. The revision keeps its number and its
+           bytes, so restoring is exactly as reversible as replacing was. */
+        try await run {
+            _ = try await db.from("day_entries")
+                .update(["current_revision_id": found.id])
+                .eq("id", value: found.day_entry_id)
+                .eq("user_id", value: owner)
+                .execute()
+        }
+
+        guard let day = try await day(owner: owner, date: date) else {
+            throw ArchiveFailure.notFound
+        }
+        return day
+    }
+
     // MARK: Writing
 
     func submit(owner: String, photo: SubmitPhoto) async throws -> SubmitResult {

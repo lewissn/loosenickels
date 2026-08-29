@@ -24,6 +24,9 @@ struct DetailsView: View {
     let day: ResolvedDay
     let timeZone: TimeZone
     let room: Room
+    /// Nil when there is only one version, so the way in appears exactly
+    /// when there is somewhere to go.
+    let onVersions: (() -> Void)?
     let onClose: () -> Void
 
     var body: some View {
@@ -31,6 +34,18 @@ struct DetailsView: View {
             VStack(alignment: .leading, spacing: Space.s8) {
                 header
                 group("The day", theDay)
+
+                if let onVersions, let count = day.revisionCount, count > 1 {
+                    Button(action: onVersions) {
+                        HStack(spacing: Space.s2) {
+                            Signage(
+                                text: count == 2 ? "See both versions" : "See all \(count) versions",
+                                tone: Tone.oxide
+                            )
+                        }
+                    }
+                    .padding(.top, -Space.s5)
+                }
                 group("The moment", theMoment)
                 group("The place", thePlace)
                 group("The weather", theWeather)
@@ -64,6 +79,8 @@ struct DetailsView: View {
         facts.add("Note", day.note)
         facts.add("Visible to", day.visibility.name)
         if let count = day.revisionCount, count > 1 {
+            /* Only when there is more than one. "Versions: 1" is not a fact
+               anybody needs and reads as though something happened. */
             facts.add("Versions", "\(count)")
         }
         return facts.all

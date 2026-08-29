@@ -173,6 +173,25 @@ enum Fixtures {
         }
     }
 
+    /// Four versions of one day, for looking at §19. The submission dates
+    /// deliberately trail the capture date: a photograph replaced weeks
+    /// later is the case the two timestamps exist to distinguish.
+    static func revisions() -> [Revision] {
+        let plates = (0..<4).map { i -> URL in
+            drawn(width: 900, height: 1200, dark: i == 1).0
+        }
+        return (0..<4).map { i in
+            Revision(
+                id: "revision-\(i)",
+                number: 4 - i,
+                submittedAt: Date().addingTimeInterval(Double(-i) * 86_400 * 9),
+                capturedAt: Date().addingTimeInterval(-86_400 * 3),
+                thumbnailUrl: plates[i],
+                isCurrent: i == 0
+            )
+        }
+    }
+
     /// A chosen-but-not-yet-sent photograph, for looking at the compose
     /// sheet in the only state that matters.
     static func prepared() -> Photograph.Prepared? {
