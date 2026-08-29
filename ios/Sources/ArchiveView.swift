@@ -32,18 +32,30 @@ struct ArchiveView: View {
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
     @State private var visible: String?
+    /// Whether the interface is showing. Held here rather than per-day, so a
+    /// tap on one photograph does not leave the next one dressed differently.
+    @State private var dressed = true
 
     var body: some View {
         ZStack {
             room.ground.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                rail
+            /* The rail floats over the photograph rather than sitting on a
+               shelf above it — §19, and the reason portraits can fill the
+               screen at all. */
+            if days.isEmpty {
+                VStack(spacing: 0) { rail; nothingYet }
+            } else {
+                /* The photograph ignores the safe area entirely and the rail
+                   does not — §19. Stacked rather than overlaid, because an
+                   overlay inherits the ignored insets from what it is over
+                   and would put the brand mark under the clock. */
+                ZStack(alignment: .top) {
+                    pages.ignoresSafeArea()
 
-                if days.isEmpty {
-                    nothingYet
-                } else {
-                    pages
+                    if dressed {
+                        rail.transition(.opacity)
+                    }
                 }
             }
         }
@@ -54,6 +66,7 @@ struct ArchiveView: View {
            Setting each of those by hand would be the same decision made in
            nine places, and eight of them would eventually disagree. */
         .preferredColorScheme(room.isNight ? .dark : .light)
+        .statusBarHidden(!dressed)
         .animation(Tempo.considered, value: room)
         .task {
             if let fixtures {
@@ -139,71 +152,88 @@ struct ArchiveView: View {
         return day.map { Room.lit(by: $0.photo) } ?? .unlit
     }
 
+    /**
+     Almost no chrome — §14.
+
+     What was here: a brand mark, a running count of recorded days, a profile
+     icon, and beneath it a full-width bar announcing that today was not
+     recorded. Four pieces of furniture above a photograph, one of which
+     (the count) belongs in a profile and none of which is what the reader
+     came for.
+
+     What is here now: the mark, and one control. The unrecorded state is
+     said by that control changing rather than by a bar of its own, and it
+     leaves with everything else on a tap.
+     */
     private var rail: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Signage(
-                    text: "Loose Nickels",
-                    size: Size.fine,
-                    tone: Tone.ink,
-                    weight: .semibold
-                )
-                .fixedSize()
+        HStack(alignment: .firstTextBaseline) {
+            Signage(
+                text: "Loose Nickels",
+                size: Size.micro,
+                tone: railInk.opacity(0.75),
+                weight: .semibold
+            )
 
-                Spacer()
+            Spacer()
 
-                /* Stated plainly, never as a streak. A gap is not a failure
-                   and the product does not keep score. */
-                if let status = days.status {
-                    Signage(
-                        text: status.daysRecorded == 1
-                            ? "1 day"
-                            : "\(status.daysRecorded) days",
-                        tone: Tone.inkGhost
-                    )
-                    .fixedSize()
+            Button { composing = true } label: {
+                /* One control, two states, and the word "unrecorded" is not
+                   in either. It was, and with the brand mark beside it the
+                   rail became a sentence running the width of the screen —
+                   four pieces of furniture again, in a thinner disguise.
+
+                   The date alone says which day is open, and the oxide says
+                   it is open. Colour carrying meaning needs the label below
+                   to carry it too, which it does. */
+                HStack(spacing: Space.s2) {
+                    if !days.todayRecorded, let today = days.today {
+                        Signage(
+                            text: stampOf(today),
+                            size: Size.micro,
+                            tone: Tone.oxide
+                        )
+                    }
+                    Image(systemName: "plus")
+                        .font(.system(size: Size.body, weight: .light))
+                        .foregroundStyle(days.todayRecorded ? railInk.opacity(0.7) : Tone.oxide)
                 }
-
-                Button { showingAccount = true } label: {
-                    Image(systemName: "person.crop.circle")
-                        .font(.system(size: Size.body, weight: .regular))
-                        .foregroundStyle(Tone.inkFaint)
-                }
-                .padding(.leading, Space.s3)
             }
-            .padding(.horizontal, Space.margin)
-            .padding(.vertical, Space.s3)
+            .accessibilityLabel(
+                days.todayRecorded
+                    ? "Record a day"
+                    : "Today is not recorded. Record today."
+            )
 
-            Rule(tone: Tone.ruleStrong)
-
-            if !days.todayRecorded {
-                todayOpen
+            Button { showingAccount = true } label: {
+                Image(systemName: "person")
+                    .font(.system(size: Size.small, weight: .light))
+                    .foregroundStyle(railInk.opacity(0.6))
             }
-        }
-        .background(room.ground)
-    }
-
-    /// Quiet, and to one side. Not an alarm.
-    private var todayOpen: some View {
-        /* Baseline-aligned, and the label kept to one line. Set as an
-           ordinary HStack the sentence wrapped to two lines and the button
-           centred itself against the pair, which read as two unrelated
-           things that had collided rather than as a line with an action at
-           the end of it. */
-        HStack(alignment: .firstTextBaseline, spacing: Space.s4) {
-            Signage(text: "Today is not recorded", tone: Tone.inkMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-
-            Spacer(minLength: 0)
-
-            Button("Record") { composing = true }
-                .buttonStyle(QuietButtonStyle())
-                .fixedSize()
+            .padding(.leading, Space.s4)
+            .accessibilityLabel("Account")
         }
         .padding(.horizontal, Space.margin)
-        .padding(.vertical, Space.s3)
-        .background(Tone.wash)
+        .padding(.top, Space.s2)
+        .padding(.bottom, Space.s3)
+    }
+
+    private func stampOf(_ date: CalendarDate) -> String {
+        let months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
+        let month = Int(date.value.dropFirst(5).prefix(2)) ?? 1
+        let day = Int(date.value.suffix(2)) ?? 1
+        return "\(day) \(months[max(0, min(11, month - 1))])"
+    }
+
+    /* The rail floats over a full-bleed photograph, so its ink comes from
+       what is behind it rather than from the room — which for a portrait is
+       the top of the picture, not the ground. */
+    private var railInk: Color {
+        guard let day = days.days.first(where: { $0.id == visible }) ?? days.days.first
+        else { return Tone.ink }
+
+        let composition = Composition.of(day.photo)
+        guard composition.shape == .portrait else { return room.ink }
+        return day.photo.lightnessBehind(.overlaidHigh) < 0.55 ? Tone.inkNight : Tone.inkDay
     }
 
     // MARK: Days
@@ -212,7 +242,17 @@ struct ArchiveView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(Array(days.days.enumerated()), id: \.element.id) { index, day in
-                    DayPage(day: day, timeZone: days.timeZone, isFirst: index == 0)
+                    DayScene(
+                        day: day,
+                        timeZone: days.timeZone,
+                        dressed: dressed
+                    ) {
+                        /* §5: one tap takes the interface away and leaves
+                           the photograph. A gesture rather than a control,
+                           because a control to hide the controls is a
+                           contradiction. */
+                        withAnimation(Tempo.considered) { dressed.toggle() }
+                    }
                         .containerRelativeFrame(.vertical)
                         .id(day.id)
                 }

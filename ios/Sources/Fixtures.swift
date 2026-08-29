@@ -52,41 +52,59 @@ enum Fixtures {
         return Array(all[start...]) + Array(all[..<start])
     }
 
+    /* §34: build rules that generalise, and test them against the cases
+       that break rules. Every shape the composition system claims to handle,
+       both extremes of lightness, a note of each length and none, and one
+       photograph whose bottom third is busier than its top — which is the
+       only thing that makes the placement logic do anything. */
     private static func all() -> [ResolvedDay] {
         [
-            day(
-                date: "2026-08-28",
-                aspect: 0.75,
-                dark: false,
+            day("2026-08-29", aspect: 0.75, dark: false, busyBottom: false,
                 note: "The beeches at the top of the hill, looking straight up. I have walked past them for eleven years and never once looked up.",
                 place: "Hampstead Heath",
-                weather: Weather(temperatureC: 19, conditions: "Clear", precipitationMm: 0, windMs: 2.1, daylight: true)
-            ),
-            day(
-                date: "2026-08-27",
-                aspect: 1.5,
-                dark: true,
-                note: nil,
-                place: "Southwark",
-                weather: Weather(temperatureC: 11, conditions: "Light rain", precipitationMm: 1.4, windMs: 5.0, daylight: false)
-            ),
-            day(
-                date: "2026-08-26",
-                aspect: 1.0,
-                dark: false,
-                note: "Nothing happened today.",
-                place: nil,
-                weather: nil
-            ),
-            day(
-                date: "2025-12-31",
-                aspect: 0.66,
-                dark: true,
-                note: "The last of it.",
-                place: "Edinburgh",
-                weather: Weather(temperatureC: 2, conditions: "Snow", precipitationMm: 3.2, windMs: 8.4, daylight: false)
-            ),
+                weather: Weather(temperatureC: 19, conditions: "Clear", precipitationMm: 0, windMs: 2.1, daylight: true)),
+
+            // Portrait, dark, no note — the sparsest a scene ever gets.
+            day("2026-08-28", aspect: 0.75, dark: true, busyBottom: false,
+                note: nil, place: "Southwark",
+                weather: Weather(temperatureC: 11, conditions: "Light rain", precipitationMm: 1.4, windMs: 5.0, daylight: false)),
+
+            // Portrait whose lower third is busy: the date should move up.
+            day("2026-08-27", aspect: 0.72, dark: false, busyBottom: true,
+                note: "Low tide.", place: "Wells-next-the-Sea",
+                weather: Weather(temperatureC: 15, conditions: "Overcast", precipitationMm: 0, windMs: 7.2, daylight: true)),
+
+            // Landscape: a band, with the writing seated beneath it.
+            day("2026-08-26", aspect: 1.5, dark: false, busyBottom: false,
+                note: "Avoiding Fort William", place: "Fort William",
+                weather: Weather(temperatureC: 16, conditions: "Overcast", precipitationMm: 0, windMs: 3.9, daylight: true)),
+
+            // Square: large, seated, no note.
+            day("2026-08-25", aspect: 1.0, dark: false, busyBottom: false,
+                note: nil, place: nil, weather: nil),
+
+            // Panorama: a strip in deliberate emptiness, writing above.
+            day("2026-08-24", aspect: 2.6, dark: true, busyBottom: false,
+                note: "We stayed until the light disappeared.", place: "Rannoch Moor",
+                weather: Weather(temperatureC: 4, conditions: "Clear", precipitationMm: 0, windMs: 1.1, daylight: false)),
         ]
+    }
+
+    /* A plausible 4x6 map. Not measured from the drawn image — these are
+       gradients and would map as uniformly quiet, which would exercise
+       nothing. Invented so the placement logic has something to decide
+       between. */
+    private static func grid(dark: Bool, busyBottom: Bool) -> [Region] {
+        (0..<24).map { i in
+            let row = i / 4
+            let low = row >= 4
+            return Region(
+                l: dark ? 0.16 + Double(row) * 0.02 : 0.72 - Double(row) * 0.04,
+                v: busyBottom
+                    ? (low ? 0.62 : 0.14)
+                    : (low ? 0.11 : 0.30)
+            )
+        }
     }
 
     /// A chosen-but-not-yet-sent photograph, for looking at the compose
@@ -100,9 +118,10 @@ enum Fixtures {
     // MARK: Making a photograph out of nothing
 
     private static func day(
-        date: String,
+        _ date: String,
         aspect: Double,
         dark: Bool,
+        busyBottom: Bool,
         note: String?,
         place: String?,
         weather: Weather?
@@ -122,6 +141,7 @@ enum Fixtures {
                 placeholder: nil,
                 lightness: lightness,
                 tone: tone,
+                regions: grid(dark: dark, busyBottom: busyBottom),
                 processing: .ready,
                 urls: [.large: url],
                 alt: "Fixture for \(date)"

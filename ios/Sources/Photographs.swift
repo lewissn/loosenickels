@@ -55,6 +55,15 @@ actor Photographs {
         if let already = loading[assetId] { return await already.value }
 
         let task = Task<UIImage?, Never> {
+            /* A file URL has no HTTP response to check, and `URLSession` is
+               unreliable with them — it is a networking stack being asked to
+               read a disk. Read it directly instead. The design harness
+               serves its fixtures this way, and the check costs nothing. */
+            if url.isFileURL {
+                guard let data = try? Data(contentsOf: url) else { return nil }
+                return UIImage(data: data)
+            }
+
             guard let (data, response) = try? await URLSession.shared.data(from: url),
                   let http = response as? HTTPURLResponse,
                   (200..<300).contains(http.statusCode),
