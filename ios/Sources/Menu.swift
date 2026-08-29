@@ -30,7 +30,7 @@ struct Menu: View {
            other the year as an object, but one view does both and two
            entries pointing at it would be a menu describing its own
            implementation. */
-        case latest, calendar, timeline, map, onThisDay, profile
+        case latest, calendar, timeline, map, places, onThisDay, profile
 
         var id: String { rawValue }
 
@@ -40,6 +40,7 @@ struct Menu: View {
             case .calendar: return "Calendar"
             case .timeline: return "Timeline"
             case .map: return "Map"
+            case .places: return "Places"
             case .onThisDay: return "On this day"
             case .profile: return "Profile"
             }
@@ -54,6 +55,7 @@ struct Menu: View {
             case .calendar: return "A year at once, and what is missing from it."
             case .timeline: return "Days, months and years at one scale or another."
             case .map: return "Where the days happened."
+            case .places: return "The ones you keep going back to."
             case .onThisDay: return "The same date, in every year that has one."
             case .profile: return "Identity, privacy and what is public."
             }
@@ -61,7 +63,7 @@ struct Menu: View {
 
         var ready: Bool {
             switch self {
-            case .latest, .calendar, .timeline, .map: return true
+            case .latest, .calendar, .timeline, .map, .places: return true
             default: return false
             }
         }

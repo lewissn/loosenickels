@@ -202,6 +202,9 @@ enum Fixtures {
             for _ in 0..<count {
                 day += 1
                 let (url, _, _) = drawn(width: 900, height: 900, dark: day % 5 == 0)
+                let (wide, _, _) = drawn(
+                    width: 1050, height: 1400, dark: day % 5 == 0, busy: day % 3 == 0
+                )
                 let date = Calendar.current.date(
                     byAdding: .day, value: -day * 3, to: Date()
                 ) ?? Date()
@@ -214,7 +217,8 @@ enum Fixtures {
                             lon: lon + (random() - 0.5) * spread
                         ),
                         place: Place(label: name, region: nil, country: nil, coordinates: nil),
-                        thumbnailUrl: url
+                        small: Rendition(id: "placed-small-\(day)", url: url),
+                        large: Rendition(id: "placed-large-\(day)", url: wide)
                     )
                 )
             }

@@ -92,6 +92,21 @@ struct SubmitPhoto {
 
 /// One version of a day's photograph.
 /**
+ One stored image, and the name it is cached under.
+
+ The URL alone is not enough to hold a photograph: signatures expire and a
+ fresh one is minted on every read, so the same picture arrives under a
+ different address each time. The asset's own id is what stays the same, and
+ it is what `Photographs` keys on. Pairing them means a caller cannot
+ accidentally cache two renditions of one day under one name — which is what
+ would have happened here, since a day's own identifier is its date.
+ */
+struct Rendition: Equatable {
+    let id: String
+    let url: URL
+}
+
+/**
  A day, reduced to where it happened.
 
  Separate from `DaySummary` because the map needs one thing that a listing
@@ -105,7 +120,13 @@ struct PlacedDay: Identifiable, Equatable {
     let date: CalendarDate
     let coordinates: Coordinates
     let place: Place?
-    let thumbnailUrl: URL?
+    /// Forty-six points on a map.
+    let small: Rendition?
+    /// Full width on a place's own page. Carried alongside rather than
+    /// fetched later because both come from one row and one signing, and a
+    /// place page that had to go back to the server for every photograph in
+    /// it would open empty and fill in.
+    let large: Rendition?
 
     var id: String { date.value }
 

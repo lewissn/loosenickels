@@ -40,6 +40,7 @@ struct ArchiveView: View {
 
     enum Layer: Equatable {
         case menu, year(Int), month(Int, Int), timeline, map
+        case places, place(Chapter)
         case details(String), settings, versions(String)
     }
     /// The day currently filling the screen. The rail takes its light from
@@ -192,6 +193,22 @@ struct ArchiveView: View {
                 }
                 .transition(.opacity)
 
+            case .places:
+                PlacesView(days: placedDays, room: room) { chapter in
+                    withAnimation(Tempo.considered) { showing = .place(chapter) }
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = nil }
+                }
+                .transition(.opacity)
+
+            case .place(let chapter):
+                PlaceView(chapter: chapter, room: room) { day in
+                    open(day)
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = .places }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+
             case .timeline:
                 Timeline(summaries: yearSummaries, room: room) { day in
                     open(day)
@@ -278,6 +295,15 @@ struct ArchiveView: View {
                 if CommandLine.arguments.contains("-timeline") {
                     yearSummaries = Fixtures.year(2026)
                     showing = .timeline
+                }
+                if CommandLine.arguments.contains("-places") {
+                    placedDays = Fixtures.placed()
+                    showing = .places
+                }
+                if CommandLine.arguments.contains("-place") {
+                    placedDays = Fixtures.placed()
+                    showing = Chapter.gathered(from: Fixtures.placed())
+                        .first.map { Layer.place($0) } ?? .places
                 }
                 if CommandLine.arguments.contains("-map") {
                     placedDays = Fixtures.placed()
@@ -389,6 +415,12 @@ struct ArchiveView: View {
             Task { await loadYear(which) }
         case .map:
             withAnimation(Tempo.considered) { showing = .map }
+            Task { await loadPlaced() }
+        case .places:
+            /* The same fetch as the map, and deliberately so: a place is not
+               a record to be read, it is what the placed days look like when
+               they are stood together. */
+            withAnimation(Tempo.considered) { showing = .places }
             Task { await loadPlaced() }
 
         default:

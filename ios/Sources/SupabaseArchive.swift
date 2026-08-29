@@ -390,13 +390,28 @@ struct SupabaseArchive: ArchiveSource {
             return (row, revision, Coordinates(lat: lat, lon: lon))
         }
 
-        let thumbs = plottable.compactMap { _, revision, _ in
-            (revision.media_assets ?? []).first { $0.variant == .thumbnail }?.id
+        /* Both renditions in one signing. Two per day rather than one is
+           the price of place pages showing photographs at a size worth
+           looking at, and it is paid once here rather than as a second
+           round trip per place. */
+        let wanted = plottable.flatMap { _, revision, _ -> [String] in
+            let assets = revision.media_assets ?? []
+            return [
+                assets.first { $0.variant == .thumbnail }?.id,
+                assets.first { $0.variant == .medium }?.id
+            ].compactMap { $0 }
         }
-        let signed = await signedURLs(for: thumbs)
+        let signed = await signedURLs(for: wanted)
+
+        func held(_ assets: [PlacedAssetRow], _ variant: MediaVariant) -> Rendition? {
+            guard let asset = assets.first(where: { $0.variant == variant }),
+                  let url = signed[asset.id]
+            else { return nil }
+            return Rendition(id: asset.id, url: url)
+        }
 
         return plottable.map { row, revision, coordinates in
-            let thumb = (revision.media_assets ?? []).first { $0.variant == .thumbnail }
+            let assets = revision.media_assets ?? []
 
             return PlacedDay(
                 date: row.entry_date,
@@ -407,7 +422,8 @@ struct SupabaseArchive: ArchiveSource {
                     country: revision.country,
                     coordinates: coordinates
                 ),
-                thumbnailUrl: thumb.flatMap { signed[$0.id] }
+                small: held(assets, .thumbnail),
+                large: held(assets, .medium)
             )
         }
     }

@@ -362,12 +362,12 @@ private struct Tile: View {
         .clipped()
         .animation(Tempo.out, value: image != nil)
         .task(id: day.id) {
-            guard let url = day.thumbnailUrl else { return }
-            if let held = await Photographs.shared.cached(day.id) {
-                image = held
+            guard let held = day.small else { return }
+            if let already = await Photographs.shared.cached(held.id) {
+                image = already
                 return
             }
-            image = await Photographs.shared.image(for: day.id, at: url)
+            image = await Photographs.shared.image(for: held.id, at: held.url)
         }
     }
 }
