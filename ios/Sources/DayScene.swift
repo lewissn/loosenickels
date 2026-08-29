@@ -291,9 +291,15 @@ struct Scrim: View {
 
     var body: some View {
         LinearGradient(
+            /* Four stops, not three. With three the middle sat at the
+               halfway point and the fade began immediately, so text placed
+               anywhere but the very edge fell into thin gradient. Holding
+               near full strength for the first third gives the writing a
+               band to sit in rather than a slope to slide down. */
             colors: [
+                base.opacity(0.86),
                 base.opacity(0.78),
-                base.opacity(0.40),
+                base.opacity(0.34),
                 base.opacity(0),
             ],
             startPoint: strongest == .top ? .top : .bottom,

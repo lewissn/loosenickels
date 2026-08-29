@@ -63,18 +63,26 @@ struct ArchiveView: View {
                     pages.ignoresSafeArea()
 
                     if dressed {
-                        rail
-                            /* The same scrim the writing gets. Without it the
-                               brand mark and the date sat unreadable over a
-                               bright, busy canopy — dark ink was the right
-                               choice and still lost, because variance beats
-                               contrast: text over branches is illegible at
-                               any tone. */
-                            .background(
-                                Scrim(dark: railOverDark, strongest: .top)
-                                    .ignoresSafeArea(edges: .top)
-                            )
+                        /* The scrim is its own layer with a height of its
+                           own, not the rail's background.
+
+                           As a background it was exactly as tall as the rail
+                           — status bar plus one line — and strongest at the
+                           very top of that. Which put the words themselves
+                           at about eighty percent down the gradient, where
+                           it had already faded to nothing. It was doing its
+                           work above the text and none behind it.
+
+                           Given room to fade over, the words sit in the
+                           strong part and the transition to the photograph
+                           happens well below them. */
+                        Scrim(dark: railOverDark, strongest: .top)
+                            .frame(height: 240)
+                            .ignoresSafeArea(edges: .top)
+                            .frame(maxHeight: .infinity, alignment: .top)
                             .transition(.opacity)
+
+                        rail.transition(.opacity)
                     }
                 }
             }
@@ -190,7 +198,7 @@ struct ArchiveView: View {
             Signage(
                 text: "Loose Nickels",
                 size: Size.micro,
-                tone: railInk.opacity(0.75),
+                tone: railInk.opacity(0.82),
                 weight: .semibold
             )
 
@@ -205,17 +213,31 @@ struct ArchiveView: View {
                    The date alone says which day is open, and the oxide says
                    it is open. Colour carrying meaning needs the label below
                    to carry it too, which it does. */
+                /* Monochrome, over a photograph.
+
+                   The date was oxide, and oxide over a green canopy is red
+                   on green — the worst contrast pair there is, and unreadable
+                   at label size however good the scrim behind it.
+
+                   It also spent the one accent the product has on a piece of
+                   permanent furniture. The token's own note says its scarcity
+                   is what gives it authority; a mark that appears on every
+                   screen has none to give.
+
+                   Nothing is lost by dropping it: the date is shown *only*
+                   when today is unrecorded, so its presence is the signal and
+                   the colour was saying the same thing twice. */
                 HStack(spacing: Space.s2) {
                     if !days.todayRecorded, let today = days.today {
                         Signage(
                             text: stampOf(today),
                             size: Size.micro,
-                            tone: Tone.oxide
+                            tone: railInk
                         )
                     }
                     Image(systemName: "plus")
                         .font(.system(size: Size.body, weight: .light))
-                        .foregroundStyle(days.todayRecorded ? railInk.opacity(0.7) : Tone.oxide)
+                        .foregroundStyle(railInk)
                 }
             }
             .accessibilityLabel(
@@ -227,7 +249,7 @@ struct ArchiveView: View {
             Button { showingAccount = true } label: {
                 Image(systemName: "person")
                     .font(.system(size: Size.small, weight: .light))
-                    .foregroundStyle(railInk.opacity(0.6))
+                    .foregroundStyle(railInk.opacity(0.7))
             }
             .padding(.leading, Space.s4)
             .accessibilityLabel("Account")
