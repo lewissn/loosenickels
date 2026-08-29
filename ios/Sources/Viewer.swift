@@ -26,6 +26,12 @@ import SwiftUI
 struct Viewer<Content: View>: View {
     let count: Int
     @Binding var index: Int
+    /// What shows at the edges as the receding day scales down. The room of
+    /// the day being left, not the archive's default — a pale border around
+    /// a dark photograph reads as a frame lifting off a page, which is the
+    /// wrong idea entirely and only appears mid-gesture where it is hardest
+    /// to notice while designing.
+    let ground: Color
     /// Built on demand so only the two or three days on screen exist.
     let content: (Int) -> Content
 
@@ -54,20 +60,60 @@ struct Viewer<Content: View>: View {
             let here = max(0, min(count - 1, index))
 
             ZStack {
-                /* Drawn back to front: the day arriving is beneath the day
-                   leaving, and rises through it. */
-                if count > 0, let next = neighbour(after: progress, from: here) {
-                    content(next)
-                        .modifier(Arriving(progress: abs(progress), flat: reduceMotion))
-                }
+                /* Order matters more than anything else here.
 
+                   This was the other way round — the day leaving on top,
+                   translucent, with the arriving one showing through it. Two
+                   semi-transparent photographs over each other do not read
+                   as one passing in front of another; they read as a
+                   dissolve, which is what it looked like. And because the
+                   leaving one faded to a fraction rather than to nothing, it
+                   was still visibly present when the spring finished and
+                   then vanished as the index changed: a blend, and then a
+                   pop.
+
+                   The day arriving is on top and it is opaque. It covers.
+                   The one behind recedes and is progressively hidden rather
+                   than progressively transparent, so by the time the
+                   transition completes it is not merely faint — it is
+                   underneath, entirely, and swapping the index is invisible. */
                 if count > 0 {
                     content(here)
                         .modifier(Leaving(progress: abs(progress), flat: reduceMotion))
                 }
+
+                if count > 0, let next = neighbour(after: progress, from: here) {
+                    content(next)
+                        .modifier(
+                            Arriving(
+                                progress: abs(progress),
+                                fromBelow: progress > 0,
+                                height: height,
+                                flat: reduceMotion
+                            )
+                        )
+                }
             }
+            /* A ground behind both layers. At the ends of the archive the
+               drag rubber-bands with nothing behind it, and without this the
+               window shows through at the edge — black, on a product that
+               does not otherwise contain any. */
+            .background(ground)
             .frame(width: screen.size.width, height: height)
             .contentShape(Rectangle())
+            #if DEBUG
+            /* `-mid <0..1>` freezes the transition part-way so it can be
+               looked at. The harness cannot drag, and a transition that can
+               only be seen at its two endpoints is a transition nobody has
+               actually reviewed. */
+            .onAppear {
+                guard let i = CommandLine.arguments.firstIndex(of: "-mid"),
+                      i + 1 < CommandLine.arguments.count,
+                      let fraction = Double(CommandLine.arguments[i + 1])
+                else { return }
+                offset = -height * CGFloat(fraction)
+            }
+            #endif
             .gesture(
                 DragGesture(minimumDistance: 8)
                     .onChanged { move in
@@ -156,9 +202,13 @@ struct Viewer<Content: View>: View {
 /*
  The day being left.
 
- It does not travel. It goes back: a little smaller, a little dimmer, and
- drifting a fraction in the direction of the gesture — far less than the
- finger, which is what reads as distance rather than as sliding.
+ It does not travel and it does not dissolve. It goes back — a little
+ smaller, a little dimmer — and is covered by the one arriving.
+
+ The dimming is deliberately slight. It exists so that the receding day reads
+ as being *behind* something rather than as being turned down, and most of it
+ is never seen anyway: by the time the transition is half done the arriving
+ photograph is over most of it.
  */
 private struct Leaving: ViewModifier {
     let progress: CGFloat
@@ -166,27 +216,35 @@ private struct Leaving: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .scaleEffect(flat ? 1 : 1 - progress * 0.06)
-            .opacity(Double(1 - progress * (flat ? 1.0 : 0.55)))
-            .blur(radius: flat ? 0 : progress * 3)
+            .scaleEffect(flat ? 1 : 1 - progress * 0.08)
+            .opacity(Double(flat ? 1 - progress : 1 - progress * 0.30))
     }
 }
 
 /*
  The day arriving.
 
- Rises from beneath, already almost the right size — starting it small and
- far away makes the movement a zoom, and this should read as one surface
- passing in front of another rather than as approaching from a distance.
+ Opaque, and it moves the whole way. Starting it at a fraction of the screen
+ and fading it in is what produced a blend: a photograph that is only ever
+ partly there never occludes the one behind it, and the eye reads two images
+ at once rather than one in front of the other.
+
+ It is slightly small as it arrives and reaches full size exactly as it
+ lands, which is the only part of this that is decoration — it gives the
+ movement somewhere to settle into rather than simply stopping.
  */
 private struct Arriving: ViewModifier {
     let progress: CGFloat
+    let fromBelow: Bool
+    let height: CGFloat
     let flat: Bool
 
     func body(content: Content) -> some View {
-        content
-            .scaleEffect(flat ? 1 : 0.97 + progress * 0.03)
-            .opacity(Double(flat ? progress : 0.25 + progress * 0.75))
-            .offset(y: flat ? 0 : (1 - progress) * 90)
+        let remaining = 1 - progress
+
+        return content
+            .scaleEffect(flat ? 1 : 0.98 + progress * 0.02)
+            .offset(y: flat ? 0 : (fromBelow ? height : -height) * remaining)
+            .opacity(flat ? Double(progress) : 1)
     }
 }

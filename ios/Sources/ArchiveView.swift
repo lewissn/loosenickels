@@ -331,7 +331,7 @@ struct ArchiveView: View {
     // MARK: Days
 
     private var pages: some View {
-        Viewer(count: days.days.count, index: $at) { i in
+        Viewer(count: days.days.count, index: $at, ground: room.ground) { i in
             DayScene(
                 day: days.days[i],
                 timeZone: days.timeZone,
