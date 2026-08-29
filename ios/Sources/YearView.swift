@@ -25,6 +25,10 @@ struct YearView: View {
     let summaries: [DaySummary]
     let room: Room
     let onOpen: (CalendarDate) -> Void
+    /// The month names in the gutter are the way in to a month. They are
+    /// already the only labels on the screen and they already say which month
+    /// each run of rows is — making them the door adds no chrome at all.
+    let onMonth: (Int) -> Void
     let onClose: () -> Void
 
     /// Columns are weekdays, Monday first — a week that begins on Sunday
@@ -107,11 +111,18 @@ struct YearView: View {
                     Int(day.value.suffix(2)) == 1
                 }
 
-                Text(starting.map { monthName(of: $0) } ?? "")
-                    .font(Face.grotesk(Size.micro, weight: .medium))
-                    .tracking(Size.micro * Track.signage)
-                    .foregroundStyle(room.inkFaint)
-                    .frame(width: gutter, height: side, alignment: .leading)
+                if let starting {
+                    Button { onMonth(monthNumber(of: starting)) } label: {
+                        Text(monthName(of: starting))
+                            .font(Face.grotesk(Size.micro, weight: .medium))
+                            .tracking(Size.micro * Track.signage)
+                            .foregroundStyle(room.inkFaint)
+                            .frame(width: gutter, height: side, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Color.clear.frame(width: gutter, height: side)
+                }
             }
         }
     }
@@ -183,9 +194,12 @@ struct YearView: View {
         }
     }
 
+    private func monthNumber(of day: CalendarDate) -> Int {
+        Int(day.value.dropFirst(5).prefix(2)) ?? 1
+    }
+
     private func monthName(of day: CalendarDate) -> String {
         let months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
-        let month = Int(day.value.dropFirst(5).prefix(2)) ?? 1
-        return months[max(0, min(11, month - 1))]
+        return months[max(0, min(11, monthNumber(of: day) - 1))]
     }
 }

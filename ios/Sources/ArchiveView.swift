@@ -31,10 +31,16 @@ struct ArchiveView: View {
     /// boolean each, so two things cannot be open at once.
     @State private var showing: Layer?
     @State private var yearSummaries: [DaySummary] = []
+    /// Which year `yearSummaries` holds, so stepping across a boundary knows
+    /// it must fetch and stepping within one knows it need not.
+    @State private var yearLoaded: Int?
     @State private var fresh: Profile?
     @State private var revisions: [Revision] = []
 
-    enum Layer: Equatable { case menu, year(Int), timeline, details(String), settings, versions(String) }
+    enum Layer: Equatable {
+        case menu, year(Int), month(Int, Int), timeline
+        case details(String), settings, versions(String)
+    }
     /// The day currently filling the screen. The rail takes its light from
     /// this one, so the chrome changes as the archive is scrolled rather
     /// than being fixed to whatever happened to load first.
@@ -146,10 +152,36 @@ struct ArchiveView: View {
                     room: room
                 ) { day in
                     open(day)
+                } onMonth: { month in
+                    withAnimation(Tempo.considered) { showing = .month(which, month) }
                 } onClose: {
                     withAnimation(Tempo.considered) { showing = nil }
                 }
-                .transition(.opacity)
+                /* Going up a scale enlarges; coming back down recedes. The
+                   year is the thing behind, so it grows as you leave it for
+                   a month and shrinks back as the month closes. §3: a change
+                   in scale, not a different page. */
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 1.04)),
+                    removal: .opacity.combined(with: .scale(scale: 1.04))
+                ))
+
+            case .month(let which, let month):
+                MonthView(
+                    year: which,
+                    month: month,
+                    summaries: yearSummaries,
+                    selected: currentDay?.date,
+                    today: days.status?.today ?? CalendarDate(Date(), in: days.timeZone),
+                    room: room
+                ) { day in
+                    open(day)
+                } onStep: { delta in
+                    Task { await step(month: month, in: which, by: delta) }
+                } onClose: {
+                    withAnimation(Tempo.considered) { showing = .year(which) }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.90)))
 
             case .timeline:
                 Timeline(summaries: yearSummaries, room: room) { day in
@@ -237,6 +269,10 @@ struct ArchiveView: View {
                 if CommandLine.arguments.contains("-timeline") {
                     yearSummaries = Fixtures.year(2026)
                     showing = .timeline
+                }
+                if CommandLine.arguments.contains("-month") {
+                    yearSummaries = Fixtures.year(2026)
+                    showing = .month(2026, 8)
                 }
                 if CommandLine.arguments.contains("-year") {
                     yearSummaries = Fixtures.year(2026)
@@ -408,11 +444,29 @@ struct ArchiveView: View {
         withAnimation(Tempo.considered) { showing = nil }
     }
 
+    /* A month has neighbours and the month view does not know which year they
+       are in — December's next is January of the year after, and that is a
+       fetch rather than an index. Kept here because this is the only place
+       that can make it. */
+    private func step(month: Int, in year: Int, by delta: Int) async {
+        var year = year
+        var month = month + delta
+        if month > 12 { month = 1; year += 1 }
+        if month < 1 { month = 12; year -= 1 }
+
+        if year != self.yearLoaded {
+            await loadYear(year)
+            yearLoaded = year
+        }
+        withAnimation(Tempo.inOut) { showing = .month(year, month) }
+    }
+
     private func loadYear(_ which: Int) async {
         if let fixtures {
             _ = fixtures
             #if DEBUG
             yearSummaries = Fixtures.year(which)
+            yearLoaded = which
             #endif
             return
         }
@@ -422,6 +476,7 @@ struct ArchiveView: View {
             from: CalendarDate("\(which)-01-01")!,
             to: CalendarDate("\(which)-12-31")!
         )) ?? []
+        yearLoaded = which
     }
 
     private var room: Room {
