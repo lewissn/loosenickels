@@ -1,0 +1,74 @@
+.island {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #0b1226;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+}
+
+.stage canvas {
+  display: block;
+  touch-action: none;
+}
+
+.ui {
+  position: absolute;
+  pointer-events: none;
+  font-family: Georgia, "Times New Roman", serif;
+  color: rgba(255, 248, 236, 0.9);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
+}
+
+.when {
+  left: max(18px, env(safe-area-inset-left));
+  top: max(16px, env(safe-area-inset-top));
+  font-size: 14px;
+  font-style: italic;
+  letter-spacing: 0.06em;
+}
+
+.sig {
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.follow {
+  left: 0;
+  right: 0;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 30px);
+  text-align: center;
+  font-size: 14px;
+  font-style: italic;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.follow.on {
+  opacity: 1;
+}
+
+.hint {
+  left: 24px;
+  right: 24px;
+  top: 44%;
+  text-align: center;
+  font-size: 16px;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  transition: opacity 2.5s ease;
+}
+
+.hint.gone {
+  opacity: 0;
+}

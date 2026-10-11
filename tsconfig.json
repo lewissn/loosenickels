@@ -18,7 +18,6 @@
     "jsx": "react-jsx",
     "incremental": true,
     "verbatimModuleSyntax": true,
-    "noUncheckedIndexedAccess": true,
     "plugins": [
       {
         "name": "next"

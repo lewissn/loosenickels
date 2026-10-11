@@ -1,0 +1,46 @@
+/* The island fills the screen and nothing scrolls, bounces or zooms. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0b1226;
+  overscroll-behavior: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+/* The not-found and error pages: one quiet line on the night sky. */
+.message {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #0b1226;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 248, 236, 0.9);
+  text-align: center;
+}
+
+.message p {
+  margin: 0 0 12px;
+}
+
+.message a,
+.message button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
