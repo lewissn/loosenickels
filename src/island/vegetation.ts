@@ -88,6 +88,10 @@ export function createVegetation(scene: Scene, world: World, detail: Detail, sha
     trees[kind].push({ x, y: h - 0.25, z, s: 0.7 + rand() * 0.6, rot: rand() * Math.PI * 2, v: 0.82 + rand() * 0.3 });
     n++;
   }
+  // The cottage's plot is cleared after placing, rather than skipped during
+  // it, so the rest of the island grows exactly as it would without it.
+  const clear = (list: Placed[], margin: number) => list.filter((t) => !world.nearSite(t.x, t.z, margin));
+  for (const kind of ["pine", "dec", "cherry"] as const) trees[kind] = clear(trees[kind], 9);
   const allDec = trees.dec.concat(trees.cherry);
   bucket(trees.pine, pines.length).forEach((list, v) => place(instanced(pines[v], pineMat, list), list, 0, 1));
   bucket(allDec, trunks.length).forEach((list, v) => place(instanced(trunks[v], trunkMat, list), list, 0, 1));
@@ -104,7 +108,8 @@ export function createVegetation(scene: Scene, world: World, detail: Detail, sha
   }
   const rockMat = new MeshStandardMaterial({ color: 0x9a948a, vertexColors: true, roughness: 0.9 });
   const boulders = variants(3, (k) => boulder(k, detail.mobile ? 2 : 3), grow);
-  bucket(rocks, boulders.length).forEach((list, v) => place(instanced(boulders[v], rockMat, list), list, 0, 1));
+  const keptRocks = clear(rocks, 7);
+  bucket(keptRocks, boulders.length).forEach((list, v) => place(instanced(boulders[v], rockMat, list), list, 0, 1));
 
   // ---- flowers
   const flowers: (Placed & { c: number })[] = [];
@@ -114,6 +119,7 @@ export function createVegetation(scene: Scene, world: World, detail: Detail, sha
     if (h < 1.6 || h > 14 || normalY(x, z) < 0.86 || noise2(x * 0.035, z * 0.035) > 0.1) continue;
     flowers.push({ x, y: h + 0.12, z, s: 0.8 + rand() * 0.6, rot: rand() * 6.28, c: hues[Math.floor(rand() * hues.length)] });
   }
+  flowers.splice(0, flowers.length, ...(clear(flowers, 5) as typeof flowers));
   const flowerIM = instanced(new IcosahedronGeometry(0.2, 0), mat(0xffffff, { emissive: 0x111111 }), flowers, false);
   flowers.forEach((f, i) => flowerIM.setColorAt(i, tint.set(f.c)));
   if (flowerIM.instanceColor) flowerIM.instanceColor.needsUpdate = true;

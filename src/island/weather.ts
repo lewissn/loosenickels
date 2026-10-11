@@ -19,7 +19,10 @@ import type { Rand } from "./noise";
 const cloudVertex = /* glsl */ `
 attribute vec3 aCentre;
 attribute vec4 aPuff; // offset from the cloud's middle (xyz), size
+attribute float aStorm; // 1 for the deck of cloud that only comes with rain
+uniform float uCover;
 varying vec2 vUv;
+varying float vStorm;
 varying float vLight;
 varying float vFogDepth;
 uniform vec3 uSunDir;
@@ -28,8 +31,10 @@ void main() {
   // Lit from the sun's side, darker underneath.
   vec3 o = normalize(aPuff.xyz * vec3(1.0, 1.8, 1.0) + vec3(0.0, 0.8, 0.0));
   vLight = clamp(dot(o, uSunDir) * 0.3 + 0.62 + aPuff.y * 0.06, 0.0, 1.0);
+  vStorm = aStorm;
   vec4 mv = viewMatrix * vec4(aCentre, 1.0);
-  mv.xy += position.xy * aPuff.w;
+  // Clouds swell as the sky fills; storm cloud only exists while it does.
+  mv.xy += position.xy * aPuff.w * (1.0 + uCover * 0.35) * mix(1.0, smoothstep(0.0, 0.6, uCover), aStorm);
   vFogDepth = -mv.z;
   gl_Position = projectionMatrix * mv;
 }
@@ -38,8 +43,9 @@ void main() {
 const cloudFragment = /* glsl */ `
 uniform sampler2D uMap;
 uniform vec3 uLit, uShade, uFogColor, uSunDir;
-uniform float uFogNear, uFogFar;
+uniform float uFogNear, uFogFar, uCover;
 varying vec2 vUv;
+varying float vStorm;
 varying float vLight;
 varying float vFogDepth;
 void main() {
@@ -47,7 +53,7 @@ void main() {
   if (a < 0.01) discard;
   vec3 col = mix(uShade, uLit, vLight);
   col = mix(col, uFogColor, smoothstep(uFogNear, uFogFar, vFogDepth) * 0.6);
-  gl_FragColor = vec4(col, a * 0.92);
+  gl_FragColor = vec4(col, a * mix(0.92, 0.97, uCover) * mix(1.0, uCover, vStorm));
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }
@@ -74,19 +80,21 @@ function puffTexture(rand: Rand) {
 }
 
 export function createClouds(scene: Scene, rand: Rand, shared: Shared) {
-  const puffs: { cloud: number; x: number; y: number; z: number; size: number }[] = [];
-  const clouds: { r: number; a: number; y: number; sp: number; shadow: Group }[] = [];
+  const puffs: { cloud: number; x: number; y: number; z: number; size: number; storm: number }[] = [];
+  const clouds: { r: number; a: number; y: number; sp: number; shadow: Group; storm: boolean }[] = [];
   const shadowMat = new MeshBasicMaterial({ colorWrite: false, depthWrite: false });
   const shadowGeo = new IcosahedronGeometry(1, 1);
 
-  for (let i = 0; i < 10; i++) {
+  // Ten fair-weather clouds, then a lower, heavier deck that rolls in with rain.
+  for (let i = 0; i < 18; i++) {
+    const storm = i >= 10;
     const shadow = new Group();
-    const count = 9 + Math.floor(rand() * 7), len = 10 + rand() * 10;
+    const count = (storm ? 12 : 9) + Math.floor(rand() * 7), len = (storm ? 18 : 10) + rand() * 10;
     for (let p = 0; p < count; p++) {
       const f = p / (count - 1) - 0.5, mid = 1 - Math.abs(f) * 1.6;
       const x = f * len + (rand() - 0.5) * 3, z = (rand() - 0.5) * 6, y = rand() * 3 * mid;
       const size = 10 + rand() * 8 * mid;
-      puffs.push({ cloud: i, x, y, z, size });
+      puffs.push({ cloud: i, x, y, z, size: storm ? size * 1.3 : size, storm: storm ? 1 : 0 });
       // An invisible stand-in, so the cloud still casts a shadow.
       const m = new Mesh(shadowGeo, shadowMat);
       m.position.set(x, y, z);
@@ -96,7 +104,10 @@ export function createClouds(scene: Scene, rand: Rand, shared: Shared) {
     }
     // Orbits stay over the island, well inside the camera's starting ring
     // (about 150 out), so no cloud drifts up against the lens.
-    clouds.push({ r: 15 + rand() * 60, a: rand() * Math.PI * 2, y: 54 + rand() * 14, sp: 0.008 + rand() * 0.012, shadow });
+    clouds.push({
+      r: storm ? 10 + rand() * 75 : 15 + rand() * 60, a: rand() * Math.PI * 2, y: storm ? 46 + rand() * 8 : 54 + rand() * 14,
+      sp: 0.008 + rand() * 0.012, shadow, storm,
+    });
     scene.add(shadow);
   }
 
@@ -108,6 +119,7 @@ export function createClouds(scene: Scene, rand: Rand, shared: Shared) {
   centre.setUsage(DynamicDrawUsage);
   geo.setAttribute("aCentre", centre);
   geo.setAttribute("aPuff", new InstancedBufferAttribute(new Float32Array(puffs.flatMap((p) => [p.x, p.y, p.z, p.size])), 4));
+  geo.setAttribute("aStorm", new InstancedBufferAttribute(new Float32Array(puffs.map((p) => p.storm)), 1));
   geo.instanceCount = n;
 
   const lit = new Color(), shade = new Color(), fogColor = new Color();
@@ -118,7 +130,7 @@ export function createClouds(scene: Scene, rand: Rand, shared: Shared) {
       uMap: { value: puffTexture(rand) },
       uSunDir: shared.uSunDir,
       uLit: { value: lit }, uShade: { value: shade }, uFogColor: { value: fogColor },
-      uFogNear: { value: 200 }, uFogFar: { value: 700 },
+      uFogNear: { value: 200 }, uFogFar: { value: 700 }, uCover: shared.uOvercast,
     },
     transparent: true,
     depthWrite: false,
@@ -132,8 +144,13 @@ export function createClouds(scene: Scene, rand: Rand, shared: Shared) {
     // Sunlit white by day, warm at dusk; the shadowed side takes the sky.
     lit.copy(shared.uSkyHorizon.value).multiplyScalar(0.35).add(shared.uSunColor.value).multiplyScalar(0.9).lerp(white, 0.15 * (1 - shared.uNight.value));
     shade.copy(shared.uSkyZenith.value).lerp(shared.uSkyHorizon.value, 0.5).multiplyScalar(0.85);
+    // Overcast cloud is grey and heavy; lightning lights it from inside.
+    const cover = shared.uOvercast.value, flash = shared.uFlash.value;
+    lit.multiplyScalar(1 - cover * 0.45).addScalar(flash * 0.9);
+    shade.multiplyScalar(1 - cover * 0.35).addScalar(flash * 0.6);
     fogColor.copy(shared.uSkyHorizon.value);
     for (const c of clouds) {
+      if (c.storm) c.shadow.visible = cover > 0.3;
       c.a += c.sp * dt;
       c.shadow.position.set(Math.cos(c.a) * c.r, c.y, Math.sin(c.a) * c.r);
       c.shadow.rotation.y = -c.a;

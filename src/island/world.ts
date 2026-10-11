@@ -14,10 +14,16 @@ export interface World {
   noise2: Noise2D;
   height(x: number, z: number): number;
   normalY(x: number, z: number): number;
-  /** Walkable ground: above the tide, below the scree, not too steep. */
+  /** Walkable ground: above the tide, below the scree, not too steep, not indoors. */
   isLand(x: number, z: number): boolean;
+  /** Where the cottage stands, facing the sea. */
+  site: Site;
+  /** Whether (x, z) is within `margin` of the cottage. */
+  nearSite(x: number, z: number, margin: number): boolean;
   clearPath(x0: number, z0: number, x1: number, z1: number): boolean;
 }
+
+export interface Site { x: number; z: number; y: number; /** Angle the front door faces, about y. */ facing: number }
 
 export function createWorld(seed: number): World {
   const rand = mulberry32(seed);
@@ -45,9 +51,12 @@ export function createWorld(seed: number): World {
     return 1 / Math.sqrt(1 + (hx * hx + hz * hz) / (4 * e * e));
   }
 
+  const site = findSite(height, normalY);
+  const nearSite = (x: number, z: number, margin: number) => Math.hypot(x - site.x, z - site.z) < margin;
+
   function isLand(x: number, z: number) {
     const h = height(x, z);
-    return h > 0.8 && h < 22 && normalY(x, z) > 0.72;
+    return h > 0.8 && h < 22 && normalY(x, z) > 0.72 && !nearSite(x, z, 5);
   }
 
   function clearPath(x0: number, z0: number, x1: number, z1: number) {
@@ -58,5 +67,34 @@ export function createWorld(seed: number): World {
     return true;
   }
 
-  return { seed, rand, noise, noise2, height, normalY, isLand, clearPath };
+  return { seed, rand, noise, noise2, height, normalY, isLand, clearPath, site, nearSite };
+}
+
+/**
+ * The flattest ground a little way up from the shore, with the sea in front.
+ * A plain search over a grid — no random draws — so it never disturbs where
+ * anything else grows.
+ */
+function findSite(height: (x: number, z: number) => number, normalY: (x: number, z: number) => number): Site {
+  let best: Site = { x: 30, z: 30, y: height(30, 30), facing: Math.PI / 4 }, bestScore = -Infinity;
+  for (let x = -75; x <= 75; x += 2.5) {
+    for (let z = -75; z <= 75; z += 2.5) {
+      const h = height(x, z);
+      if (h < 2.2 || h > 8 || normalY(x, z) < 0.94) continue;
+      // Level across the whole footprint and garden.
+      let spread = 0;
+      for (let k = 0; k < 12; k++) {
+        const a = (k / 12) * Math.PI * 2;
+        spread = Math.max(spread, Math.abs(height(x + Math.cos(a) * 6, z + Math.sin(a) * 6) - h));
+      }
+      if (spread > 1.4) continue;
+      // Facing out to sea, which should be near: water within 25 units that way.
+      const facing = Math.atan2(z, x);
+      let shore = 99;
+      for (let d = 6; d < 40; d += 2) if (height(x + Math.cos(facing) * d, z + Math.sin(facing) * d) < 0) { shore = d; break; }
+      const score = -spread * 2 - Math.abs(h - 4) * 0.5 - Math.abs(shore - 16) * 0.15 - Math.hypot(x - 20, z + 15) * 0.002;
+      if (score > bestScore) { bestScore = score; best = { x, z, y: h, facing }; }
+    }
+  }
+  return best;
 }

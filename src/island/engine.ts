@@ -11,6 +11,9 @@ import { createSky } from "./sky";
 import { createClouds, createFalling } from "./weather";
 import { createFireflies } from "./fireflies";
 import { createGrass } from "./grass";
+import { createCottage } from "./cottage";
+import { createRain, type Forecast } from "./rain";
+import { createMist } from "./mist";
 import { populate, type Creature, type Env, type Habitat } from "./creatures";
 import { createViewer } from "./viewer";
 import { DAY, START_DAY, dayFraction, describe, yearPosition } from "./time";
@@ -26,6 +29,8 @@ export interface IslandOptions {
   startDay: number;
   /** How fast the clock runs. 1 is a 48-second day; 0 holds it still. */
   speed: number;
+  /** Overrides the weather's schedule, for looking at it. */
+  weather?: Forecast;
 }
 
 export interface IslandEvents {
@@ -62,6 +67,8 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   const vegetation = createVegetation(scene, world, detail, shared);
   const clouds = createClouds(scene, world.rand, shared);
   createGrass(scene, world, detail, shared);
+  const cottage = createCottage(scene, world, shared);
+  const mist = createMist(scene, detail, shared, terrain.groundMap);
   const falling = createFalling(scene, detail);
   const fireflies = createFireflies(scene, world, detail);
 
@@ -74,11 +81,12 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0]);
 
   const post = createPost(renderer, scene, viewer.camera, detail, shared);
+  const rain = createRain(scene, world, detail, shared, viewer.camera, viewer.controls.target, options.weather);
 
   // For looking at things while developing: the camera, controls, renderer
   // and everything tappable, from the browser console. Never in production.
   if (process.env.NODE_ENV === "development") {
-    (window as unknown as Record<string, unknown>).island = { world, camera: viewer.camera, controls: viewer.controls, hitboxes, scene, renderer, post };
+    (window as unknown as Record<string, unknown>).island = { world, shared, tick: (ms: number) => tick(ms), camera: viewer.camera, controls: viewer.controls, hitboxes, scene, renderer, post };
   }
 
   const env: Env = { elev: 0 };
@@ -86,12 +94,13 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   let simT = DAY * options.startDay;
   let hudTimer = 0;
 
-  renderer.setAnimationLoop((time) => {
+  const tick = (time: number) => {
     timer.update(time);
     const dt = Math.min(timer.getDelta(), 0.1), t = timer.getElapsed();
     simT += dt * options.speed;
 
     season.blend(yearPosition(simT));
+    const weather = rain.update(simT, dt);
     shared.uTime.value = t;
     shared.uGrass.value.copy(season.grass);
     shared.uMeadow.value.copy(season.grass).offsetHSL(0.02, 0.05, 0.07);
@@ -99,6 +108,8 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     shared.uSnowLine.value = 33 - season.snow * 31;
     vegetation.update(season);
     env.elev = sky.update(dayFraction(simT), season);
+    cottage(dayFraction(simT), t);
+    const misty = mist(dayFraction(simT), yearPosition(simT));
 
     falling(dt, t, season);
     fireflies(t, season, env.elev);
@@ -107,9 +118,14 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     viewer.update(dt, world);
 
     hudTimer -= dt;
-    if (hudTimer <= 0) { hudTimer = 0.5; events.onWhen(describe(simT)); }
+    if (hudTimer <= 0) {
+      hudTimer = 0.5;
+      const sky = weather.storm ? " · thunderstorm" : weather.rain > 0.6 ? " · rain" : weather.rain > 0.15 ? " · showers" : misty > 0.4 ? " · mist" : "";
+      events.onWhen(describe(simT) + sky);
+    }
     if (post.enabled) post.render(); else renderer.render(scene, viewer.camera);
-  });
+  };
+  renderer.setAnimationLoop(tick);
 
   const resize = new ResizeObserver(() => {
     const w = host.clientWidth, h = host.clientHeight;
@@ -128,6 +144,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     timer.dispose();
     post.dispose();
     terrain.heightMap.dispose();
+    terrain.groundMap.dispose();
     scene.traverse((o: Object3D) => {
       const m = o as Mesh;
       m.geometry?.dispose();

@@ -10,7 +10,10 @@ import s from "./island.module.css";
 
 const HINT_FOR = 7000;
 
-/** ?seed=42 grows a different island; ?t= and ?speed= move and hold the clock. */
+/**
+ * ?seed=42 grows a different island; ?t= and ?speed= move and hold the
+ * clock; ?weather=clear|rain|storm overrides the weather.
+ */
 function readOptions(defaults: IslandOptions): IslandOptions {
   const q = new URLSearchParams(location.search);
   const num = (key: string) => {
@@ -22,6 +25,7 @@ function readOptions(defaults: IslandOptions): IslandOptions {
     seed: Math.trunc(num("seed") ?? 0) || defaults.seed,
     startDay: num("t") ?? defaults.startDay,
     speed: num("speed") ?? defaults.speed,
+    weather: (["clear", "rain", "storm"] as const).find((w) => w === q.get("weather")),
   };
 }
 

@@ -15,9 +15,11 @@ export const SNOW = new Color(0xf2f5f8);
 export const TERRAIN_SIZE = 260;
 /** Heights the water's height map can tell apart: the shallows that matter. */
 export const DEPTH_RANGE: [number, number] = [-8, 4];
+/** The whole island's heights, for the mist to find the hollows. */
+export const GROUND_RANGE: [number, number] = [-8, 40];
 
 const COLOURS = {
-  uSeabed: new Color(0x4f8478), uWet: new Color(0xa89466), uSand: new Color(0xe3cf9a),
+  uSeabed: new Color(0x4f8478), uWetSand: new Color(0xa89466), uSand: new Color(0xe3cf9a),
   uRock: new Color(0x8d877e), uRockDark: new Color(0x5f5a54), uSnowCol: SNOW,
 };
 
@@ -31,7 +33,7 @@ export function createTerrain(world: World, detail: Detail, shared: Shared) {
   const material = new MeshStandardMaterial({ roughness: 0.92, metalness: 0 });
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, {
-      uGrass: shared.uGrass, uMeadow: shared.uMeadow, uSnowLine: shared.uSnowLine,
+      uGrass: shared.uGrass, uMeadow: shared.uMeadow, uSnowLine: shared.uSnowLine, uWet: shared.uWet,
       ...Object.fromEntries(Object.entries(COLOURS).map(([k, v]) => [k, { value: v }])),
     });
     shader.vertexShader = shader.vertexShader
@@ -43,8 +45,9 @@ export function createTerrain(world: World, detail: Detail, shared: Shared) {
       .replace("#include <common>", `#include <common>
         varying vec3 vWPos;
         varying vec3 vWNormal;
-        uniform vec3 uGrass, uMeadow, uSeabed, uWet, uSand, uRock, uRockDark, uSnowCol;
-        uniform float uSnowLine;
+        uniform vec3 uGrass, uMeadow, uSeabed, uWetSand, uSand, uRock, uRockDark, uSnowCol;
+        uniform float uSnowLine, uWet;
+        float wetness;
         ${NOISE_GLSL}`)
       .replace("#include <color_fragment>", /* glsl */ `
         float h = vWPos.y;
@@ -61,7 +64,7 @@ export function createTerrain(world: World, detail: Detail, shared: Shared) {
         vec3 rock = mix(uRock, uRockDark, smoothstep(0.3, 0.7, n1)) * (0.82 + n2 * 0.3);
 
         vec3 col = mix(sand, grass, smoothstep(0.8, 2.0, h + (n1 - 0.5) * 0.9));
-        vec3 under = mix(uSeabed, uWet, smoothstep(-6.0, -0.8, h));
+        vec3 under = mix(uSeabed, uWetSand, smoothstep(-6.0, -0.8, h));
         col = mix(under, col, smoothstep(-0.5, 0.75, h));
         float steep = 1.0 - smoothstep(0.66, 0.84, ny + (n1 - 0.5) * 0.14);
         float high = smoothstep(26.0, 33.0, h + n1 * 5.0);
@@ -69,21 +72,24 @@ export function createTerrain(world: World, detail: Detail, shared: Shared) {
 
         float sl = uSnowLine + (n1 - 0.5) * 8.0;
         col = mix(col, uSnowCol * (0.95 + n2 * 0.05), smoothstep(sl, sl + 2.5, h) * smoothstep(0.45, 0.72, ny));
-        diffuseColor.rgb = col;
-      `);
+        // Rain darkens the ground and gives it a sheen; snow stays dry-looking.
+        float snowy = smoothstep(sl, sl + 2.5, h);
+        wetness = uWet * (1.0 - snowy) * smoothstep(-0.5, 1.0, h);
+        diffuseColor.rgb = col * (1.0 - wetness * 0.3);
+      `)
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.38, wetness);");
   };
 
   const mesh = new Mesh(geo, material);
   mesh.receiveShadow = true;
   mesh.castShadow = true;
 
-  return { mesh, heightMap: bakeHeightMap(world) };
+  return { mesh, heightMap: bakeHeightMap(world, DEPTH_RANGE), groundMap: bakeHeightMap(world, GROUND_RANGE) };
 }
 
-/** Terrain height around the shallows, for the water to find the shore. */
-function bakeHeightMap(world: World) {
+/** Terrain height over [lo, hi] as a texture spanning the terrain. */
+function bakeHeightMap(world: World, [lo, hi]: [number, number]) {
   const n = 256, data = new Uint8Array(n * n);
-  const [lo, hi] = DEPTH_RANGE;
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
       const x = (i / (n - 1) - 0.5) * TERRAIN_SIZE, z = (j / (n - 1) - 0.5) * TERRAIN_SIZE;

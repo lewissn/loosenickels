@@ -19,6 +19,10 @@ import type { Shared } from "./shared";
 const ZENITH = { night: new Color(0x040917), dusk: new Color(0x34467e), day: new Color(0x2c74c6), winter: new Color(0x7ea4c6) };
 const HORIZON = { night: new Color(0x142145), dusk: new Color(0xf09a62), day: new Color(0xa3cbe8), winter: new Color(0xd6e1ea) };
 const HEMI = { night: new Color(0x2a3a66), day: new Color(0xcfe6ff) };
+/** An overcast sky by day; darkened with the light at night. */
+const GREY = { zenith: new Color(0x59636e), horizon: new Color(0x939ca4) };
+const grey = new Color();
+const FLASH = new Color(0.82, 0.86, 1);
 const SUNC = { low: new Color(0xffa060), high: new Color(0xfff2dd), moon: new Color(0x9fb4ff) };
 
 const skyVertex = /* glsl */ `
@@ -32,7 +36,7 @@ void main() {
 
 const skyFragment = /* glsl */ `
 uniform vec3 uZenith, uHorizon, uSunTrue, uSunColor;
-uniform float uDusk, uNight;
+uniform float uDusk, uNight, uClear, uFlash;
 varying vec3 vDir;
 void main() {
   vec3 d = normalize(vDir);
@@ -45,15 +49,18 @@ void main() {
   float day = 1.0 - uNight;
   // A halo round the sun, wider and warmer as it sets.
   float halo = pow(max(mu, 0.0), mix(18.0, 6.0, uDusk)) * mix(0.35, 0.8, uDusk);
-  col += uSunColor * halo * day;
+  // Cloud cover hides the sun and moon and mutes the sunset.
+  col += uSunColor * halo * day * mix(0.35, 1.0, uClear);
   // The band of colour along the horizon at dusk, strongest beneath the sun.
   float band = exp(-abs(d.y) * 9.0) * pow(mu * 0.5 + 0.5, 3.0) * uDusk;
-  col += uSunColor * band * 0.6;
+  col += uSunColor * band * 0.6 * mix(0.3, 1.0, uClear);
   // The sun, bright enough to bloom.
-  col += uSunColor * smoothstep(0.99935, 0.99965, mu) * 18.0 * step(-0.05, uSunTrue.y);
+  col += uSunColor * smoothstep(0.99935, 0.99965, mu) * 18.0 * step(-0.05, uSunTrue.y) * uClear;
   // The moon, opposite, with a faint halo of its own.
   float mm = dot(d, -uSunTrue);
-  col += vec3(0.85, 0.9, 1.0) * (smoothstep(0.99955, 0.9998, mm) * 3.0 + pow(max(mm, 0.0), 60.0) * 0.08) * uNight;
+  col += vec3(0.85, 0.9, 1.0) * (smoothstep(0.99955, 0.9998, mm) * 3.0 + pow(max(mm, 0.0), 60.0) * 0.08) * uNight * uClear;
+  // Lightning lights the whole sky from within the cloud.
+  col += vec3(0.75, 0.8, 1.0) * uFlash * 0.5 * up;
 
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
@@ -89,6 +96,8 @@ export function createSky(scene: Scene, detail: Detail, shared: Shared) {
       uSunColor: { value: new Color() },
       uDusk: { value: 0 },
       uNight: shared.uNight,
+      uClear: { value: 1 },
+      uFlash: shared.uFlash,
     },
     side: BackSide,
     depthWrite: false,
@@ -135,8 +144,17 @@ export function createSky(scene: Scene, detail: Detail, shared: Shared) {
     }
     zenith.lerp(ZENITH.winter, season.snow * 0.35 * dayAmt);
     horizon.lerp(HORIZON.winter, season.snow * 0.35 * dayAmt);
+    const cover = shared.uOvercast.value, rain = shared.uRain.value, light = 0.12 + 0.88 * dayAmt;
+    zenith.lerp(grey.copy(GREY.zenith).multiplyScalar(light), cover * 0.85);
+    horizon.lerp(grey.copy(GREY.horizon).multiplyScalar(light), cover * 0.8);
+    skyMat.uniforms.uClear.value = 1 - cover * 0.92;
+    // Lightning lights the air itself, so sea and sky flash together.
+    horizon.lerp(FLASH, shared.uFlash.value * 0.55);
     background.copy(horizon);
     fog.color.copy(horizon);
+    // Rain closes the distance in.
+    fog.near = 160 - rain * 100;
+    fog.far = 560 - rain * 300;
 
     const sunColor = skyMat.uniforms.uSunColor.value as Color;
     sunColor.copy(SUNC.low).lerp(SUNC.high, smooth(0, 0.4, e));
@@ -153,13 +171,14 @@ export function createSky(scene: Scene, detail: Detail, shared: Shared) {
       sun.color.copy(SUNC.moon);
       shared.uSunDir.value.copy(sunTrue).negate();
     }
+    sun.intensity *= 1 - cover * 0.78;
     shared.uSunColor.value.copy(sun.color).multiplyScalar(sun.intensity / 2.8);
     shared.uNight.value = nightAmt;
     // The sky lights the ground too: warm at dusk, so a backlit island
     // glows at the edges instead of going black.
-    hemi.intensity = 0.4 + 0.4 * dayAmt + dusk * 0.35;
-    hemi.color.copy(HEMI.night).lerp(HEMI.day, dayAmt).lerp(horizon, dusk * 0.6);
-    starMat.opacity = nightAmt * 0.9;
+    hemi.intensity = 0.4 + 0.4 * dayAmt + dusk * 0.35 * (1 - cover) + shared.uFlash.value * 2.5;
+    hemi.color.copy(HEMI.night).lerp(HEMI.day, dayAmt).lerp(horizon, dusk * 0.6 + cover * 0.4);
+    starMat.opacity = nightAmt * 0.9 * (1 - cover);
     return e;
   }
 

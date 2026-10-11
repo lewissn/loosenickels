@@ -20,6 +20,14 @@ export function createShared() {
     uSnowLine: { value: 30 },
     /** 0 to 1: a light breeze to a blustery day. */
     uWind: { value: 0.5 },
+    /** How hard it is raining, 0 to 1. */
+    uRain: { value: 0 },
+    /** How much of the sky is cloud, 0 to 1. Leads the rain and lags it. */
+    uOvercast: { value: 0 },
+    /** How wet the ground is; dries slowly after rain. */
+    uWet: { value: 0 },
+    /** Lightning, 0 to 1. */
+    uFlash: { value: 0 },
   };
 }
 

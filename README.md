@@ -39,6 +39,14 @@ a client-only page at `/`, deployed on Vercel from `main`.
 - **Seasons blend** rather than switch: blossom and petals in spring, full
   canopies in summer, orange leaves thinning and falling in autumn, bare trees,
   snow and a creeping snowline in winter. Rabbits turn white.
+- **Weather:** showers come and go to a schedule set by the seed — most
+  often in autumn, least in summer, never in winter, which has snow.
+  Clouds gather first and the wind gets up; the ground stays wet a while
+  after. Summer showers are the likeliest to become thunderstorms.
+- **Mist** pools in the low meadows and along the shore at dawn, most of
+  all in autumn, and after rain.
+- **A cottage** stands above the shore. Its rooms light up through the
+  evening, the lantern by the door burns all night, and the chimney smokes.
 - **Animals:** six deer (two stags) who graze, wander, sleep at night and
   startle if you get too close; ten rabbits who bolt; a fox that sleeps by
   day and hunts the rabbits at night (they always get away); swallows that
@@ -50,7 +58,8 @@ a client-only page at `/`, deployed on Vercel from `main`.
   particles), the render resolution is capped at 1.5x, and
   `prefers-reduced-motion` slows the camera.
 - In development, `window.island` in the browser console holds the camera,
-  controls, renderer, post-processing and tap targets.
+  controls, renderer, post-processing, shared uniforms and tap targets, and
+  `tick(ms)` steps a frame by hand.
 
 ### Links for looking at it
 
@@ -59,6 +68,7 @@ a client-only page at `/`, deployed on Vercel from `main`.
 | `?seed=42`  | Grows a different island                                     |
 | `?t=8.75`   | Starts the clock at a given day (see below)                  |
 | `?speed=0`  | Holds the clock still. `2` runs it twice as fast, `0.1` slower |
+| `?weather=` | `clear`, `rain` or `storm`, overriding the weather's schedule |
 
 `t` counts days from midnight on the first day of spring. The whole part
 picks the day — spring is 0–2.5, summer 2.5–5, autumn 5–7.5, winter 7.5–10 —
@@ -87,6 +97,9 @@ src/island/
   vegetation.ts    where the trees, rocks and flowers go
   grass.ts         instanced blades bending in the wind
   weather.ts       soft clouds, and the petals, leaves and snow that fall
+  rain.ts          the weather's schedule, rain, and lightning
+  mist.ts          mist pooling in the hollows at dawn
+  cottage.ts       the cottage, its lit windows, lantern and smoke
   fireflies.ts     summer nights
   viewer.ts        camera, orbit controls, tapping and following
   creatures/       deer, rabbits, the fox, flocks of birds; models.ts

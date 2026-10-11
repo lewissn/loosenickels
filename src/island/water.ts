@@ -35,7 +35,7 @@ void main() {
 `;
 
 const fragment = /* glsl */ `
-uniform float uTime, uNight, uSize, uClip;
+uniform float uTime, uNight, uSize, uClip, uRain;
 uniform vec2 uDepthRange;
 uniform sampler2D uHeight;
 uniform vec3 uDeep, uShallow, uSkyZenith, uSkyHorizon, uSunDir, uSunColor;
@@ -68,6 +68,9 @@ void main() {
   float dist = length(cameraPosition - vWPos);
   // Ripples fade with distance, where they would only shimmer.
   vec2 g = ripples(vWPos.xz, uTime) * (1.0 - smoothstep(60.0, 260.0, dist));
+  // Rain pocks the surface.
+  vec2 q = vWPos.xz * 3.1;
+  g += (vec2(vnoise(q + uTime * vec2(9.0, 5.0)), vnoise(q * 1.3 - uTime * vec2(6.0, 8.0))) - 0.5) * 0.5 * uRain * (1.0 - smoothstep(20.0, 120.0, dist));
   vec3 N = normalize(vSwellN + vec3(-g.x, 0.0, -g.y));
   vec3 V = normalize(cameraPosition - vWPos);
   vec3 R = reflect(-V, N);
@@ -110,6 +113,7 @@ export function createWater(scene: Scene, detail: Detail, shared: Shared, height
       ...UniformsUtils.clone(UniformsLib.fog),
       uTime: shared.uTime,
       uNight: shared.uNight,
+      uRain: shared.uRain,
       uSkyZenith: shared.uSkyZenith,
       uSkyHorizon: shared.uSkyHorizon,
       uSunDir: shared.uSunDir,
