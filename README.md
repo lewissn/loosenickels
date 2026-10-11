@@ -112,7 +112,9 @@ The deer, stags and fox are CC0 models by Quaternius, credited in
 `public/models/CREDITS.md`. `node tools/models.mjs` rebuilds them from
 their sources, keeping only the animations the island uses and compressing
 them (about 280 KB each). They load after the island is on screen. The
-rabbits and birds are still made in code.
+rabbits, swallows and gulls are made in code (`creatures/bodies.ts`): soft
+bodies with the joints their behaviour moves — a rabbit's haunches, feet,
+head and ears; a bird's wings at shoulder and wrist.
 
 ### Screenshots
 
