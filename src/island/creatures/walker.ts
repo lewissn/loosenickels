@@ -1,6 +1,6 @@
 import { Vector3, type Object3D } from "three";
 import { addHitbox, type Creature, type Env, type Habitat } from "./habitat";
-import type { RabbitBody } from "./bodies";
+import type { RabbitBody, RabbitMood } from "./bodies";
 import type { Rig } from "./models";
 
 /* Deer and rabbits: graze, wander to a point they can reach without
@@ -104,7 +104,8 @@ abstract class Walker implements Creature {
     }
     const moving = this.state === "walk" || this.state === "flee";
     this.move += ((moving ? 1 : 0) - this.move) * Math.min(1, dt * 6);
-    this.phase += dt * (this.state === "flee" ? this.runSpeed : this.walkSpeed) * (this.kind === "rabbit" ? 1.1 : 2.2);
+    // Hops a second: about two at a walk, three in flight.
+    this.phase += dt * Math.PI * 2 * (this.state === "flee" ? 3.1 : 2.1);
     this.root.position.set(this.x, world.height(this.x, this.z), this.z);
     this.root.rotation.y = this.heading;
     this.pose(dt, t);
@@ -137,18 +138,21 @@ export class Deer extends Walker {
   }
 }
 
+/** Rabbits hop, nibble, and sit up to look when something comes near. */
 export class Rabbit extends Walker {
   kind = "rabbit" as const;
-  constructor(habitat: Habitat, private parts: RabbitBody) {
-    super(habitat, parts.root, 3.2, 9, 10, 0.8);
-    addHitbox(habitat, parts.root, 1.6, 0.5, this);
+  constructor(habitat: Habitat, private body: RabbitBody) {
+    super(habitat, body.root, 3.2, 9, 10, 0.8);
+    addHitbox(habitat, body.root, 1.6, 0.5, this);
   }
   label() { return this.habitat.season.snow > 0.5 ? "a hare in its winter coat" : "a rabbit"; }
   wanderDistance() { return 5 + Math.random() * 12; }
   restTime() { return 1 + Math.random() * 4; }
-  pose() {
-    const { body, head } = this.parts;
-    body.position.y = Math.abs(Math.sin(this.phase)) * 0.5 * this.move;
-    head.position.y = 0.72 - (this.state === "graze" ? 0.18 : 0);
+  pose(dt: number, t: number) {
+    const hop = (this.phase / (Math.PI * 2)) % 1;
+    // Something not quite close enough to bolt from is worth sitting up for.
+    const near = this.habitat.camera.position.distanceTo(this.focus());
+    const mood: RabbitMood = this.state === "flee" ? "flee" : this.state === "walk" ? "hop" : near < 22 ? "alert" : "graze";
+    this.body.pose(dt, t, hop, this.move, mood);
   }
 }

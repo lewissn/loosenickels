@@ -16,7 +16,7 @@ import { NOISE_GLSL, WIND_GLSL, type Shared } from "./shared";
 const bump = makeNoise(4242);
 
 /** A smooth sphere, lumpy with noise, as an indexed geometry. */
-function lump(radius: number, detail: number, roughness: number, salt: number) {
+export function lump(radius: number, detail: number, roughness: number, salt: number) {
   const g = new IcosahedronGeometry(radius, detail);
   g.deleteAttribute("normal");
   g.deleteAttribute("uv");
@@ -33,7 +33,7 @@ function lump(radius: number, detail: number, roughness: number, salt: number) {
 }
 
 /** Writes a vertex colour from a function of position. */
-function shade(g: BufferGeometry, f: (x: number, y: number, z: number) => number) {
+export function shade(g: BufferGeometry, f: (x: number, y: number, z: number) => number) {
   const p = g.attributes.position, c = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) {
     const v = f(p.getX(i), p.getY(i), p.getZ(i));

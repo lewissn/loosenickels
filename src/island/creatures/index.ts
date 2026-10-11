@@ -1,5 +1,4 @@
-import { Color } from "three";
-import { bodyMaterials, makeRabbit } from "./bodies";
+import { bodyMaterials, COAT, RabbitBody } from "./bodies";
 import { Deer, Rabbit } from "./walker";
 import { Flock } from "./flock";
 import { Fox } from "./fox";
@@ -9,7 +8,6 @@ import type { Placed } from "../vegetation";
 
 export type { Creature, Env, Habitat } from "./habitat";
 
-const RABBIT_BROWN = new Color(0x9b8b78), RABBIT_WHITE = new Color(0xf0eee8);
 
 /**
  * Six deer (two of them stags), ten rabbits, a fox, a flock of swallows,
@@ -18,8 +16,8 @@ const RABBIT_BROWN = new Color(0x9b8b78), RABBIT_WHITE = new Color(0xf0eee8);
  */
 export function populate(habitat: Habitat, roostTree: Placed | undefined) {
   const m = bodyMaterials();
-  const rabbits = Array.from({ length: 10 }, () => new Rabbit(habitat, makeRabbit(m)));
-  const flocks = [new Flock(habitat, 8, m.bird, false, roostTree), new Flock(habitat, 6, m.gull, true, roostTree)];
+  const rabbits = Array.from({ length: 10 }, () => new Rabbit(habitat, new RabbitBody(m)));
+  const flocks = [new Flock(habitat, 8, m, false, roostTree), new Flock(habitat, 6, m, true, roostTree)];
   const deer: Deer[] = [];
   let fox: Fox | null = null;
   let gone = false;
@@ -35,7 +33,7 @@ export function populate(habitat: Habitat, roostTree: Placed | undefined) {
 
   return {
     update(dt: number, t: number, env: Env) {
-      m.rabbit.color.copy(RABBIT_BROWN).lerp(RABBIT_WHITE, habitat.season.snow);
+      m.rabbit.color.copy(COAT.summer).lerp(COAT.winter, habitat.season.snow);
       for (const r of rabbits) r.update(dt, t, env);
       for (const d of deer) d.update(dt, t, env);
       fox?.update(dt, env);
