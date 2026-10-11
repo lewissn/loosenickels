@@ -19,6 +19,14 @@
  *
  * Pass height 0 for a full-page capture.
  *
+ * The island needs a moment after load: the engine is fetched, the world
+ * is grown, and WebGL renders in software here. SHOT_SETTLE (ms, default
+ * 250) is how long to let it run before capturing. With ?speed=0 the clock
+ * holds still, so the season and hour in the URL are what you get:
+ *
+ *   SHOT_SETTLE=4000 node tools/shot.mjs ./shots http://localhost:3000 390 844 \
+ *     winter-dusk="/?t=8.75&speed=0"
+ *
  * From Git Bash on Windows, prefix the command with MSYS_NO_PATHCONV=1.
  * MSYS rewrites any argument that looks like a POSIX path, so `home=/`
  * arrives as `home=C:/Program Files/Git/` and Chrome rejects the URL with
@@ -152,7 +160,9 @@ async function main() {
     [
       "--headless=new",
       ...SANDBOX_ARGS,
-      "--disable-gpu",
+      /* No GPU in headless Chrome; WebGL falls back to SwiftShader, which
+         Chrome only allows when asked. */
+      "--enable-unsafe-swiftshader",
       "--hide-scrollbars",
       "--no-first-run",
       "--no-default-browser-check",
@@ -216,7 +226,7 @@ async function main() {
         ]).then(() => true)`,
         awaitPromise: true,
       });
-      await sleep(250);
+      await sleep(Number(process.env.SHOT_SETTLE) || 250);
 
       const shot = await client.send("Page.captureScreenshot", {
         format: "png",
