@@ -78,7 +78,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   // For looking at things while developing: the camera, controls, renderer
   // and everything tappable, from the browser console. Never in production.
   if (process.env.NODE_ENV === "development") {
-    (window as unknown as Record<string, unknown>).island = { camera: viewer.camera, controls: viewer.controls, hitboxes, scene, renderer, post };
+    (window as unknown as Record<string, unknown>).island = { world, camera: viewer.camera, controls: viewer.controls, hitboxes, scene, renderer, post };
   }
 
   const env: Env = { elev: 0 };
@@ -103,7 +103,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     falling(dt, t, season);
     fireflies(t, season, env.elev);
     clouds(dt);
-    creatures(dt, t, env);
+    creatures.update(dt, t, env);
     viewer.update(dt, world);
 
     hudTimer -= dt;
@@ -124,6 +124,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     renderer.setAnimationLoop(null);
     resize.disconnect();
     viewer.dispose();
+    creatures.dispose();
     timer.dispose();
     post.dispose();
     terrain.heightMap.dispose();

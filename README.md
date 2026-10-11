@@ -89,8 +89,17 @@ src/island/
   weather.ts       soft clouds, and the petals, leaves and snow that fall
   fireflies.ts     summer nights
   viewer.ts        camera, orbit controls, tapping and following
-  creatures/       bodies, deer, rabbits, the fox, flocks of birds
+  creatures/       deer, rabbits, the fox, flocks of birds; models.ts
+                   loads the animal models and plays their animations
 ```
+
+### Models
+
+The deer, stags and fox are CC0 models by Quaternius, credited in
+`public/models/CREDITS.md`. `node tools/models.mjs` rebuilds them from
+their sources, keeping only the animations the island uses and compressing
+them (about 280 KB each). They load after the island is on screen. The
+rabbits and birds are still made in code.
 
 ### Screenshots
 

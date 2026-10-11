@@ -1,10 +1,9 @@
 import { Vector3 } from "three";
 import { addHitbox, type Creature, type Env, type Habitat } from "./habitat";
 import { angleTo, randomLandPoint, type Rabbit } from "./walker";
-import type { FoxBody } from "./bodies";
+import type { Rig } from "./models";
 
-/* A fox that sleeps the day away curled up in its den and hunts rabbits
-   at night.
+/* A fox that dozes the day away at its den and hunts rabbits at night.
 
    After dark it trots between points, pausing to look about. A rabbit
    within sight is stalked, low and slow, until the fox is close enough to
@@ -35,15 +34,15 @@ export class Fox implements Creature {
   private timer = 0;
   private cooldown = 0;
   private prey: Rabbit | null = null;
-  private phase = 0;
-  private move = 0;
   private focusV = new Vector3();
 
-  constructor(private habitat: Habitat, private parts: FoxBody, private rabbits: Rabbit[]) {
+  private shown: State | null = null;
+
+  constructor(private habitat: Habitat, private rig: Rig, private rabbits: Rabbit[]) {
     this.den = randomLandPoint(habitat);
     [this.x, this.z] = this.den;
-    habitat.scene.add(parts.root);
-    addHitbox(habitat, parts.root, 1.8, 0.7, this);
+    habitat.scene.add(rig.root);
+    addHitbox(habitat, rig.root, 1.8, 0.7, this);
   }
 
   label() { return this.state === "den" ? "a fox, asleep" : "a fox"; }
@@ -100,7 +99,7 @@ export class Fox implements Creature {
     return d;
   }
 
-  update(dt: number, t: number, env: Env) {
+  update(dt: number, env: Env) {
     const { camera, world } = this.habitat;
     const night = env.elev < -0.06;
     this.cooldown -= dt;
@@ -179,42 +178,24 @@ export class Fox implements Creature {
       }
     }
 
-    const moving = SPEED[this.state] > 0;
-    this.move += ((moving ? 1 : 0) - this.move) * Math.min(1, dt * 6);
-    this.phase += dt * Math.max(2, SPEED[this.state]) * 2.4;
-    this.parts.root.position.set(this.x, world.height(this.x, this.z), this.z);
-    this.parts.root.rotation.y = this.heading;
-    this.pose(dt, t);
+    this.rig.root.position.set(this.x, world.height(this.x, this.z), this.z);
+    this.rig.root.rotation.y = this.heading;
+    this.pose(dt);
   }
 
-  private pose(dt: number, t: number) {
-    const { body, head, tail, legs } = this.parts;
-    const k = Math.min(1, dt * 5);
+  private pose(dt: number) {
     const s = this.state;
-    const asleep = s === "den", low = s === "stalk", running = s === "chase" || s === "flee", sitting = s === "rest";
-
-    const bodyY = asleep ? -0.5 : low ? -0.18 : sitting ? -0.12 : running ? Math.abs(Math.sin(this.phase)) * 0.12 : 0;
-    body.position.y += (bodyY - body.position.y) * k;
-    body.rotation.z += ((sitting ? 0.3 : 0) - body.rotation.z) * k;
-
-    // Snout down to sleep and to stalk; a slow look around while still.
-    const headPitch = asleep ? -0.45 : low ? -0.3 : running ? -0.1 : 0.05;
-    head.rotation.z += (headPitch - head.rotation.z) * k;
-    const look = s === "pause" || sitting ? Math.sin(t * 0.8 + this.phase) * 0.6 : 0;
-    head.rotation.y += (look - head.rotation.y) * k;
-
-    // The tail droops, streams out when running, and wraps round to sleep.
-    tail.rotation.z += ((asleep ? 0.25 : low ? 0.4 : running ? -0.05 : 0.2) - tail.rotation.z) * k;
-    tail.rotation.y += ((asleep ? 2.3 : Math.sin(t * 1.3) * 0.15 * (1 - this.move)) - tail.rotation.y) * k;
-
-    legs.forEach((leg, i) => {
-      const front = i < 2;
-      let a: number;
-      if (asleep) a = front ? 1.45 : -1.45;
-      else if (sitting) a = front ? -0.3 : -1.2;
-      else if (running) a = Math.sin(this.phase + (front ? 0 : Math.PI * 0.8) + i * 0.3) * 0.9 * this.move;
-      else a = Math.sin(this.phase + (i === 0 || i === 3 ? 0 : Math.PI)) * (low ? 0.3 : 0.5) * this.move;
-      leg.rotation.z += (a - leg.rotation.z) * Math.min(1, dt * (asleep ? 2 : 12));
-    });
+    if (s !== this.shown) {
+      if (s === "den") this.rig.play("Idle_2_HeadLow", 0.3, 1.2);
+      else if (s === "prowl" || s === "home") this.rig.play("Walk", 1.15);
+      else if (s === "stalk") this.rig.play("Walk", 0.45, 0.6);
+      // The rush begins with a pounce.
+      else if (s === "chase") this.rig.once("Gallop_Jump", "Gallop", 1.1);
+      else if (s === "flee") this.rig.play("Gallop", 1.1, 0.25);
+      else if (s === "rest") this.rig.play("Idle_2", 1, 0.5);
+      else this.rig.play(Math.random() < 0.5 ? "Idle" : "Idle_2", 1, 0.5);
+      this.shown = s;
+    }
+    this.rig.update(dt);
   }
 }

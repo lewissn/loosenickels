@@ -1,6 +1,7 @@
-import { Vector3 } from "three";
+import { Vector3, type Object3D } from "three";
 import { addHitbox, type Creature, type Env, type Habitat } from "./habitat";
-import type { DeerBody, RabbitBody } from "./bodies";
+import type { RabbitBody } from "./bodies";
+import type { Rig } from "./models";
 
 /* Deer and rabbits: graze, wander to a point they can reach without
    crossing water, flee from a camera that comes too close. Deer lie down
@@ -39,7 +40,7 @@ abstract class Walker implements Creature {
 
   constructor(
     protected habitat: Habitat,
-    readonly root: DeerBody["root"],
+    readonly root: Object3D,
     private walkSpeed: number,
     private runSpeed: number,
     /** How close the camera may come before this animal bolts. */
@@ -110,26 +111,29 @@ abstract class Walker implements Creature {
   }
 }
 
+/** Deer and stags, played by their models' own animations. */
 export class Deer extends Walker {
   kind = "deer" as const;
-  constructor(habitat: Habitat, private parts: DeerBody, private stag: boolean) {
-    super(habitat, parts.root, 2.6, 8, 6, 2);
-    addHitbox(habitat, parts.root, 2.6, 1.8, this);
+  private shown: State | null = null;
+  constructor(habitat: Habitat, private rig: Rig, private stag: boolean) {
+    super(habitat, rig.root, 2.6, 8, 6, 2);
+    addHitbox(habitat, rig.root, 2.6, 1.8, this);
   }
   label() { return this.stag ? "a stag" : "a deer"; }
   wanderDistance() { return 10 + Math.random() * 22; }
   restTime() { return 3 + Math.random() * 8; }
-  pose(dt: number, t: number) {
-    const { neck, body, legs } = this.parts;
-    const k = Math.min(1, dt * 4);
-    const sleeping = this.state === "sleep";
-    const neckT = sleeping ? 0.3 : this.state === "graze" ? -2.1 + Math.sin(t * 1.5 + this.phase) * 0.08 : -0.1;
-    neck.rotation.z += (neckT - neck.rotation.z) * k;
-    body.position.y += ((sleeping ? -0.85 : 0) - body.position.y) * k * 0.5;
-    legs.forEach((leg, i) => {
-      const fold = sleeping ? (i < 2 ? 1.45 : -1.45) : Math.sin(this.phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.55 * this.move;
-      leg.rotation.z += (fold - leg.rotation.z) * Math.min(1, dt * (sleeping ? 2 : 12));
-    });
+  pose(dt: number) {
+    const s = this.state;
+    if (s !== this.shown) {
+      // Grazing is mostly eating, sometimes standing to look about.
+      if (s === "graze") this.rig.play(Math.random() < 0.7 ? "Eating" : Math.random() < 0.5 ? "Idle" : "Idle_2");
+      // There is no lying-down animation: at night they rest, heads low.
+      else if (s === "sleep") this.rig.play("Idle_Headlow", 0.35, 1.2);
+      else if (s === "walk") this.rig.play("Walk", 1.1);
+      else this.rig.play("Gallop", 1.05, 0.25);
+      this.shown = s;
+    }
+    this.rig.update(dt);
   }
 }
 
