@@ -43,7 +43,7 @@ export function createGrass(scene: Scene, world: World, detail: Detail, shared: 
     if (drift < -0.2 || Math.random() > (drift + 0.2) * 1.4) continue;
     const h = height(x, z);
     if (h < 1.3 || h > 20 || normalY(x, z) < 0.82) continue;
-    if (world.nearSite(x, z, 5.5)) continue;
+    if (world.nearSite(x, z, 7.5)) continue;
     offset.set([x, h - 0.05, z], n * 3);
     params.set([Math.random() * Math.PI * 2, 0.35 + Math.random() * 0.5 + Math.max(0, drift) * 0.45, 0.1 + Math.random() * 0.08, Math.random()], n * 4);
     n++;

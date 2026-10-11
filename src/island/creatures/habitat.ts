@@ -1,11 +1,12 @@
 import { Mesh, MeshBasicMaterial, SphereGeometry, type Camera, type Object3D, type Scene, type Vector3 } from "three";
 import type { Season } from "../seasons";
+import type { Shared } from "../shared";
 import type { World } from "../world";
 
 /* What every creature lives in and answers to. */
 
 export interface Creature {
-  kind: "deer" | "rabbit" | "fox" | "bird" | "gull";
+  kind: "deer" | "rabbit" | "fox" | "bird" | "gull" | "farmer";
   /** For the caption: "following a stag". */
   label(): string;
   /** Where the camera looks when following. */
@@ -24,6 +25,9 @@ export interface Habitat {
   season: Season;
   /** Invisible spheres the tap ray is cast against. */
   hitboxes: Mesh[];
+  shared?: Shared;
+  /** People out and about, whom the animals keep clear of. */
+  people: { position: Vector3; outside: boolean }[];
 }
 
 const hitMat = new MeshBasicMaterial({ colorWrite: false, depthWrite: false });

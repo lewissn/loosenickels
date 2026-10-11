@@ -87,6 +87,9 @@ abstract class Walker implements Creature {
 
     const near = camera.position.distanceTo(this.focus());
     if (near < this.shyness) this.startle(camera.position.x, camera.position.z);
+    for (const p of this.habitat.people) {
+      if (p.outside && Math.hypot(p.position.x - this.x, p.position.z - this.z) < this.shyness * 0.8) this.startle(p.position.x, p.position.z);
+    }
 
     if (this.state === "graze") {
       this.timer -= dt;

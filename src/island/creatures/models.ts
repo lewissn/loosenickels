@@ -1,6 +1,6 @@
 import {
   AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, MeshStandardMaterial, Vector3,
-  type AnimationAction, type AnimationClip, type Object3D,
+  type AnimationAction, type AnimationClip, type Bone, type Object3D,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
@@ -12,12 +12,12 @@ import { clone } from "three/addons/utils/SkeletonUtils.js";
    tools/models.mjs (credits in public/models/CREDITS.md). They load after
    the island is already on screen; the animals walk on when they arrive. */
 
-export type ModelName = "deer" | "stag" | "fox";
+export type ModelName = "deer" | "stag" | "fox" | "farmer";
 export interface Template { scene: Object3D; clips: AnimationClip[] }
 
 export async function loadModels(): Promise<Record<ModelName, Template>> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const names: ModelName[] = ["deer", "stag", "fox"];
+  const names: ModelName[] = ["deer", "stag", "fox", "farmer"];
   const loaded = await Promise.all(names.map((n) => loader.loadAsync(`/models/${n}.glb`)));
   const out = {} as Record<ModelName, Template>;
   names.forEach((n, i) => {
@@ -96,6 +96,13 @@ export class Rig {
   }
 
   get playing() { return this.currentName; }
+
+  /** A bone by name, for posing over the animation. */
+  bone(name: string) {
+    let found: Bone | undefined;
+    this.root.traverse((o) => { if (!found && (o as Bone).isBone && o.name === name) found = o as Bone; });
+    return found;
+  }
 
   update(dt: number) { this.mixer.update(dt); }
 }

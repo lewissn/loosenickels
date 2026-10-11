@@ -77,8 +77,8 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     onInteract: events.onInteract,
     onFollow: (c: Creature | null) => events.onFollow(c ? c.label() : null),
   });
-  const habitat: Habitat = { scene, world, camera: viewer.camera, season, hitboxes };
-  const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0]);
+  const habitat: Habitat = { scene, world, camera: viewer.camera, season, hitboxes, shared, people: [] };
+  const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0], cottage.spots);
 
   const post = createPost(renderer, scene, viewer.camera, detail, shared);
   const rain = createRain(scene, world, detail, shared, viewer.camera, viewer.controls.target, options.weather);
@@ -108,13 +108,13 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     shared.uSnowLine.value = 33 - season.snow * 31;
     vegetation.update(season);
     env.elev = sky.update(dayFraction(simT), season);
-    cottage(dayFraction(simT), t);
+    cottage.update(dayFraction(simT), t);
     const misty = mist(dayFraction(simT), yearPosition(simT));
 
     falling(dt, t, season);
     fireflies(t, season, env.elev);
     clouds(dt);
-    creatures.update(dt, t, env);
+    creatures.update(dt, t, env, dayFraction(simT));
     viewer.update(dt, world);
 
     hudTimer -= dt;

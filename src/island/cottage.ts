@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, BufferAttribute, BufferGeometry, Color, ExtrudeGeometry, Group, Mesh, MeshStandardMaterial,
+  BoxGeometry, BufferAttribute, BufferGeometry, Color, ExtrudeGeometry, Group, IcosahedronGeometry, Mesh, MeshStandardMaterial,
   PointLight, Points, Shape, ShaderMaterial, Vector2, Vector3, type Material, type Scene,
 } from "three";
 import { smooth } from "./noise";
@@ -16,6 +16,8 @@ import type { World } from "./world";
    door burns all night and lights the ground, and the chimney smokes. */
 
 const W = 6.2, D = 4.4, H = 2.7, BASE = 0.45;
+/** Where the garden and bench are, in the cottage's own coordinates. */
+const GARDEN = { x: -5.2, z: 3.4 }, BENCH = { x: 3.6, z: 4.6 };
 
 /** When each room is lit, as spans of the day (0 is midnight). */
 const ROOMS: Record<string, [number, number][]> = {
@@ -71,6 +73,8 @@ void main() {
   #include <colorspace_fragment>
 }
 `;
+
+export type CottageSpots = ReturnType<typeof createCottage>["spots"];
 
 export function createCottage(scene: Scene, world: World, shared: Shared) {
   const { site } = world;
@@ -146,12 +150,28 @@ export function createCottage(scene: Scene, world: World, shared: Shared) {
   const lamp = new PointLight(0xffa456, 0, 18, 2);
   lamp.position.set(1.0, BASE + 2.0, D / 2 + 1.3);
   house.add(lamp);
+
+  // A vegetable patch to one side, and a bench facing the sea.
+  const soil = std(0x5a4330, 1), leaf = std(0x5f8f3e, 0.9), wood = std(0x7a5a3e, 0.85);
+  // Deep enough to sit into the slope rather than float over it.
+  add(new BoxGeometry(2.8, 1.2, 2.2), soil, GARDEN.x, -0.52, GARDEN.z);
+  const plants: Mesh[] = [];
+  for (let row = 0; row < 3; row++) {
+    for (let i = 0; i < 5; i++) {
+      const p = add(new IcosahedronGeometry(0.17, 1), leaf, GARDEN.x - 1.1 + i * 0.55, 0.16, GARDEN.z - 0.7 + row * 0.7);
+      p.scale.set(1, 0.7, 1);
+      plants.push(p);
+    }
+  }
+  add(new BoxGeometry(1.7, 0.08, 0.48), wood, BENCH.x, 0.47, BENCH.z);
+  add(new BoxGeometry(1.7, 0.42, 0.07), wood, BENCH.x, 0.82, BENCH.z - 0.24);
+  for (const sx of [-0.7, 0.7]) for (const sz of [-0.17, 0.17]) add(new BoxGeometry(0.08, 0.47, 0.08), wood, BENCH.x + sx, 0.23, BENCH.z + sz);
   scene.add(house);
+  house.updateMatrixWorld(true);
 
   // Chimney smoke: soft points that rise, spread and drift downwind.
   const n = 22;
   const smokeGeo = new BufferGeometry();
-  house.updateMatrixWorld(true);
   const top = house.localToWorld(new Vector3(W / 2 - 0.9, BASE + H + 3.9, -0.7));
   smokeGeo.setAttribute("position", new BufferAttribute(new Float32Array(Array.from({ length: n }, () => [top.x, top.y, top.z]).flat()), 3));
   smokeGeo.setAttribute("aI", new BufferAttribute(new Float32Array(Array.from({ length: n }, (_, i) => i / n)), 1));
@@ -170,7 +190,28 @@ export function createCottage(scene: Scene, world: World, shared: Shared) {
   smoke.frustumCulled = false;
   scene.add(smoke);
 
-  return function update(dayF: number, t: number) {
+  // Places someone living here would go, in world coordinates, with the
+  // heading to face when there (forward is (cos h, -sin h), as for animals).
+  const at = (x: number, z: number) => house.localToWorld(new Vector3(x, 0, z));
+  const facing = (dx: number, dz: number) => {
+    const d = at(dx, dz).sub(at(0, 0));
+    return Math.atan2(-d.z, d.x);
+  };
+  const seaward = facing(0, 1);
+  let lookout = at(0.7, 9);
+  for (let d = 9; d < 24; d += 0.5) {
+    const p = at(0.7, d);
+    if (world.height(p.x, p.z) < 1.0) break;
+    lookout = p;
+  }
+  const spots = {
+    door: at(0.7, D / 2 + 0.7),
+    garden: { at: at(GARDEN.x + 1.9, GARDEN.z), face: facing(-1, 0) },
+    bench: { at: at(BENCH.x, BENCH.z - 0.3), face: seaward, seat: site.y + 0.47 },
+    lookout: { at: lookout, face: seaward },
+  };
+
+  function update(dayF: number, t: number) {
     const night = shared.uNight.value;
     const flicker = 0.93 + Math.sin(t * 9.1) * 0.03 + Math.sin(t * 23.7) * 0.025 + Math.sin(t * 3.3) * 0.02;
     let glow = 0;
@@ -185,5 +226,9 @@ export function createCottage(scene: Scene, world: World, shared: Shared) {
     // Smoke takes the light of the sky; there's more of it on cold evenings.
     smokeColor.copy(shared.uSkyHorizon.value).lerp(shared.uSunColor.value, 0.3).multiplyScalar(0.9).addScalar(0.08);
     smokeMat.uniforms.uAmount.value = 0.55 + 0.45 * Math.max(glow, shared.uSnow.value);
-  };
+    // The garden dies back in winter.
+    for (const p of plants) p.scale.set(1 - shared.uSnow.value * 0.8, 0.7 * (1 - shared.uSnow.value * 0.8), 1 - shared.uSnow.value * 0.8);
+  }
+
+  return { update, spots };
 }

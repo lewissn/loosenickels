@@ -35,6 +35,10 @@ const MODELS = {
     url: "https://static.poly.pizza/e18e86df-1692-48d8-ac6e-1e25ab4ad574.glb",
     clips: ["Idle", "Idle_2", "Idle_2_HeadLow", "Eating", "Walk", "Gallop", "Gallop_Jump"],
   },
+  farmer: {
+    url: "https://static.poly.pizza/81f2f0cf-6f53-4b57-92ea-dba0928620f2.glb",
+    clips: ["Idle", "Idle_Neutral", "Interact", "Walk", "Run", "Wave"],
+  },
 };
 
 const out = path.resolve("public/models");
@@ -57,6 +61,11 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies(
 
 for (const [name, { url, clips }] of Object.entries(MODELS)) {
   const doc = await io.readBinary(await source(name, url));
+  // Some sources prefix every clip with its armature ("CharacterArmature|Walk").
+  for (const anim of doc.getRoot().listAnimations()) {
+    const short = anim.getName().replace(/^.*\|/, "");
+    if (!doc.getRoot().listAnimations().some((a) => a !== anim && a.getName() === short)) anim.setName(short);
+  }
   const keep = new Set(clips);
   for (const anim of doc.getRoot().listAnimations()) if (!keep.has(anim.getName())) anim.dispose();
   const missing = clips.filter((c) => !doc.getRoot().listAnimations().some((a) => a.getName() === c));

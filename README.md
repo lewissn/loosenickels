@@ -47,6 +47,10 @@ a client-only page at `/`, deployed on Vercel from `main`.
   all in autumn, and after rain.
 - **A cottage** stands above the shore. Its rooms light up through the
   evening, the lantern by the door burns all night, and the chimney smokes.
+- **The man who lives there** comes out after breakfast and is back in just
+  before the kitchen light comes on. In between he tends his vegetable
+  patch, walks down to look at the sea, sits on the bench and potters about.
+  Rain sends him in at a run. Come close while following him and he waves.
 - **Animals:** six deer (two stags) who graze, wander, sleep at night and
   startle if you get too close; ten rabbits who bolt; a fox that sleeps by
   day and hunts the rabbits at night (they always get away); swallows that
@@ -102,13 +106,13 @@ src/island/
   cottage.ts       the cottage, its lit windows, lantern and smoke
   fireflies.ts     summer nights
   viewer.ts        camera, orbit controls, tapping and following
-  creatures/       deer, rabbits, the fox, flocks of birds; models.ts
+  creatures/       deer, rabbits, the fox, flocks of birds, the farmer; models.ts
                    loads the animal models and plays their animations
 ```
 
 ### Models
 
-The deer, stags and fox are CC0 models by Quaternius, credited in
+The deer, stags, fox and the farmer are CC0 models by Quaternius, credited in
 `public/models/CREDITS.md`. `node tools/models.mjs` rebuilds them from
 their sources, keeping only the animations the island uses and compressing
 them (about 280 KB each). They load after the island is on screen. The

@@ -108,6 +108,12 @@ export class Fox implements Creature {
       this.state = "flee";
       this.prey = null;
     }
+    for (const p of this.habitat.people) {
+      if (p.outside && this.state !== "den" && this.state !== "flee" && Math.hypot(p.position.x - this.x, p.position.z - this.z) < SHYNESS && this.fleeFrom(p.position.x, p.position.z)) {
+        this.state = "flee";
+        this.prey = null;
+      }
+    }
     if (!night && this.state !== "den" && this.state !== "home" && this.state !== "flee") {
       this.state = "home";
       this.prey = null;
