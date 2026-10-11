@@ -8,14 +8,14 @@ import type { DeerBody, RabbitBody } from "./bodies";
 
 type State = "graze" | "walk" | "flee" | "sleep";
 
-const angleTo = (from: number, to: number) => {
+export const angleTo = (from: number, to: number) => {
   let d = (to - from) % (Math.PI * 2);
   if (d > Math.PI) d -= Math.PI * 2;
   if (d < -Math.PI) d += Math.PI * 2;
   return d;
 };
 
-function randomLandPoint(habitat: Habitat): [number, number] {
+export function randomLandPoint(habitat: Habitat): [number, number] {
   const { isLand, height } = habitat.world;
   for (let i = 0; i < 500; i++) {
     const x = (Math.random() * 2 - 1) * 70, z = (Math.random() * 2 - 1) * 70;
@@ -60,6 +60,11 @@ abstract class Walker implements Creature {
   protected abstract wanderDistance(): number;
   protected abstract restTime(): number;
 
+  /** Run from something at (x, z), if there is anywhere to run to. */
+  startle(x: number, z: number) {
+    if (this.state !== "flee" && this.pickTarget(x, z)) this.state = "flee";
+  }
+
   private pickTarget(awayX?: number, awayZ?: number) {
     for (let i = 0; i < 30; i++) {
       let a = Math.random() * Math.PI * 2, d = this.wanderDistance();
@@ -80,7 +85,7 @@ abstract class Walker implements Creature {
     if (this.state === "sleep" && !night) { this.state = "graze"; this.timer = 1 + Math.random() * 3; }
 
     const near = camera.position.distanceTo(this.focus());
-    if (this.state !== "flee" && near < this.shyness && this.pickTarget(camera.position.x, camera.position.z)) this.state = "flee";
+    if (near < this.shyness) this.startle(camera.position.x, camera.position.z);
 
     if (this.state === "graze") {
       this.timer -= dt;

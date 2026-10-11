@@ -21,7 +21,7 @@ body {
   place-items: center;
   padding: 24px;
   background: #0b1226;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-jost), system-ui, sans-serif;
   font-style: italic;
   font-size: 16px;
   letter-spacing: 0.04em;

@@ -16,19 +16,21 @@ interface Palette {
   snow: number;
   /** Falling things: petals, leaves, snow. */
   fxAmt: number; fxSpeed: number; fxSize: number;
+  /** How many fireflies come out after dark. */
+  fireflies: number;
 }
 
 const PALETTES: Palette[] = [
-  { name: "spring", grass: 0x7fbf5c, leaf: 0x8fcf5e, blossom: 0xf6b3c9, pine: 0x3f7d4a, leafAmt: 0.85, flowers: 1, snow: 0, fx: 0xf9c9d9, fxAmt: 0.45, fxSpeed: 2.2, fxSize: 0.6 },
-  { name: "summer", grass: 0x5d9b3f, leaf: 0x4c8c35, blossom: 0x5c9b3d, pine: 0x2f6b3c, leafAmt: 1, flowers: 0.6, snow: 0, fx: 0xfff1a8, fxAmt: 0, fxSpeed: 2, fxSize: 0.5 },
-  { name: "autumn", grass: 0xa8a052, leaf: 0xdb822b, blossom: 0xc4492f, pine: 0x335f3c, leafAmt: 0.65, flowers: 0, snow: 0, fx: 0xd9752a, fxAmt: 0.65, fxSpeed: 3.4, fxSize: 0.85 },
-  { name: "winter", grass: 0x7f8c74, leaf: 0x8a6d4a, blossom: 0x8a6d4a, pine: 0x3c5f48, leafAmt: 0, flowers: 0, snow: 0.92, fx: 0xffffff, fxAmt: 1, fxSpeed: 3, fxSize: 0.6 },
+  { name: "spring", grass: 0x7fbf5c, leaf: 0x8fcf5e, blossom: 0xf6b3c9, pine: 0x3f7d4a, leafAmt: 0.85, flowers: 1, snow: 0, fx: 0xf9c9d9, fxAmt: 0.45, fxSpeed: 2.2, fxSize: 0.6, fireflies: 0 },
+  { name: "summer", grass: 0x5d9b3f, leaf: 0x4c8c35, blossom: 0x5c9b3d, pine: 0x2f6b3c, leafAmt: 1, flowers: 0.6, snow: 0, fx: 0xfff1a8, fxAmt: 0, fxSpeed: 2, fxSize: 0.5, fireflies: 1 },
+  { name: "autumn", grass: 0xa8a052, leaf: 0xdb822b, blossom: 0xc4492f, pine: 0x335f3c, leafAmt: 0.65, flowers: 0, snow: 0, fx: 0xd9752a, fxAmt: 0.65, fxSpeed: 3.4, fxSize: 0.85, fireflies: 0 },
+  { name: "winter", grass: 0x7f8c74, leaf: 0x8a6d4a, blossom: 0x8a6d4a, pine: 0x3c5f48, leafAmt: 0, flowers: 0, snow: 0.92, fx: 0xffffff, fxAmt: 1, fxSpeed: 3, fxSize: 0.6, fireflies: 0 },
 ];
 
 export const SEASON_NAMES = PALETTES.map((p) => p.name);
 
 const COLOURS = ["grass", "leaf", "blossom", "pine", "fx"] as const;
-const AMOUNTS = ["leafAmt", "flowers", "snow", "fxAmt", "fxSpeed", "fxSize"] as const;
+const AMOUNTS = ["leafAmt", "flowers", "snow", "fxAmt", "fxSpeed", "fxSize", "fireflies"] as const;
 
 const RESOLVED = PALETTES.map((p) => ({
   ...p,
@@ -48,6 +50,7 @@ export class Season {
   fxAmt = 0;
   fxSpeed = 0;
   fxSize = 0;
+  fireflies = 0;
 
   /** yearPos runs 0–4, one unit per season. Returns the blended position. */
   blend(yearPos: number): number {

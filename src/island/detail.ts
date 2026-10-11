@@ -13,6 +13,7 @@ export interface Detail {
   trees: number;
   flowers: number;
   particles: number;
+  fireflies: number;
 }
 
 export function detectDetail(): Detail {
@@ -27,5 +28,6 @@ export function detectDetail(): Detail {
     trees: mobile ? 280 : 420,
     flowers: mobile ? 350 : 600,
     particles: mobile ? 900 : 1600,
+    fireflies: mobile ? 180 : 300,
   };
 }

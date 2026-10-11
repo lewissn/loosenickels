@@ -7,6 +7,7 @@ import { createWater } from "./water";
 import { createVegetation } from "./vegetation";
 import { createSky } from "./sky";
 import { createClouds, createFalling } from "./weather";
+import { createFireflies } from "./fireflies";
 import { populate, type Creature, type Env, type Habitat } from "./creatures";
 import { createViewer } from "./viewer";
 import { DAY, START_DAY, dayFraction, describe, yearPosition } from "./time";
@@ -56,6 +57,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   const vegetation = createVegetation(scene, world, detail);
   const clouds = createClouds(scene, world.rand);
   const falling = createFalling(scene, detail);
+  const fireflies = createFireflies(scene, world, detail);
 
   const hitboxes: Mesh[] = [];
   const viewer = createViewer(renderer.domElement, detail, hitboxes, {
@@ -64,6 +66,12 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   });
   const habitat: Habitat = { scene, world, camera: viewer.camera, season, hitboxes };
   const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0]);
+
+  // For looking at things while developing: the camera, controls and
+  // everything tappable, from the browser console. Never in production.
+  if (process.env.NODE_ENV === "development") {
+    (window as unknown as Record<string, unknown>).island = { camera: viewer.camera, controls: viewer.controls, hitboxes, scene };
+  }
 
   const env: Env = { elev: 0 };
   const timer = new Timer();
@@ -82,6 +90,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
 
     water.update(t, env.elev);
     falling(dt, t, season);
+    fireflies(t, season, env.elev);
     clouds(dt);
     creatures(dt, t, env);
     viewer.update(dt, world);

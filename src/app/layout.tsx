@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { Jost } from "next/font/google";
 import { brand } from "@/lib/brand";
 import "./globals.css";
+
+const jost = Jost({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-jost", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(brand.origin),
@@ -22,7 +25,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB">
+    <html lang="en-GB" className={jost.variable}>
       <body>{children}</body>
     </html>
   );

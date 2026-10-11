@@ -9,6 +9,7 @@ export function bodyMaterials() {
   return {
     deer: mat(0x8a5a3a), deerLight: mat(0xd9c3a2), dark: mat(0x2e2420), antler: mat(0xd9c9a8),
     rabbit: mat(0x9b8b78), white: mat(0xf4f1ea), bird: mat(0x3a3530), gull: mat(0xf2f1ec),
+    fox: mat(0xc8612a), foxPale: mat(0xf0e6d8), foxDark: mat(0x2a201c),
   };
 }
 export type BodyMaterials = ReturnType<typeof bodyMaterials>;
@@ -79,6 +80,48 @@ export function makeRabbit(m: BodyMaterials): RabbitBody {
   tail.position.set(-0.55, 0.5, 0);
   body.add(tail);
   return { root, body, head };
+}
+
+export interface FoxBody { root: Group; body: Group; head: Group; tail: Group; legs: Group[] }
+
+/** Faces +x, like the deer. The head and tail are joints, so the fox can
+    crouch to stalk, stretch out to run, and curl up nose-to-tail. */
+export function makeFox(m: BodyMaterials): FoxBody {
+  const { fox, foxPale, foxDark } = m;
+  const root = new Group(), body = new Group();
+  root.add(body);
+  box(1.15, 0.4, 0.38, fox, 0, 0.8, 0, body);
+  box(0.5, 0.2, 0.3, foxPale, 0.3, 0.64, 0, body);
+
+  const head = new Group();
+  head.position.set(0.62, 0.95, 0);
+  body.add(head);
+  box(0.36, 0.32, 0.34, fox, 0.08, 0, 0, head);
+  box(0.3, 0.14, 0.16, foxPale, 0.36, -0.07, 0, head);
+  box(0.06, 0.07, 0.08, foxDark, 0.52, -0.04, 0, head);
+  for (const side of [1, -1]) {
+    const ear = new Mesh(new ConeGeometry(0.08, 0.22, 4), fox);
+    ear.position.set(0.0, 0.25, 0.1 * side);
+    ear.castShadow = true;
+    head.add(ear);
+  }
+
+  const tail = new Group();
+  tail.position.set(-0.55, 0.88, 0);
+  body.add(tail);
+  box(0.62, 0.22, 0.22, fox, -0.3, 0, 0, tail);
+  box(0.2, 0.18, 0.18, foxPale, -0.7, 0, 0, tail);
+
+  const legs: Group[] = [];
+  for (const [x, z] of [[0.42, 0.13], [0.42, -0.13], [-0.42, 0.13], [-0.42, -0.13]] as const) {
+    const pivot = new Group();
+    pivot.position.set(x, 0.66, z);
+    body.add(pivot);
+    box(0.1, 0.5, 0.1, fox, 0, -0.25, 0, pivot);
+    box(0.11, 0.16, 0.11, foxDark, 0, -0.58, 0, pivot);
+    legs.push(pivot);
+  }
+  return { root, body, head, tail, legs };
 }
 
 export interface BirdBody { root: Group; wings: Mesh[] }

@@ -1,8 +1,8 @@
 import {
-  BufferAttribute, BufferGeometry, CanvasTexture, Group, IcosahedronGeometry, Mesh, Points, PointsMaterial,
+  BufferAttribute, BufferGeometry, Group, IcosahedronGeometry, Mesh, Points, PointsMaterial,
   type Scene,
 } from "three";
-import { mat } from "./materials";
+import { mat, softDot } from "./materials";
 import type { Detail } from "./detail";
 import type { Season } from "./seasons";
 import type { Rand } from "./noise";
@@ -53,18 +53,7 @@ export function createFalling(scene: Scene, detail: Detail) {
   const geo = new BufferGeometry();
   geo.setAttribute("position", new BufferAttribute(pos, 3));
 
-  const dot = document.createElement("canvas");
-  dot.width = dot.height = 32;
-  const g = dot.getContext("2d");
-  if (g) {
-    const r = g.createRadialGradient(16, 16, 0, 16, 16, 16);
-    r.addColorStop(0, "#fff");
-    r.addColorStop(0.5, "rgba(255,255,255,.8)");
-    r.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = r;
-    g.fillRect(0, 0, 32, 32);
-  }
-  const material = new PointsMaterial({ size: 0.6, map: new CanvasTexture(dot), transparent: true, depthWrite: false, opacity: 0 });
+  const material = new PointsMaterial({ size: 0.6, map: softDot(), transparent: true, depthWrite: false, opacity: 0 });
   const points = new Points(geo, material);
   points.frustumCulled = false;
   scene.add(points);
