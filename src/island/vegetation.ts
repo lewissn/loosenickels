@@ -1,10 +1,12 @@
 import {
-  BufferGeometry, Color, ConeGeometry, CylinderGeometry, DodecahedronGeometry, IcosahedronGeometry,
-  InstancedMesh, Matrix4, Quaternion, Vector3, type Material, type Scene,
+  BufferGeometry, Color, IcosahedronGeometry, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, Vector3,
+  type Material, type Scene,
 } from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { mat } from "./materials";
+import { mulberry32 } from "./noise";
 import { SNOW } from "./terrain";
+import { boulder, canopy, pine, swaying, trunk, variants } from "./shapes";
+import type { Shared } from "./shared";
 import type { Detail } from "./detail";
 import type { Season } from "./seasons";
 import type { World } from "./world";
@@ -13,7 +15,15 @@ import type { World } from "./world";
 
    Pines favour high ground. Meadows (a band of low noise) are left as
    clearings and are where the flowers grow. Deciduous canopies sit around
-   bare branches, so winter has something to show when the leaves go. */
+   bare limbs, so winter has something to show when the leaves go. Trees
+   sway in the wind; see shapes.ts for how they are grown. */
+
+/** Splits a list among n variants, by turns. */
+function bucket<T>(list: T[], n: number): T[][] {
+  const out: T[][] = Array.from({ length: n }, () => []);
+  list.forEach((t, i) => out[i % n].push(t));
+  return out;
+}
 
 export interface Placed {
   x: number; y: number; z: number;
@@ -22,21 +32,11 @@ export interface Placed {
   sx?: number; sy?: number; sz?: number;
 }
 
+/** How high a broadleaf canopy's centre sits, before the tree's scale. */
+const CANOPY_AT = 3.25;
+
 const UP = new Vector3(0, 1, 0), M4 = new Matrix4(), Q = new Quaternion(), PV = new Vector3(), SV = new Vector3();
 const tint = new Color();
-
-const pineTrunkGeo = () => new CylinderGeometry(0.22, 0.35, 2.2, 5).translate(0, 1.1, 0);
-const pineCanopyGeo = () => mergeGeometries([
-  new ConeGeometry(1.7, 3.2, 6).translate(0, 3.0, 0),
-  new ConeGeometry(1.25, 2.6, 6).translate(0, 4.6, 0),
-  new ConeGeometry(0.8, 1.9, 6).translate(0, 5.9, 0),
-]);
-const decTrunkGeo = () => mergeGeometries([
-  new CylinderGeometry(0.2, 0.32, 2.8, 5).translate(0, 1.4, 0),
-  new CylinderGeometry(0.07, 0.11, 1.7, 4).rotateZ(-0.7).translate(0.5, 2.9, 0),
-  new CylinderGeometry(0.07, 0.11, 1.6, 4).rotateZ(0.65).translate(-0.45, 3.0, 0.1),
-  new CylinderGeometry(0.06, 0.1, 1.5, 4).rotateX(0.65).translate(0, 3.1, 0.45),
-]);
 
 function place(im: InstancedMesh, list: Placed[], yOff: number, mul: number) {
   list.forEach((t, i) => {
@@ -50,7 +50,7 @@ function place(im: InstancedMesh, list: Placed[], yOff: number, mul: number) {
   im.instanceMatrix.needsUpdate = true;
 }
 
-export function createVegetation(scene: Scene, world: World, detail: Detail) {
+export function createVegetation(scene: Scene, world: World, detail: Detail, shared: Shared) {
   const { rand, height, normalY, noise2 } = world;
 
   function instanced(geo: BufferGeometry, material: Material, list: Placed[], shadow = true) {
@@ -65,7 +65,17 @@ export function createVegetation(scene: Scene, world: World, detail: Detail) {
     return im;
   }
 
-  const trunkMat = mat(0x6b4a32), pineMat = mat(0x2f6b3c), leafMat = mat(0x4c8c35), cherryMat = mat(0xf6b3c9);
+  const trunkMat = swaying(shared, { color: 0x6a4c38, roughness: 0.95 }, 0.007, 0);
+  const pineMat = swaying(shared, { color: 0x2f6b3c }, 0.005, 0.004);
+  const leafMat = swaying(shared, { color: 0x4c8c35 }, 0.007, 0.012, CANOPY_AT);
+  const cherryMat = swaying(shared, { color: 0xf6b3c9 }, 0.007, 0.012, CANOPY_AT);
+  // Shapes come from their own random stream, so growing them never
+  // changes where anything is placed.
+  const grow = mulberry32(world.seed + 101);
+  const leafDetail = detail.mobile ? 1 : 2;
+  const canopies = variants(3, (k) => canopy(k, leafDetail), grow);
+  const trunks = variants(3, trunk, grow);
+  const pines = variants(2, pine, grow);
 
   // ---- trees
   const trees: Record<"pine" | "dec" | "cherry", Placed[]> = { pine: [], dec: [], cherry: [] };
@@ -79,12 +89,10 @@ export function createVegetation(scene: Scene, world: World, detail: Detail) {
     n++;
   }
   const allDec = trees.dec.concat(trees.cherry);
-  const canopyGeo = new IcosahedronGeometry(1.9, 0).scale(1, 0.85, 1);
-  place(instanced(pineTrunkGeo(), trunkMat, trees.pine), trees.pine, 0, 1);
-  place(instanced(pineCanopyGeo(), pineMat, trees.pine), trees.pine, 0, 1);
-  place(instanced(decTrunkGeo(), trunkMat, allDec), allDec, 0, 1);
-  const decCanopy = instanced(canopyGeo, leafMat, trees.dec);
-  const cherryCanopy = instanced(canopyGeo, cherryMat, trees.cherry);
+  bucket(trees.pine, pines.length).forEach((list, v) => place(instanced(pines[v], pineMat, list), list, 0, 1));
+  bucket(allDec, trunks.length).forEach((list, v) => place(instanced(trunks[v], trunkMat, list), list, 0, 1));
+  const decCanopy = bucket(trees.dec, canopies.length).map((list, v) => ({ list, im: instanced(canopies[v], leafMat, list) }));
+  const cherryCanopy = bucket(trees.cherry, canopies.length).map((list, v) => ({ list, im: instanced(canopies[v], cherryMat, list) }));
 
   // ---- rocks
   const rocks: Placed[] = [];
@@ -94,7 +102,9 @@ export function createVegetation(scene: Scene, world: World, detail: Detail) {
     const s = 0.6 + rand() * 1.6;
     rocks.push({ x, y: h - 0.2 * s, z, s, rot: rand() * 6.28, sx: 0.8 + rand() * 0.7, sy: 0.5 + rand() * 0.5, sz: 0.8 + rand() * 0.6, v: 0.8 + rand() * 0.35 });
   }
-  place(instanced(new DodecahedronGeometry(1, 0), mat(0x8e8880), rocks), rocks, 0, 1);
+  const rockMat = new MeshStandardMaterial({ color: 0x9a948a, vertexColors: true, roughness: 0.9 });
+  const boulders = variants(3, (k) => boulder(k, detail.mobile ? 2 : 3), grow);
+  bucket(rocks, boulders.length).forEach((list, v) => place(instanced(boulders[v], rockMat, list), list, 0, 1));
 
   // ---- flowers
   const flowers: (Placed & { c: number })[] = [];
@@ -113,8 +123,7 @@ export function createVegetation(scene: Scene, world: World, detail: Detail) {
   function update(season: Season) {
     if (Math.abs(season.leafAmt - lastLeaf) > 0.01) {
       const m = season.leafAmt < 0.04 ? 0 : 0.3 + 0.7 * season.leafAmt;
-      place(decCanopy, trees.dec, 3.6, m);
-      place(cherryCanopy, trees.cherry, 3.6, m);
+      for (const c of [...decCanopy, ...cherryCanopy]) place(c.im, c.list, CANOPY_AT, m);
       lastLeaf = season.leafAmt;
     }
     if (Math.abs(season.flowers - lastFlowers) > 0.01) {

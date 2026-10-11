@@ -40,13 +40,17 @@ a client-only page at `/`, deployed on Vercel from `main`.
   canopies in summer, orange leaves thinning and falling in autumn, bare trees,
   snow and a creeping snowline in winter. Rabbits turn white.
 - **Animals:** six deer (two stags) who graze, wander, sleep at night and
-  startle if you get too close; ten rabbits who bolt; swallows that loop over
-  the island and roost in a tree; gulls that circle the coast and roost on the
-  beach.
+  startle if you get too close; ten rabbits who bolt; a fox that sleeps by
+  day and hunts the rabbits at night (they always get away); swallows that
+  loop over the island and roost in a tree; gulls that circle the coast and
+  roost on the beach. Fireflies come out on summer nights.
 - **Drag** to orbit, **pinch or scroll** to zoom. **Tap an animal** to follow
   it; tap empty space to let go. Left alone, the camera slowly turns.
-- Detail scales by device (pixel ratio, shadow map, terrain, trees, flowers,
-  particles), and `prefers-reduced-motion` slows the camera.
+- Detail scales by device (shadow map, terrain, trees, grass, flowers,
+  particles), the render resolution is capped at 1.5x, and
+  `prefers-reduced-motion` slows the camera.
+- In development, `window.island` in the browser console holds the camera,
+  controls, renderer, post-processing and tap targets.
 
 ### Links for looking at it
 
@@ -73,13 +77,19 @@ src/island/
   detail.ts        how much island a device gets
   time.ts          the clock: day length, seasons, "early spring · dawn"
   seasons.ts       the four palettes and the blend between them
-  sky.ts           sun, moon, stars, light, sky and fog colour
-  terrain.ts       flat-shaded ground, repainted as the season moves
-  water.ts         the rippling sea and the far sea out to the horizon
-  vegetation.ts    instanced trees, rocks and flowers
-  weather.ts       clouds, and the petals, leaves and snow that fall
+  shared.ts        uniforms every shader reads (time, wind, sun, sky,
+                   season) and the GLSL noise and wind they share
+  post.ts          bloom, tone mapping, FXAA and the colour grade
+  sky.ts           the sky dome, sun, moon, stars, light and fog
+  terrain.ts       smooth ground, coloured per pixel in a shader
+  water.ts         the sea: GPU swell, depth colour, foam, Fresnel, glints
+  shapes.ts        grown tree, pine and boulder shapes; the sway shader
+  vegetation.ts    where the trees, rocks and flowers go
+  grass.ts         instanced blades bending in the wind
+  weather.ts       soft clouds, and the petals, leaves and snow that fall
+  fireflies.ts     summer nights
   viewer.ts        camera, orbit controls, tapping and following
-  creatures/       bodies, deer and rabbits, flocks of birds
+  creatures/       bodies, deer, rabbits, the fox, flocks of birds
 ```
 
 ### Screenshots

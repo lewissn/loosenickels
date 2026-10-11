@@ -21,7 +21,8 @@ export function detectDetail(): Detail {
   return {
     mobile,
     reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
-    pixelRatio: Math.min(window.devicePixelRatio || 1, mobile ? 1.75 : 2),
+    // Past 1.5 the extra pixels cost more than they show, under bloom and grain.
+    pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
     shadowMap: mobile ? 1024 : 2048,
     terrainSegments: mobile ? 120 : 150,
     waterSegments: mobile ? 60 : 80,

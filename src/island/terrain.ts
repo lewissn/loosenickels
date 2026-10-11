@@ -1,67 +1,98 @@
-import { BufferAttribute, Color, Mesh, MeshStandardMaterial, PlaneGeometry } from "three";
-import { clamp01, smooth } from "./noise";
+import { Color, DataTexture, LinearFilter, Mesh, MeshStandardMaterial, PlaneGeometry, RedFormat, UnsignedByteType } from "three";
+import { NOISE_GLSL, type Shared } from "./shared";
 import type { Detail } from "./detail";
-import type { Season } from "./seasons";
 import type { World } from "./world";
 
-/* Flat-shaded terrain with one colour per face.
+/* The ground: a smooth mesh coloured per pixel.
 
-   Faces are measured once (height, steepness, a little noise) and then
-   repainted whenever the season moves far enough to show. */
+   Sand, grass, rock and snow are decided in the shader from height, slope
+   and a few octaves of noise, so their edges wander naturally and the
+   season's colours change without touching the geometry. */
 
 export const SNOW = new Color(0xf2f5f8);
 
-const C = {
-  seabed: new Color(0x5f8f86), wet: new Color(0xb9a676), sand: new Color(0xdcc893),
-  rock: new Color(0x8b857c), rockDark: new Color(0x6a655f),
-  meadow: new Color(), out: new Color(),
+/** The span of the terrain and its height map, in world units. */
+export const TERRAIN_SIZE = 260;
+/** Heights the water's height map can tell apart: the shallows that matter. */
+export const DEPTH_RANGE: [number, number] = [-8, 4];
+
+const COLOURS = {
+  uSeabed: new Color(0x4f8478), uWet: new Color(0xa89466), uSand: new Color(0xe3cf9a),
+  uRock: new Color(0x8d877e), uRockDark: new Color(0x5f5a54), uSnowCol: SNOW,
 };
 
-export function createTerrain(world: World, detail: Detail) {
+export function createTerrain(world: World, detail: Detail, shared: Shared) {
   const seg = detail.terrainSegments;
-  const geo = new PlaneGeometry(260, 260, seg, seg).rotateX(-Math.PI / 2).toNonIndexed();
+  const geo = new PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, seg, seg).rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, world.height(pos.getX(i), pos.getZ(i)));
   geo.computeVertexNormals();
 
-  const faces = pos.count / 3;
-  const faceH = new Float32Array(faces), faceNy = new Float32Array(faces), faceN = new Float32Array(faces);
-  for (let f = 0; f < faces; f++) {
-    const i = f * 3;
-    const cx = (pos.getX(i) + pos.getX(i + 1) + pos.getX(i + 2)) / 3;
-    const cz = (pos.getZ(i) + pos.getZ(i + 1) + pos.getZ(i + 2)) / 3;
-    faceH[f] = (pos.getY(i) + pos.getY(i + 1) + pos.getY(i + 2)) / 3;
-    faceNy[f] = geo.attributes.normal.getY(i);
-    faceN[f] = world.noise2(cx * 0.15, cz * 0.15);
-  }
+  const material = new MeshStandardMaterial({ roughness: 0.92, metalness: 0 });
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, {
+      uGrass: shared.uGrass, uMeadow: shared.uMeadow, uSnowLine: shared.uSnowLine,
+      ...Object.fromEntries(Object.entries(COLOURS).map(([k, v]) => [k, { value: v }])),
+    });
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;")
+      .replace("#include <worldpos_vertex>", `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        vWNormal = normalize(mat3(modelMatrix) * objectNormal);`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>
+        varying vec3 vWPos;
+        varying vec3 vWNormal;
+        uniform vec3 uGrass, uMeadow, uSeabed, uWet, uSand, uRock, uRockDark, uSnowCol;
+        uniform float uSnowLine;
+        ${NOISE_GLSL}`)
+      .replace("#include <color_fragment>", /* glsl */ `
+        float h = vWPos.y;
+        float ny = normalize(vWNormal).y;
+        vec2 p = vWPos.xz;
+        float n1 = fbm2(p * 0.12);
+        float n2 = vnoise(p * 1.9);
+        float n3 = fbm2(p * 0.035 + 40.0);
 
-  const col = new Float32Array(pos.count * 3);
-  geo.setAttribute("color", new BufferAttribute(col, 3));
-  const mesh = new Mesh(geo, new MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, metalness: 0 }));
+        vec3 grass = mix(uGrass, uMeadow, smoothstep(0.3, 0.72, n1));
+        grass *= 0.84 + n2 * 0.22;
+        grass = mix(grass, grass * vec3(1.12, 1.02, 0.72), smoothstep(0.55, 0.8, n3) * 0.6);
+        vec3 sand = uSand * (0.92 + n2 * 0.12);
+        vec3 rock = mix(uRock, uRockDark, smoothstep(0.3, 0.7, n1)) * (0.82 + n2 * 0.3);
+
+        vec3 col = mix(sand, grass, smoothstep(0.8, 2.0, h + (n1 - 0.5) * 0.9));
+        vec3 under = mix(uSeabed, uWet, smoothstep(-6.0, -0.8, h));
+        col = mix(under, col, smoothstep(-0.5, 0.75, h));
+        float steep = 1.0 - smoothstep(0.66, 0.84, ny + (n1 - 0.5) * 0.14);
+        float high = smoothstep(26.0, 33.0, h + n1 * 5.0);
+        col = mix(col, rock, max(steep, high) * smoothstep(0.4, 1.4, h));
+
+        float sl = uSnowLine + (n1 - 0.5) * 8.0;
+        col = mix(col, uSnowCol * (0.95 + n2 * 0.05), smoothstep(sl, sl + 2.5, h) * smoothstep(0.45, 0.72, ny));
+        diffuseColor.rgb = col;
+      `);
+  };
+
+  const mesh = new Mesh(geo, material);
   mesh.receiveShadow = true;
   mesh.castShadow = true;
 
-  function paint(season: Season) {
-    C.meadow.copy(season.grass).offsetHSL(0.02, 0.05, 0.07);
-    const snowLine = 33 - season.snow * 31;
-    for (let f = 0; f < faces; f++) {
-      const h = faceH[f], ny = faceNy[f], n = faceN[f], c = C.out;
-      if (h < -1.5) c.copy(C.seabed).lerp(C.wet, smooth(-7, -1.5, h));
-      else if (h < 0.9) c.copy(C.wet).lerp(C.sand, smooth(-1.5, 0.6, h));
-      else if (ny < 0.78 || h > 30) c.copy(C.rock).lerp(C.rockDark, clamp01(n * 0.5 + 0.5));
-      else {
-        c.copy(season.grass).lerp(C.meadow, clamp01(n * 0.6 + 0.4)).multiplyScalar(0.92 + n * 0.1);
-        if (h < 1.8) c.lerp(C.sand, 1 - smooth(0.9, 1.8, h));
-      }
-      const sl = snowLine + n * 4;
-      if (h > sl && ny > 0.5) c.lerp(SNOW, smooth(sl, sl + 3, h));
-      for (let v = 0; v < 3; v++) {
-        const o = (f * 3 + v) * 3;
-        col[o] = c.r; col[o + 1] = c.g; col[o + 2] = c.b;
-      }
-    }
-    geo.attributes.color.needsUpdate = true;
-  }
+  return { mesh, heightMap: bakeHeightMap(world) };
+}
 
-  return { mesh, paint };
+/** Terrain height around the shallows, for the water to find the shore. */
+function bakeHeightMap(world: World) {
+  const n = 256, data = new Uint8Array(n * n);
+  const [lo, hi] = DEPTH_RANGE;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1) - 0.5) * TERRAIN_SIZE, z = (j / (n - 1) - 0.5) * TERRAIN_SIZE;
+      const h = Math.min(hi, Math.max(lo, world.height(x, z)));
+      data[j * n + i] = Math.round(((h - lo) / (hi - lo)) * 255);
+    }
+  }
+  const tex = new DataTexture(data, n, n, RedFormat, UnsignedByteType);
+  tex.magFilter = tex.minFilter = LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
 }
