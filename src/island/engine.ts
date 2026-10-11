@@ -16,7 +16,7 @@ import { createRain, type Forecast } from "./rain";
 import { createMist } from "./mist";
 import { populate, type Creature, type Env, type Habitat } from "./creatures";
 import { createViewer } from "./viewer";
-import { DAY, START_DAY, dayFraction, describe, yearPosition } from "./time";
+import { START_DAY, dayFraction, describe, simTimeAt, sunRate, sunTime, yearPosition } from "./time";
 
 /* Grows the island into a host element and keeps it running until
    disposed. Everything here is the browser's own work: no network, no
@@ -27,7 +27,7 @@ export interface IslandOptions {
   seed: number;
   /** Where the clock starts, in days from midnight on the first of spring. */
   startDay: number;
-  /** How fast the clock runs. 1 is a 48-second day; 0 holds it still. */
+  /** How fast the clock runs. 1 is a two-minute day; 0 holds it still. */
   speed: number;
   /** Overrides the weather's schedule, for looking at it. */
   weather?: Forecast;
@@ -91,7 +91,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
 
   const env: Env = { elev: 0 };
   const timer = new Timer();
-  let simT = DAY * options.startDay;
+  let simT = simTimeAt(options.startDay);
   let hudTimer = 0;
 
   const tick = (time: number) => {
@@ -107,14 +107,16 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     shared.uSnow.value = season.snow;
     shared.uSnowLine.value = 33 - season.snow * 31;
     vegetation.update(season);
-    env.elev = sky.update(dayFraction(simT), season);
-    cottage.update(dayFraction(simT), t);
-    const misty = mist(dayFraction(simT), yearPosition(simT));
+    // The hour as the sun sees it, which everything that follows the day reads.
+    const sun = sunTime(dayFraction(simT));
+    env.elev = sky.update(sun, season);
+    cottage.update(sun, t);
+    const misty = mist(sun, yearPosition(simT));
 
     falling(dt, t, season);
     fireflies(t, season, env.elev);
     clouds(dt);
-    creatures.update(dt, t, env, dayFraction(simT));
+    creatures.update(dt, t, env, sun, sunRate(dayFraction(simT)) * options.speed);
     viewer.update(dt, world);
 
     hudTimer -= dt;

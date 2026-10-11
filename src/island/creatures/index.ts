@@ -38,12 +38,13 @@ export function populate(habitat: Habitat, roostTree: Placed | undefined, cottag
   }).catch((error) => console.warn("The animal models didn't load.", error));
 
   return {
-    update(dt: number, t: number, env: Env, dayF: number) {
+    /** sun is the hour in sun time; sunPace how fast it's moving (sun-days per day of clock). */
+    update(dt: number, t: number, env: Env, sun: number, sunPace: number) {
       m.rabbit.color.copy(COAT.summer).lerp(COAT.winter, habitat.season.snow);
       for (const r of rabbits) r.update(dt, t, env);
       for (const d of deer) d.update(dt, t, env);
       fox?.update(dt, env);
-      farmer?.update(dt, dayF);
+      farmer?.update(dt, sun, sunPace);
       for (const f of flocks) f.update(dt, t, env);
     },
     dispose() { gone = true; },

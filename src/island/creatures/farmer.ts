@@ -19,7 +19,7 @@ type Doing = "inside" | "walk" | "tend" | "look" | "sit" | "potter" | "wave";
 interface Errand { at: Vector3; face: number; doing: Doing; for: number }
 
 const OUT = 0.3, IN = 0.725; // fractions of the day: after breakfast, before supper
-const WALK = 1.9, RUN = 3.8;
+const WALK = 1.45, RUN = 3.8;
 
 const UP = new Vector3(0, 1, 0), side = new Vector3(), local = new Vector3(), qa = new Quaternion(), qw = new Quaternion();
 
@@ -65,12 +65,12 @@ export class Farmer implements Creature {
     const potter = () => {
       const a = bench.face + (Math.random() - 0.5) * 2.2, r = 3 + Math.random() * 4;
       const at = door.clone().add(new Vector3(Math.cos(a) * r, 0, -Math.sin(a) * r));
-      return { at, face: Math.random() * Math.PI * 2, doing: "potter" as const, for: 2 + Math.random() * 3 };
+      return { at, face: Math.random() * Math.PI * 2, doing: "potter" as const, for: 3 + Math.random() * 4 };
     };
     const errands: Errand[] = [
-      { at: garden.at, face: garden.face, doing: "tend", for: 6 + Math.random() * 6 },
-      { at: lookout.at, face: lookout.face, doing: "look", for: 4 + Math.random() * 4 },
-      { at: bench.at, face: bench.face, doing: "sit", for: 6 + Math.random() * 8 },
+      { at: garden.at, face: garden.face, doing: "tend", for: 10 + Math.random() * 10 },
+      { at: lookout.at, face: lookout.face, doing: "look", for: 6 + Math.random() * 6 },
+      { at: bench.at, face: bench.face, doing: "sit", for: 10 + Math.random() * 12 },
       potter(),
     ];
     // Shuffled, and the garden more often than not first.
@@ -84,12 +84,13 @@ export class Farmer implements Creature {
     this.doing = "walk";
   }
 
-  update(dt: number, dayF: number) {
+  /** sun is the hour in sun time; sunPace how fast sun time is moving just now. */
+  update(dt: number, sun: number, sunPace = 1) {
     const { world, camera, shared } = this.habitat;
     const rain = shared?.uRain.value ?? 0;
     // He sets off home in time to be in before the kitchen light comes on.
-    const walkHome = Math.hypot(this.spots.door.x - this.x, this.spots.door.z - this.z) / WALK / DAY;
-    const shouldBeOut = dayF > OUT && dayF + (this.doing === "inside" ? 0 : walkHome) < IN && rain < 0.3;
+    const walkHome = (Math.hypot(this.spots.door.x - this.x, this.spots.door.z - this.z) / WALK / DAY) * sunPace;
+    const shouldBeOut = sun > OUT && sun + (this.doing === "inside" ? 0 : walkHome) < IN && rain < 0.3;
 
     if (this.doing === "inside") {
       if (shouldBeOut) {

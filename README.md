@@ -30,9 +30,10 @@ a client-only page at `/`, deployed on Vercel from `main`.
 
 ## The island
 
-- **One day lasts 48 seconds** and a season two and a half days, so a year
-  goes round in about eight minutes. It starts in early spring, just after
-  dawn.
+- **One day lasts two minutes**, about 80 seconds of it daylight (the sun
+  lingers by day and hurries through the night), and a season lasts two
+  days, so a year goes round in about sixteen minutes. It starts in early
+  spring, just after dawn.
 - **The same island on every visit**, grown from a seed: an irregular coast,
   rolling hills, one peak, small lakes, pines on the high ground and meadows
   left open.
@@ -70,15 +71,15 @@ a client-only page at `/`, deployed on Vercel from `main`.
 | Parameter   | Does                                                         |
 | ----------- | ------------------------------------------------------------ |
 | `?seed=42`  | Grows a different island                                     |
-| `?t=8.75`   | Starts the clock at a given day (see below)                  |
+| `?t=6.75`   | Starts the clock at a given day (see below)                  |
 | `?speed=0`  | Holds the clock still. `2` runs it twice as fast, `0.1` slower |
 | `?weather=` | `clear`, `rain` or `storm`, overriding the weather's schedule |
 
 `t` counts days from midnight on the first day of spring. The whole part
-picks the day — spring is 0–2.5, summer 2.5–5, autumn 5–7.5, winter 7.5–10 —
-and the fraction is the hour: `.25` dawn, `.5` midday, `.75` dusk, `.0`
+picks the day — spring is 0–2, summer 2–4, autumn 4–6, winter 6–8 — and the
+fraction is the sun's hour: `.25` sunrise, `.5` midday, `.75` sunset, `.0`
 midnight. So `?t=3.5&speed=0` is summer at noon, held still, and
-`?t=8.75&speed=0` is a winter dusk.
+`?t=6.75&speed=0` is a winter dusk.
 
 ### Where things are
 
@@ -126,7 +127,7 @@ head and ears; a bird's wings at shoulder and wrist.
 size. Hold the clock with `?speed=0` and give WebGL a moment to settle:
 
 ```bash
-SHOT_SETTLE=4000 node tools/shot.mjs ./shots http://localhost:3000 390 844 winter-dusk="/?t=8.75&speed=0"
+SHOT_SETTLE=4000 node tools/shot.mjs ./shots http://localhost:3000 390 844 winter-dusk="/?t=6.75&speed=0"
 ```
 
 ---

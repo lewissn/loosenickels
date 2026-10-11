@@ -6,6 +6,7 @@ import { mulberry32, smooth } from "./noise";
 import type { Detail } from "./detail";
 import type { Shared } from "./shared";
 import type { World } from "./world";
+import { DAY, SEASON_DAYS } from "./time";
 
 /* Rain, and now and then a thunderstorm.
 
@@ -19,7 +20,7 @@ import type { World } from "./world";
 
 export type Forecast = "clear" | "rain" | "storm";
 
-const SLOT = 0.55; // days
+const SLOT = 0.45; // days
 const RAIN_CHANCE = [0.35, 0.22, 0.45, 0]; // spring, summer, autumn, winter
 const STORM_CHANCE = [0.15, 0.55, 0.3, 0];
 const GREY_WINTER = 0.4; // chance a winter slot is merely overcast
@@ -61,7 +62,7 @@ export function createRain(scene: Scene, world: World, detail: Detail, shared: S
   const slotWeather = (slot: number): { wet: number; storm: boolean; grey: boolean } => {
     if (forced) return { wet: forced === "clear" ? 0 : 1, storm: forced === "storm", grey: false };
     const r = mulberry32(world.seed * 7919 + slot * 104729);
-    const season = Math.floor((((slot * SLOT) / 2.5) % 4 + 4) % 4);
+    const season = Math.floor((((slot * SLOT) / SEASON_DAYS) % 4 + 4) % 4);
     const a = r(), b = r(), c = r();
     if (season === 3) return { wet: 0, storm: false, grey: a < GREY_WINTER };
     const wet = a < RAIN_CHANCE[season] ? 0.55 + b * 0.45 : 0;
@@ -134,7 +135,7 @@ export function createRain(scene: Scene, world: World, detail: Detail, shared: S
   return {
     /** Advances the weather. Writes uRain, uOvercast, uWet, uFlash and uWind. */
     update(simT: number, dt: number) {
-      const days = simT / 48, slot = Math.floor(days / SLOT), f = days / SLOT - slot;
+      const days = simT / DAY, slot = Math.floor(days / SLOT), f = days / SLOT - slot;
       const now = slotWeather(slot), next = slotWeather(slot + 1);
       const greyNow = now.grey ? 0.7 : 0, greyNext = next.grey ? 0.7 : 0;
       const a = now.wet, b = next.wet;
