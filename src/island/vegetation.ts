@@ -141,5 +141,5 @@ export function createVegetation(scene: Scene, world: World, detail: Detail, sha
     pineMat.color.copy(season.pine).lerp(SNOW, season.snow * 0.3);
   }
 
-  return { trees, update };
+  return { trees, rocks: keptRocks, update };
 }

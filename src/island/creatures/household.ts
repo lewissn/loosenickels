@@ -37,6 +37,9 @@ class Resident implements Creature {
   doing: Doing = "inside";
   errand: Errand | null = null;
   running = false;
+  /** Walked by you rather than by the household; speed is how fast. */
+  controlled = false;
+  speed = 0;
   private shown: Doing | null = null;
   private resume: Doing = "potter";
   private waveTimer = 0;
@@ -64,7 +67,7 @@ class Resident implements Creature {
 
   get outside() { return this.doing !== "inside"; }
   /** Whether they're at the errand's spot, doing it. */
-  get there() { return this.doing !== "walk" && this.doing !== "inside"; }
+  get there() { return this.controlled || (this.doing !== "walk" && this.doing !== "inside"); }
 
   comeOut() {
     this.rig.root.visible = true;
@@ -81,9 +84,23 @@ class Resident implements Creature {
 
   distanceTo(p: Vector3) { return Math.hypot(p.x - this.x, p.z - this.z); }
 
+  /** Sits down on the bench, facing the sea (when walked by you). */
+  sitAt(at: Vector3, face: number) {
+    this.x = at.x;
+    this.z = at.z;
+    this.heading = face;
+    this.doing = "sit";
+  }
+
   update(dt: number) {
     const { world, camera } = this.habitat;
-    if (this.doing === "walk" && this.errand) {
+    if (this.controlled) {
+      // You're walking him: walk or run to match his pace, otherwise stand.
+      if (this.doing !== "sit") {
+        this.doing = this.speed > 0.15 ? "walk" : "potter";
+        this.running = this.speed > 3;
+      }
+    } else if (this.doing === "walk" && this.errand) {
       const dx = this.errand.at.x - this.x, dz = this.errand.at.z - this.z, d = Math.hypot(dx, dz);
       if (d < 0.25) {
         this.doing = this.errand.doing;
@@ -121,7 +138,11 @@ class Resident implements Creature {
 
   private pose(dt: number) {
     const d = this.doing;
-    if (d !== this.shown) {
+    if (this.controlled && d === "walk") {
+      // The stride keeps pace with however fast you're walking him.
+      this.rig.play(this.running ? "Run" : "Walk", this.running ? this.speed / RUN : this.speed / WALK * 0.85, 0.25);
+      this.shown = null; // so stopping re-picks the idle
+    } else if (d !== this.shown) {
       if (d === "walk") this.rig.play(this.running ? "Run" : "Walk", this.running ? 1 : 0.85, 0.3);
       else if (d === "tend") this.rig.play("Interact", 0.8, 0.5);
       else if (d === "wave") this.rig.once("Wave", "Idle", 1, 0.3);
@@ -203,7 +224,27 @@ export class Household {
     if (this.beats.length === 0) this.planDay();
     this.beat = this.beats.shift()!;
     this.together = 0;
-    this.people.forEach((p, i) => p.go(this.beat!.errands[i]));
+    this.people.forEach((p, i) => { if (!p.controlled) p.go(this.beat!.errands[i]); });
+  }
+
+  /** The man, for walking as. */
+  get him() { return this.people[0]; }
+
+  /** Hands him over to you, or back to the household. */
+  control(on: boolean) {
+    const him = this.people[0];
+    if (on) {
+      // Out of the door, facing the sea.
+      if (him.doing === "inside") { him.comeOut(); him.heading = this.spots.bench.face; }
+      him.controlled = true;
+      him.speed = 0;
+    } else {
+      him.controlled = false;
+      him.speed = 0;
+      // Back to his day: to the current beat, or home if it's time.
+      if (this.home || !this.beat) him.go({ at: this.spots.door, face: 0, doing: "inside" });
+      else him.go(this.beat.errands[0]);
+    }
   }
 
   /** sun is the hour in sun time; sunPace how fast sun time is moving just now. */
@@ -219,14 +260,15 @@ export class Household {
       // He comes out first; she follows a moment later.
       this.home = false;
       this.stagger = 1.6;
-      him.comeOut();
+      if (!him.controlled) him.comeOut();
       this.planDay();
       this.nextBeat();
       her.doing = "inside";
     } else if (!this.home && !out) {
       this.home = true;
       this.beat = null;
-      for (const p of this.people) if (p.doing !== "inside") p.go({ at: door, face: 0, doing: "inside" }, rain >= 0.3);
+      // Whoever you're walking stays out with you.
+      for (const p of this.people) if (p.doing !== "inside" && !p.controlled) p.go({ at: door, face: 0, doing: "inside" }, rain >= 0.3);
     }
 
     if (!this.home) {

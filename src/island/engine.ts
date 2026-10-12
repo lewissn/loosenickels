@@ -14,6 +14,7 @@ import { createGrass } from "./grass";
 import { createCottage } from "./cottage";
 import { createRain, type Forecast } from "./rain";
 import { createMist } from "./mist";
+import { createWalk, type WalkState } from "./walk";
 import { populate, type Creature, type Env, type Habitat } from "./creatures";
 import { createViewer } from "./viewer";
 import { START_DAY, dayFraction, describe, simTimeAt, sunRate, sunTime, yearPosition } from "./time";
@@ -37,6 +38,8 @@ export interface IslandEvents {
   onWhen(text: string): void;
   onFollow(label: string | null): void;
   onInteract(): void;
+  /** Whether you can take a walk, are on one, and could sit. */
+  onWalk(state: WalkState): void;
 }
 
 export const DEFAULT_OPTIONS: IslandOptions = { seed: 1187, startDay: START_DAY, speed: 1 };
@@ -78,7 +81,8 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     onFollow: (c: Creature | null) => events.onFollow(c ? c.label() : null),
   });
   const habitat: Habitat = { scene, world, camera: viewer.camera, season, hitboxes, shared, people: [] };
-  const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0], cottage.spots);
+  const walk = createWalk(world, viewer.camera, cottage.spots, { trees: [...vegetation.trees.pine, ...vegetation.trees.dec, ...vegetation.trees.cherry], rocks: vegetation.rocks }, events.onWalk);
+  const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0], cottage.spots, (h) => walk.attach(h));
 
   const post = createPost(renderer, scene, viewer.camera, detail, shared);
   const rain = createRain(scene, world, detail, shared, viewer.camera, viewer.controls.target, options.weather);
@@ -116,6 +120,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     falling(dt, t, season);
     fireflies(t, season, env.elev);
     clouds(dt);
+    if (walk.update(dt)) viewer.ride(null);
     creatures.update(dt, t, env, sun, sunRate(dayFraction(simT)) * options.speed);
     viewer.update(dt, world);
 
@@ -138,11 +143,24 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   });
   resize.observe(host);
 
-  return function dispose() {
+  const handle = {
+    dispose,
+    /** Taking a walk as the man from the cottage. */
+    walk: {
+      start() { if (walk.start()) viewer.ride(walk.rider); },
+      stop() { walk.stop(); viewer.ride(null); },
+      stick: (x: number, y: number) => walk.stick(x, y),
+      sit: () => walk.sit(),
+    },
+  };
+  return handle;
+
+  function dispose() {
     renderer.setAnimationLoop(null);
     resize.disconnect();
     viewer.dispose();
     creatures.dispose();
+    walk.dispose();
     timer.dispose();
     post.dispose();
     terrain.heightMap.dispose();
@@ -158,5 +176,5 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     });
     renderer.dispose();
     renderer.domElement.remove();
-  };
+  }
 }

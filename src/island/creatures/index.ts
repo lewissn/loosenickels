@@ -28,7 +28,7 @@ function recolour(model: Object3D, name: string, colour: Color) {
  * are models and arrive when they have loaded; everything else is there
  * from the first frame.
  */
-export function populate(habitat: Habitat, roostTree: Placed | undefined, cottage: CottageSpots) {
+export function populate(habitat: Habitat, roostTree: Placed | undefined, cottage: CottageSpots, onCouple?: (h: Household) => void) {
   const m = bodyMaterials();
   const rabbits = Array.from({ length: 10 }, () => new Rabbit(habitat, new RabbitBody(m)));
   const flocks = [new Flock(habitat, 8, m, false, roostTree), new Flock(habitat, 6, m, true, roostTree)];
@@ -48,6 +48,7 @@ export function populate(habitat: Habitat, roostTree: Placed | undefined, cottag
     recolour(models.woman.scene, "Red", BRUNETTE); // her hair; her shoes share it
     recolour(models.woman.scene, "Brown", BRUNETTE); // her brows
     household = new Household(habitat, cottage, new Rig(models.farmer, 1.82), new Rig(models.woman, 1.66));
+    onCouple?.(household);
   }).catch((error) => console.warn("The animal models didn't load.", error));
 
   return {

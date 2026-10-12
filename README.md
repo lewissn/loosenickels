@@ -60,6 +60,12 @@ a client-only page at `/`, deployed on Vercel from `main`.
   roost on the beach. Fireflies come out on summer nights.
 - **Drag** to orbit, **pinch or scroll** to zoom. **Tap an animal** to follow
   it; tap empty space to let go. Left alone, the camera slowly turns.
+- **Take a walk** (bottom right, once the couple have arrived) to walk the
+  island as the man from the cottage: WASD or the arrow keys, Shift to run,
+  drag to look, Esc to stop — or on a phone, a thumbstick wherever your left
+  thumb lands, pushed further to run. He walks round trees, rocks and the
+  house, wades into the shallows but no further, and can sit on the bench.
+  His wife carries on with her day, and when you stop he goes back to his.
 - Detail scales by device (shadow map, terrain, trees, grass, flowers,
   particles), the render resolution is capped at 1.5x, and
   `prefers-reduced-motion` slows the camera.
@@ -107,7 +113,8 @@ src/island/
   mist.ts          mist pooling in the hollows at dawn
   cottage.ts       the cottage, its lit windows, lantern and smoke
   fireflies.ts     summer nights
-  viewer.ts        camera, orbit controls, tapping and following
+  viewer.ts        camera, orbit controls, tapping, following, riding along
+  walk.ts          taking a walk as the man: input, movement, collisions
   creatures/       deer, rabbits, the fox, flocks of birds, the couple; models.ts
                    loads the animal models and plays their animations
 ```

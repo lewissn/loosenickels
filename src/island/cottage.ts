@@ -204,7 +204,25 @@ export function createCottage(scene: Scene, world: World, shared: Shared) {
     if (world.height(p.x, p.z) < 1.0) break;
     lookout = p;
   }
+  // What you can't walk through: the house (with its footing) and the bench.
+  const toLocal = house.matrixWorld.clone().invert(), probe = new Vector3();
+  const blocks = (x: number, z: number) => {
+    probe.set(x, site.y, z).applyMatrix4(toLocal);
+    const inHouse = Math.abs(probe.x) < W / 2 + 0.45 && Math.abs(probe.z) < D / 2 + 0.45;
+    const onBench = Math.abs(probe.x - BENCH.x) < 0.95 && Math.abs(probe.z - BENCH.z) < 0.35;
+    return inHouse || onBench;
+  };
+
+  // What the camera can't enter: walls, and the roof with its deep eaves.
+  const solid = (x: number, y: number, z: number) => {
+    probe.set(x, y, z).applyMatrix4(toLocal);
+    if (probe.y < BASE + H - 0.3) return Math.abs(probe.x) < W / 2 + 0.45 && Math.abs(probe.z) < D / 2 + 0.45;
+    return probe.y < BASE + H + rise + 0.6 && Math.abs(probe.x) < W / 2 + 0.9 && Math.abs(probe.z) < D / 2 + 1.25;
+  };
+
   const spots = {
+    blocks,
+    solid,
     door: at(0.7, D / 2 + 0.7),
     garden: { at: at(GARDEN.x + 1.9, GARDEN.z), face: facing(-1, 0) },
     bench: { at: at(BENCH.x, BENCH.z - 0.3), face: seaward, seat: site.y + 0.47 },
