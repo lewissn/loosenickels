@@ -81,7 +81,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     onFollow: (c: Creature | null) => events.onFollow(c ? c.label() : null),
   });
   const habitat: Habitat = { scene, world, camera: viewer.camera, season, hitboxes, shared, people: [] };
-  const walk = createWalk(world, viewer.camera, cottage.spots, { trees: [...vegetation.trees.pine, ...vegetation.trees.dec, ...vegetation.trees.cherry], rocks: vegetation.rocks }, events.onWalk);
+  const walk = createWalk(world, viewer.camera, cottage.spots, { pines: vegetation.trees.pine, broadleaves: [...vegetation.trees.dec, ...vegetation.trees.cherry], rocks: vegetation.rocks, leaves: () => season.leafAmt }, events.onWalk, (f) => viewer.zoom(f));
   const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0], cottage.spots, (h) => walk.attach(h));
 
   const post = createPost(renderer, scene, viewer.camera, detail, shared);

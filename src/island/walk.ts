@@ -1,7 +1,7 @@
 import { Vector3, type Camera } from "three";
 import type { CottageSpots } from "./cottage";
 import type { Household } from "./creatures/household";
-import type { Placed } from "./vegetation";
+import { CANOPY_AT, type Placed } from "./vegetation";
 import type { Rider } from "./viewer";
 import type { World } from "./world";
 
@@ -30,28 +30,46 @@ export function createWalk(
   world: World,
   camera: Camera,
   spots: CottageSpots,
-  obstacles: { trees: Placed[]; rocks: Placed[] },
+  obstacles: { pines: Placed[]; broadleaves: Placed[]; rocks: Placed[]; leaves: () => number },
   onChange: (state: WalkState) => void,
+  zoom: (factor: number) => void,
 ) {
   // Trunks and boulders as circles, bucketed so each step checks only a few.
-  const grid = new Map<string, { x: number; z: number; r: number }[]>();
-  const add = (x: number, z: number, r: number) => {
-    const key = `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
+  // Each also knows its shape above the ground, for keeping the camera out
+  // of canopies: a ball of leaves, or a pine's narrowing cone.
+  type Obstacle = { x: number; z: number; r: number; y: number; s: number; crown: "broad" | "pine" | "none" };
+  const grid = new Map<string, Obstacle[]>();
+  const add = (o: Obstacle) => {
+    const key = `${Math.floor(o.x / CELL)},${Math.floor(o.z / CELL)}`;
     if (!grid.has(key)) grid.set(key, []);
-    grid.get(key)!.push({ x, z, r });
+    grid.get(key)!.push(o);
   };
-  for (const t of obstacles.trees) add(t.x, t.z, 0.45 * t.s);
-  for (const r of obstacles.rocks) add(r.x, r.z, 0.85 * r.s * Math.max(r.sx ?? 1, r.sz ?? 1));
+  for (const t of obstacles.pines) add({ x: t.x, z: t.z, r: 0.45 * t.s, y: t.y, s: t.s, crown: "pine" });
+  for (const t of obstacles.broadleaves) add({ x: t.x, z: t.z, r: 0.45 * t.s, y: t.y, s: t.s, crown: "broad" });
+  for (const r of obstacles.rocks) add({ x: r.x, z: r.z, r: 0.85 * r.s * Math.max(r.sx ?? 1, r.sz ?? 1), y: r.y, s: r.s, crown: "none" });
+  const near = (x: number, z: number, reach: number, visit: (o: Obstacle) => boolean) => {
+    const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL), n = Math.ceil(reach / CELL);
+    for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
+      for (const o of grid.get(`${cx + i},${cz + j}`) ?? []) if (visit(o)) return true;
+    }
+    return false;
+  };
+
+  /** Whether the camera at (x, y, z) would be inside a tree or a rock. */
+  const inGreenery = (x: number, y: number, z: number) => near(x, z, 3, (o) => {
+    const d = Math.hypot(x - o.x, z - o.z), h = y - o.y;
+    if (h < 0) return false;
+    // Bare in winter, a broadleaf is only its trunk and limbs.
+    if (o.crown === "broad") return (h < CANOPY_AT * o.s && d < o.r) || Math.hypot(d, h - CANOPY_AT * o.s) < 2.1 * o.s * obstacles.leaves();
+    if (o.crown === "pine") return h < 7 * o.s && d < Math.max(o.r, 1.9 * o.s * (1 - Math.max(0, h - 0.8 * o.s) / (6.4 * o.s)));
+    return d < o.r && h < o.r * 1.2;
+  });
 
   const blocked = (x: number, z: number) => {
     if (world.height(x, z) < -0.35) return true; // too deep to wade
     if (world.normalY(x, z) < 0.55) return true; // too steep to climb
     if (spots.blocks(x, z)) return true;
-    const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL);
-    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
-      for (const o of grid.get(`${cx + i},${cz + j}`) ?? []) if (Math.hypot(x - o.x, z - o.z) < o.r + 0.3) return true;
-    }
-    return false;
+    return near(x, z, 1, (o) => Math.hypot(x - o.x, z - o.z) < o.r + 0.3);
   };
 
   // ---- input
@@ -66,6 +84,9 @@ export function createWalk(
       if (down) keys.add(k); else keys.delete(k);
     }
     if (down && k === "e") sitRequested = true;
+    // Zoom in and out, as in Roblox.
+    if (down && k === "i") zoom(0.8);
+    if (down && k === "o") zoom(1.25);
     if (down && k === "escape") stopRequested = true;
   };
   const keyDown = onKey(true), keyUp = onKey(false);
@@ -83,7 +104,8 @@ export function createWalk(
     heading: () => heading,
     moving: () => speed > 0.3,
     // The camera mustn't end up inside the house.
-    solid: (x, y, z) => spots.solid(x, y, z),
+    solid: (x, y, z) => spots.solid(x, y, z) || inGreenery(x, y, z),
+    show: (visible) => { if (household) household.him.rig.root.visible = visible; },
   };
 
   function report() {
@@ -120,6 +142,7 @@ export function createWalk(
       keys.clear();
       stick.x = stick.y = 0;
       household.control(false);
+      household.him.rig.root.visible = household.him.doing !== "inside";
       report();
     },
     /** The thumbstick, -1 to 1 each way (y up the screen). */

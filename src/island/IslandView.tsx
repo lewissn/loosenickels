@@ -77,6 +77,11 @@ export function IslandView() {
     };
   }, []);
 
+  // Following an animal or taking a walk means watching without touching,
+  // and a phone takes that as being left alone and dims. Hold the screen on
+  // for as long as either lasts (and only then, for the battery's sake).
+  useWakeLock(following || walk.active);
+
   const startWalk = () => { setHint(false); island.current?.walk.start(); };
   const stopWalk = () => island.current?.walk.stop();
 
@@ -92,8 +97,8 @@ export function IslandView() {
       <div className={`${s.ui} ${s.follow} ${following && !walk.active ? s.on : ""}`}>{caption}</div>
       <div className={`${s.ui} ${s.walkHint} ${walk.active ? s.on : ""}`}>
         {touch
-          ? "thumb on the left to walk, further to run · drag to look"
-          : "WASD or arrows to walk · shift to run · drag to look · esc to stop"}
+          ? "thumb on the left to walk, further to run · drag to look · pinch to zoom"
+          : "WASD or arrows to walk · shift to run · drag to look · scroll or I/O to zoom · esc to stop"}
       </div>
       <div className={s.actions}>
         {walk.active && walk.canSit && (
@@ -113,37 +118,88 @@ export function IslandView() {
   );
 }
 
+/** Keeps the screen from dimming while `wanted`, where the browser allows it. */
+function useWakeLock(wanted: boolean) {
+  useEffect(() => {
+    if (!wanted || !("wakeLock" in navigator)) return;
+    let lock: WakeLockSentinel | null = null, done = false;
+    const take = () => {
+      if (done || document.visibilityState !== "visible") return;
+      navigator.wakeLock.request("screen").then((l) => {
+        if (done) l.release();
+        else lock = l;
+      }).catch(() => { /* refused (low battery, say): nothing to be done */ });
+    };
+    // The browser drops the lock whenever the page is hidden; take it back.
+    const onVisible = () => { if (document.visibilityState === "visible") take(); };
+    take();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      done = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      lock?.release().catch(() => {});
+    };
+  }, [wanted]);
+}
+
 /** A thumbstick that appears wherever the left thumb lands. */
 function Thumbstick({ onMove }: { onMove: (x: number, y: number) => void }) {
-  const origin = useRef<{ x: number; y: number } | null>(null);
+  const zone = useRef<HTMLDivElement>(null);
   const [base, setBase] = useState<{ x: number; y: number } | null>(null);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const R = 56;
+  const move = useRef(onMove);
+  useEffect(() => { move.current = onMove; }, [onMove]);
 
-  const move = (e: React.PointerEvent) => {
-    const from = origin.current;
-    if (!from) return;
-    let dx = e.clientX - from.x, dy = e.clientY - from.y;
-    const d = Math.hypot(dx, dy);
-    if (d > R) { dx *= R / d; dy *= R / d; }
-    setKnob({ x: dx, y: dy });
-    onMove(dx / R, -dy / R);
-  };
-  const end = () => { origin.current = null; setBase(null); setKnob({ x: 0, y: 0 }); onMove(0, 0); };
+  // Listened for on the stick itself, natively, and stopped there. React
+  // listens at the document — the same place the camera does once a finger
+  // is on it — so stopping the thumb's touches in a React handler would be
+  // too late: the camera would still read the thumb as a second drag.
+  useEffect(() => {
+    const el = zone.current;
+    if (!el) return;
+    let origin: { x: number; y: number } | null = null, id = -1;
+    const at = (e: PointerEvent) => {
+      if (!origin) return;
+      let dx = e.clientX - origin.x, dy = e.clientY - origin.y;
+      const d = Math.hypot(dx, dy);
+      if (d > R) { dx *= R / d; dy *= R / d; }
+      setKnob({ x: dx, y: dy });
+      move.current(dx / R, -dy / R);
+    };
+    const down = (e: PointerEvent) => {
+      e.stopPropagation();
+      if (origin) return; // one thumb at a time
+      try { el.setPointerCapture(e.pointerId); } catch { /* not a live pointer */ }
+      origin = { x: e.clientX, y: e.clientY };
+      id = e.pointerId;
+      setBase(origin);
+      at(e);
+    };
+    const moved = (e: PointerEvent) => { e.stopPropagation(); if (e.pointerId === id) at(e); };
+    const up = (e: PointerEvent) => {
+      e.stopPropagation();
+      if (e.pointerId !== id) return;
+      origin = null;
+      id = -1;
+      setBase(null);
+      setKnob({ x: 0, y: 0 });
+      move.current(0, 0);
+    };
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", moved);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", moved);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+    };
+  }, []);
 
   return (
-    <div
-      className={s.stickZone}
-      onPointerDown={(e) => {
-        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not a live pointer */ }
-        origin.current = { x: e.clientX, y: e.clientY };
-        setBase(origin.current);
-        move(e);
-      }}
-      onPointerMove={move}
-      onPointerUp={end}
-      onPointerCancel={end}
-    >
+    <div ref={zone} className={s.stickZone}>
       {base && (
         <div className={s.stickBase} style={{ left: base.x - R, top: base.y - R, width: R * 2, height: R * 2 }}>
           <div className={s.stickKnob} style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />

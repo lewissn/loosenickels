@@ -62,10 +62,13 @@ a client-only page at `/`, deployed on Vercel from `main`.
   it; tap empty space to let go. Left alone, the camera slowly turns.
 - **Take a walk** (bottom right, once the couple have arrived) to walk the
   island as the man from the cottage: WASD or the arrow keys, Shift to run,
-  drag to look, Esc to stop — or on a phone, a thumbstick wherever your left
-  thumb lands, pushed further to run. He walks round trees, rocks and the
+  drag to look, scroll or I/O to zoom (right in to first person), Esc to
+  stop — or on a phone, a thumbstick wherever your left thumb lands, pushed
+  further to run, with another finger to look and two to pinch-zoom. He walks round trees, rocks and the
   house, wades into the shallows but no further, and can sit on the bench.
   His wife carries on with her day, and when you stop he goes back to his.
+  While you follow an animal or take a walk, the screen is kept from
+  dimming (where the browser allows).
 - Detail scales by device (shadow map, terrain, trees, grass, flowers,
   particles), the render resolution is capped at 1.5x, and
   `prefers-reduced-motion` slows the camera.

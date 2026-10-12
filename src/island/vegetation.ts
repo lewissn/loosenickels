@@ -33,7 +33,7 @@ export interface Placed {
 }
 
 /** How high a broadleaf canopy's centre sits, before the tree's scale. */
-const CANOPY_AT = 3.25;
+export const CANOPY_AT = 3.25;
 
 const UP = new Vector3(0, 1, 0), M4 = new Matrix4(), Q = new Quaternion(), PV = new Vector3(), SV = new Vector3();
 const tint = new Color();

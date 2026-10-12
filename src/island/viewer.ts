@@ -17,8 +17,10 @@ import type { World } from "./world";
 const IDLE_BEFORE_TURNING = 8000;
 const HOME = new Vector3(0, 6, 0);
 const UP = new Vector3(0, 1, 0);
-/** How far behind him the camera rides, by default. */
-const RIDE_DISTANCE = 7;
+/** How far behind him the camera rides, by default; and as far in and out as it goes. */
+const RIDE_DISTANCE = 9.5, RIDE_NEAREST = 0.35, RIDE_FURTHEST = 32;
+/** Closer than this, it's first person. */
+const FIRST_PERSON = 1.1;
 
 /** Someone the camera rides with, for walking. */
 export interface Rider {
@@ -27,6 +29,8 @@ export interface Rider {
   moving(): boolean;
   /** Whether a point is inside something the camera shouldn't enter. */
   solid(x: number, y: number, z: number): boolean;
+  /** Zoomed right in, the camera is behind his eyes: hide him. */
+  show(visible: boolean): void;
 }
 
 export interface ViewerEvents {
@@ -56,6 +60,9 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
   let follow: Creature | null = null;
   let rider: Rider | null = null;
   let dragging = false, lastDrag = 0;
+  // The distance you've chosen to ride at, and whether the camera has been
+  // pulled in closer than that to keep the house out of the way.
+  let preferred = RIDE_DISTANCE, pulled = false, firstPerson = false;
   let lastInteract = performance.now();
   let downAt: { x: number; y: number; t: number } | null = null;
 
@@ -98,22 +105,26 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
     if (follow) { follow = null; events.onFollow(null); }
     if (rider) {
       controls.autoRotate = false;
-      controls.minDistance = 2.5;
-      controls.maxDistance = 18;
+      controls.minDistance = RIDE_NEAREST;
+      controls.maxDistance = RIDE_FURTHEST;
       controls.maxPolarAngle = Math.PI * 0.49;
+      preferred = RIDE_DISTANCE;
+      pulled = false;
+      firstPerson = false;
       // Start behind and above him, or at the first angle round him with a
       // clear view (in front, looking back, if the house is behind him).
       const p = rider.focus(), h = rider.heading();
       controls.target.copy(p);
       for (let i = 0; i <= 8; i++) {
         const a = h + Math.PI + Math.ceil(i / 2) * (Math.PI / 4) * (i % 2 ? 1 : -1);
-        offset.set(Math.cos(a) * RIDE_DISTANCE, 2.4, -Math.sin(a) * RIDE_DISTANCE);
+        offset.set(Math.cos(a) * RIDE_DISTANCE, 3.2, -Math.sin(a) * RIDE_DISTANCE);
         if (clearView(p, offset)) break;
       }
       camera.position.copy(p).add(offset);
     } else {
       controls.minDistance = 6;
       controls.maxDistance = 360;
+      controls.minPolarAngle = 0;
       controls.maxPolarAngle = Math.PI * 0.47;
       lastInteract = performance.now();
     }
@@ -153,18 +164,22 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
       // If something's between him and the camera, come in closer than it.
       offset.copy(camera.position).sub(controls.target);
       const len = offset.length();
-      if (!Number.isFinite(len) || len < 0.5) {
-        // Never let the camera sit on top of him (or go missing): put it back behind.
+      if (!Number.isFinite(len)) {
+        // Never let the camera go missing: put it back behind him.
         const h = rider.heading();
-        camera.position.set(controls.target.x - Math.cos(h) * RIDE_DISTANCE, controls.target.y + 2.4, controls.target.z + Math.sin(h) * RIDE_DISTANCE);
+        camera.position.set(controls.target.x - Math.cos(h) * RIDE_DISTANCE, controls.target.y + 3.2, controls.target.z + Math.sin(h) * RIDE_DISTANCE);
         return;
       }
+      // Whatever distance you zoom to is the one to keep, unless the camera
+      // is only this close because something got in the way.
+      if (!pulled) preferred = Math.min(RIDE_FURTHEST, Math.max(RIDE_NEAREST, len));
       let clear = true;
       for (let f = 0.15; f <= 1; f += 0.05) {
         const x = controls.target.x + offset.x * f, y = controls.target.y + offset.y * f, z = controls.target.z + offset.z * f;
         if (rider.solid(x, y, z)) {
-          camera.position.copy(controls.target).addScaledVector(offset, Math.max(2.2 / len, f - 0.1));
+          camera.position.copy(controls.target).addScaledVector(offset, Math.max(RIDE_NEAREST / len, f - 0.1));
           clear = false;
+          pulled = true;
           break;
         }
       }
@@ -182,12 +197,25 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
         }
         clear = false;
       }
-      // Once the way is clear again, drift back out to the usual distance.
-      if (clear && len < RIDE_DISTANCE && rider.moving()) {
-        camera.position.copy(controls.target).addScaledVector(offset, 1 + (RIDE_DISTANCE / len - 1) * Math.min(1, dt * 1.5));
+      // Once the way is clear again, drift back out to your distance.
+      if (clear && pulled) {
+        const now = camera.position.distanceTo(controls.target);
+        if (now >= preferred - 0.05) pulled = false;
+        else camera.position.copy(controls.target).addScaledVector(offset, (now + (preferred - now) * Math.min(1, dt * 1.5)) / len);
       }
-      const ground = Math.max(world.height(camera.position.x, camera.position.z), 0) + 1.2;
+      // Right in close, see through his eyes.
+      const fp = camera.position.distanceTo(controls.target) < FIRST_PERSON;
+      if (fp !== firstPerson) { firstPerson = fp; rider.show(!fp); }
+      const ground = Math.max(world.height(camera.position.x, camera.position.z), 0) + (firstPerson ? 0.2 : 1.2);
       if (camera.position.y < ground) camera.position.y = ground;
+      // A last guard: however it happened, a camera that has flown off (or
+      // lost its position) goes back behind him at your distance.
+      const now = camera.position.distanceTo(controls.target);
+      if (!Number.isFinite(now) || now > RIDE_FURTHEST * 1.5) {
+        const h = rider.heading();
+        camera.position.set(controls.target.x - Math.cos(h) * preferred, controls.target.y + preferred * 0.33, controls.target.z + Math.sin(h) * preferred);
+        pulled = false;
+      }
       return;
     }
     if (follow) {
@@ -220,5 +248,15 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
     controls.dispose();
   }
 
-  return { camera, controls, update, resize, dispose, ride };
+  /** Zooms the riding camera in (f < 1) or out (f > 1). */
+  function zoom(f: number) {
+    if (!rider) return;
+    offset.copy(camera.position).sub(controls.target);
+    const len = Math.min(RIDE_FURTHEST, Math.max(RIDE_NEAREST, offset.length() * f));
+    camera.position.copy(controls.target).add(offset.setLength(len));
+    preferred = len;
+    pulled = false;
+  }
+
+  return { camera, controls, update, resize, dispose, ride, zoom };
 }
