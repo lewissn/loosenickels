@@ -1,9 +1,11 @@
-import { bodyMaterials, COAT, RabbitBody } from "./bodies";
+import { BearBody, bodyMaterials, COAT, RabbitBody } from "./bodies";
 import { Deer, Rabbit } from "./walker";
 import { Flock } from "./flock";
 import { Fox } from "./fox";
 import { loadModels, Rig } from "./models";
 import { Household } from "./household";
+import { Dog } from "./dog";
+import { Bear } from "./bear";
 import { Color, MeshStandardMaterial, type Mesh, type Object3D } from "three";
 import type { CottageSpots } from "../cottage";
 import type { Env, Habitat } from "./habitat";
@@ -23,18 +25,21 @@ function recolour(model: Object3D, name: string, colour: Color) {
 }
 
 /**
- * Six deer (two of them stags), ten rabbits, a fox, a flock of swallows,
- * gulls, and the couple from the cottage. The deer, the fox and the couple
- * are models and arrive when they have loaded; everything else is there
- * from the first frame.
+ * Six deer (two of them stags), ten rabbits, a fox, a bear in the pinewoods,
+ * a flock of swallows, gulls, and the couple from the cottage with their
+ * dog. The deer, the fox, the couple and the dog are models and arrive when
+ * they have loaded; everything else is there from the first frame.
  */
-export function populate(habitat: Habitat, roostTree: Placed | undefined, cottage: CottageSpots, onCouple?: (h: Household) => void) {
+export function populate(habitat: Habitat, roostTree: Placed | undefined, pines: Placed[], cottage: CottageSpots, onCouple?: (h: Household) => void) {
   const m = bodyMaterials();
   const rabbits = Array.from({ length: 10 }, () => new Rabbit(habitat, new RabbitBody(m)));
   const flocks = [new Flock(habitat, 8, m, false, roostTree), new Flock(habitat, 6, m, true, roostTree)];
+  const bear = new Bear(habitat, new BearBody(m), pines);
+  habitat.people.push(bear); // the deer and rabbits keep clear of it too
   const deer: Deer[] = [];
   let fox: Fox | null = null;
   let household: Household | null = null;
+  let dog: Dog | null = null;
   let gone = false;
 
   loadModels().then((models) => {
@@ -48,6 +53,10 @@ export function populate(habitat: Habitat, roostTree: Placed | undefined, cottag
     recolour(models.woman.scene, "Red", BRUNETTE); // her hair; her shoes share it
     recolour(models.woman.scene, "Brown", BRUNETTE); // her brows
     household = new Household(habitat, cottage, new Rig(models.farmer, 1.82), new Rig(models.woman, 1.66), [1.82, 1.66]);
+    dog = new Dog(habitat, new Rig(models.husky, 0.9), household, rabbits, cottage);
+    dog.avoid = bear.position;
+    bear.watch(dog);
+    habitat.people.push(dog);
     onCouple?.(household);
   }).catch((error) => console.warn("The animal models didn't load.", error));
 
@@ -59,10 +68,14 @@ export function populate(habitat: Habitat, roostTree: Placed | undefined, cottag
       for (const d of deer) d.update(dt, t, env);
       fox?.update(dt, env);
       household?.update(dt, sun, sunPace, habitat.shared?.uRain.value ?? 0);
+      dog?.update(dt);
+      bear.update(dt, t, env);
       for (const f of flocks) f.update(dt, t, env);
     },
     dispose() { gone = true; },
     /** For looking at while developing. */
     get household() { return household; },
+    get dog() { return dog; },
+    bear,
   };
 }

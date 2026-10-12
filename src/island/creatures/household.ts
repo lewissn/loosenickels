@@ -1,8 +1,8 @@
-import { CanvasTexture, Quaternion, Sprite, SpriteMaterial, Vector3, type Bone, type Object3D, type Scene } from "three";
+import { CanvasTexture, Quaternion, Sprite, SpriteMaterial, Vector3, type Bone, type Scene } from "three";
 import { smooth } from "../noise";
 import { addHitbox, type Creature, type Habitat } from "./habitat";
 import { angleTo } from "./walker";
-import type { Rig } from "./models";
+import { bend, type Rig } from "./models";
 import type { CottageSpots } from "../cottage";
 import { DAY } from "../time";
 
@@ -27,12 +27,13 @@ type Beat = { errands: [Errand, Errand]; for: number };
 
 const OUT = 0.3, IN = 0.725; // sun time: after breakfast, before supper
 const WALK = 1.45, RUN = 3.8;
+/** How high their hips are above their feet, standing; and above the seat, sitting. */
+const HIPS = 0.925, SEATED = 0.07;
 
 /** How long a kiss lasts, in seconds, and how close they stand for it. */
 const KISS = 3.2, KISS_GAP = 0.44;
 
-const UP = new Vector3(0, 1, 0), side = new Vector3(), ahead = new Vector3(), local = new Vector3();
-const qa = new Quaternion(), qw = new Quaternion();
+const UP = new Vector3(0, 1, 0), side = new Vector3(), ahead = new Vector3();
 
 /** One of the two: walking, standing, sitting and waving, under the household's direction. */
 class Resident implements Creature {
@@ -162,7 +163,7 @@ class Resident implements Creature {
     }
 
     const seated = this.doing === "sit";
-    const ground = seated ? this.spots.bench.seat - 0.42 : world.height(this.x, this.z);
+    const ground = seated ? this.spots.bench.seat + SEATED - HIPS : world.height(this.x, this.z);
     this.rig.root.position.set(this.x, ground, this.z);
     this.rig.root.rotation.y = this.heading;
     this.position.set(this.x, ground, this.z);
@@ -220,19 +221,6 @@ class Resident implements Creature {
       bend(this.bones.Head, ahead, 0.24 * e);
     }
   }
-}
-
-/**
- * Turns a bone about an axis given in the world (the body's side-to-side
- * axis, its forward axis, or up), whatever way the bone's own axes happen
- * to point — the rig's are at an angle to the body, so a fixed one won't do.
- * About `side`, negative swings it forward.
- */
-function bend(bone: Object3D | undefined, axis: Vector3, angle: number) {
-  if (!bone) return;
-  bone.getWorldQuaternion(qw);
-  local.copy(axis).applyQuaternion(qw.invert()).normalize();
-  bone.quaternion.multiply(qa.setFromAxisAngle(local, angle));
 }
 
 /** A few small hearts that drift up from a kiss and fade. */
@@ -428,8 +416,8 @@ export class Household {
     if (this.heartsDue > 0) {
       this.heartsDue -= dt;
       if (this.heartsDue <= 0) {
-        // From between their faces (lower when they're sitting).
-        const face = Math.min(him.height, her.height) - (him.doing === "sit" ? 0.5 : 0.05);
+        // From between their faces (a little lower, leaning across the bench).
+        const face = Math.min(him.height, her.height) - (him.doing === "sit" ? 0.15 : 0.05);
         this.mid.set((him.x + her.x) / 2, (him.position.y + her.position.y) / 2 + face, (him.z + her.z) / 2);
         this.hearts.rise(this.mid);
       }

@@ -54,6 +54,14 @@ a client-only page at `/`, deployed on Vercel from `main`.
   turns in the vegetable patch, and potter about. Rain sends them in at a
   run. Come close while following either of them and they wave. Side by
   side on the bench or above the shore, now and then, they kiss.
+- **Their dog**, a husky, goes out with whoever goes out first and in with
+  the last one in. It keeps to heel, gallops to catch up, sniffs about when
+  they stop, lies at their feet when they sit, and now and then goes after
+  a rabbit (never catching one).
+- **A bear** lives in the woods, well away from the cottage. By day it
+  forages, sits back on its haunches, and rears up to sniff the air; it
+  lumbers off from anyone who comes near (rearing up at the dog first). It
+  sleeps at its den at night, and all winter.
 - **Animals:** six deer (two stags) who graze, wander, sleep at night and
   startle if you get too close; ten rabbits who bolt; a fox that sleeps by
   day and hunts the rabbits at night (they always get away); swallows that
@@ -121,19 +129,23 @@ src/island/
   fireflies.ts     summer nights
   viewer.ts        camera, orbit controls, tapping, following, riding along
   walk.ts          walking as either of the couple: input, movement, collisions
-  creatures/       deer, rabbits, the fox, flocks of birds, the couple; models.ts
-                   loads the animal models and plays their animations
+  creatures/       deer, rabbits, the fox, the bear, flocks of birds, the couple
+                   and their dog; models.ts loads the animal models and plays
+                   their animations
 ```
 
 ### Models
 
-The deer, stags, fox and the couple are CC0 models by Quaternius, credited in
+The deer, stags, fox, husky and the couple are CC0 models by Quaternius, credited in
 `public/models/CREDITS.md`. `node tools/models.mjs` rebuilds them from
 their sources, keeping only the animations the island uses and compressing
 them (about 280 KB each). They load after the island is on screen. The
-rabbits, swallows and gulls are made in code (`creatures/bodies.ts`): soft
-bodies with the joints their behaviour moves — a rabbit's haunches, feet,
-head and ears; a bird's wings at shoulder and wrist.
+rabbits, swallows, gulls and the bear are made in code (`creatures/bodies.ts`):
+soft bodies with the joints their behaviour moves — a rabbit's haunches, feet,
+head and ears; a bird's wings at shoulder and wrist; a bear's legs, head, and
+hips to sit and rear on. Where a model has no animation for something (the
+couple sitting or kissing, the dog lying down), it's posed over another one
+bone by bone.
 
 ### Screenshots
 

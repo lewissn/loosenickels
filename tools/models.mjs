@@ -35,6 +35,10 @@ const MODELS = {
     url: "https://static.poly.pizza/e18e86df-1692-48d8-ac6e-1e25ab4ad574.glb",
     clips: ["Idle", "Idle_2", "Idle_2_HeadLow", "Eating", "Walk", "Gallop", "Gallop_Jump"],
   },
+  husky: {
+    url: "https://static.poly.pizza/611d25c7-430f-4bb5-ab2c-d8f5f3cb9712.glb",
+    clips: ["Idle", "Idle_2", "Idle_2_HeadLow", "Eating", "Walk", "Gallop", "Gallop_Jump"],
+  },
   farmer: {
     url: "https://static.poly.pizza/81f2f0cf-6f53-4b57-92ea-dba0928620f2.glb",
     clips: ["Idle", "Idle_Neutral", "Interact", "Walk", "Run", "Wave"],
