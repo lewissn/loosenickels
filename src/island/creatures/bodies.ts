@@ -6,10 +6,11 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { lump, shade } from "../shapes";
 import { smooth } from "../noise";
 
-/* The rabbits and birds, which are made here rather than loaded (see
-   models.ts for the deer and fox): soft rounded bodies in the same style
-   as the trees, with the joints their behaviour moves — a rabbit's haunches,
-   feet, head and ears; a bird's wings at shoulder and wrist, and its tail.
+/* The rabbits, birds and the bear, which are made here rather than loaded
+   (see models.ts for the deer, fox and dog): soft rounded bodies in the same
+   style as the trees, with the joints their behaviour moves — a rabbit's
+   haunches, feet, head and ears; a bird's wings at shoulder and wrist, and
+   its tail; a bear's four legs, its head, and its hips, to sit and rear on.
    Each part is shaded in its vertex colours, darker underneath. */
 
 /**
@@ -44,6 +45,8 @@ export function bodyMaterials() {
     gullWing: litBothSides(std(0xb4bdc6, { side: DoubleSide })),
     beak: std(0x2a2522),
     gullBeak: std(0xf0bf47),
+    bear: std(0x5e412b, { roughness: 0.95 }),
+    muzzle: std(0x9a7656, { roughness: 0.9 }),
   };
 }
 export type BodyMaterials = ReturnType<typeof bodyMaterials>;
@@ -279,5 +282,117 @@ export class BirdBody {
     this.tail.rotation.z = -pitch * 0.5;
     // The tail fans out in turns.
     this.tail.scale.z = 1 + Math.max(0, Math.abs(bank) - 0.2) * 0.8;
+  }
+}
+
+// ---------------------------------------------------------------- the bear
+
+export type BearPose = "walk" | "forage" | "sit" | "rear" | "sleep";
+
+/** Hip height, standing on all fours. */
+const HIP = 0.86;
+
+/**
+ * A brown bear, facing +x: about 2.2 long, 1.3 to the top of its shoulder
+ * hump. Its body hangs from the hips, so it can sit back on its haunches or
+ * rear up on its hind legs by pitching about them.
+ */
+export class BearBody {
+  readonly root = new Group();
+  private body = new Group();
+  private head = new Group();
+  private front: Group[] = [];
+  private hind: Group[] = [];
+  private phase = Math.random() * 6;
+  private pitch = 0;
+  private hip = HIP;
+  private lie = 0;
+  private seed = Math.random() * 10;
+
+  constructor(m: BodyMaterials) {
+    const { bear: fur, muzzle, eye, beak: nose } = m;
+    this.body.position.set(-0.55, HIP, 0);
+    this.root.add(this.body);
+    const salt = Math.random() * 100;
+    // One long barrel, a rounded rump and the hump over the shoulders; all
+    // relative to the hips.
+    part(mergeGeometries([
+      blob(0.55, 1.6, 0.95, 0.92, 0.45, 0.04, 0, salt, 0.03),
+      blob(0.46, 1, 1, 1.02, 0.02, 0.08, 0, salt + 1, 0.03),
+      blob(0.32, 1.35, 0.8, 1.1, 0.95, 0.26, 0, salt + 2, 0.04),
+    ]), fur, this.body);
+    part(blob(0.1, 1, 1, 1, -0.45, 0.18, 0, salt + 4, 0.2), fur, this.body);
+
+    this.head.position.set(1.38, 0.14, 0);
+    this.body.add(this.head);
+    part(mergeGeometries([
+      blob(0.34, 1.1, 0.95, 1.05, 0.12, 0.02, 0, salt + 5, 0.04),
+      ...[1, -1].map((side) => blob(0.11, 0.6, 1, 1, 0.0, 0.3, 0.22 * side, salt + 6 + side, 0.08)),
+    ]), fur, this.head);
+    part(blob(0.17, 1.45, 0.8, 0.95, 0.46, -0.07, 0, salt + 9, 0.04), muzzle, this.head);
+    part(sphere(0.06), nose, this.head, 0.7, -0.03, 0);
+    for (const side of [1, -1]) part(sphere(0.04), eye, this.head, 0.38, 0.12, 0.17 * side);
+
+    const leg = (group: Group[], x: number, side: number, r: number) => {
+      const g = new Group();
+      g.position.set(x, -0.08, 0.27 * side);
+      this.body.add(g);
+      part(capsule(r, 0.52), fur, g, 0, -0.38, 0);
+      part(blob(r * 1.1, 1.35, 0.6, 1.05, 0.06, -0.68, 0, salt + 10 + group.length), fur, g);
+      group.push(g);
+    };
+    for (const side of [1, -1]) {
+      leg(this.front, 1.02, side, 0.16);
+      leg(this.hind, 0.0, side, 0.18);
+    }
+  }
+
+  /**
+   * move is 0–1, how much it's walking; pace how fast (1 is an amble). Each
+   * pose eases in from the last.
+   */
+  pose(dt: number, t: number, pose: BearPose, move: number, pace: number) {
+    const k = Math.min(1, dt * 3);
+    const ease = (from: number, to: number, rate = k) => from + (to - from) * rate;
+    // A slow, rolling walk: diagonal legs together, the weight swaying.
+    this.phase += dt * Math.PI * 2 * 0.85 * pace * move;
+    const p = this.phase, stride = 0.42 * move;
+
+    const pitch = pose === "rear" ? 1.2 : pose === "sit" ? 0.5 : 0;
+    this.pitch = ease(this.pitch, pitch, Math.min(1, dt * (pose === "rear" ? 2.2 : 1.6)));
+    const hip = pose === "sleep" || pose === "sit" ? 0.42 : HIP;
+    this.hip = ease(this.hip, hip, Math.min(1, dt * 1.5));
+    const breathe = Math.sin(t * (pose === "sleep" ? 1.1 : 2.2) + this.seed);
+
+    this.body.position.y = this.hip + Math.abs(Math.sin(p)) * 0.035 * move;
+    this.body.rotation.z = this.pitch;
+    this.body.rotation.x = Math.sin(p) * 0.05 * move;
+    this.body.scale.set(1, 1 + breathe * (pose === "sleep" ? 0.025 : 0.01), 1 + breathe * 0.015);
+
+    this.lie = ease(this.lie, pose === "sleep" ? 1 : 0, Math.min(1, dt * 1.2));
+    const lying = this.lie;
+    const up = this.pitch / 1.2;
+    this.front.forEach((l, i) => {
+      const swing = Math.sin(p + (i ? Math.PI : 0)) * stride;
+      // Reared up, the forepaws hang loose in front; sitting, they prop it up.
+      const hang = -this.pitch + up * 0.5;
+      l.rotation.z = ease(l.rotation.z, swing + hang + lying * 1.45, move > 0.3 ? 1 : k);
+    });
+    this.hind.forEach((l, i) => {
+      const swing = Math.sin(p + (i ? 0 : Math.PI)) * stride;
+      // Standing, sitting or rearing, the hind legs stay planted.
+      const plant = -this.pitch + (pose === "sit" ? 1.25 : 0);
+      l.rotation.z = ease(l.rotation.z, swing + plant + lying * 1.35, move > 0.3 ? 1 : k);
+    });
+
+    // The head: low and swinging as it walks, nose to the ground foraging,
+    // raised to sniff the air when up on its hind legs, down on its paws asleep.
+    const forage = pose === "forage" ? -0.75 + Math.sin(t * 1.3 + this.seed) * 0.12 : 0;
+    const sniff = pose === "rear" || pose === "sit" ? Math.sin(t * 7) * 0.04 * Math.max(0, Math.sin(t * 0.9 + this.seed)) : 0;
+    const headPitch = forage + sniff - this.pitch * (pose === "rear" ? 0.75 : 0.85) - 0.12 * move + (pose === "sleep" ? -0.35 : 0);
+    this.head.rotation.z = ease(this.head.rotation.z, headPitch);
+    const look = pose === "forage" ? Math.sin(t * 0.6 + this.seed) * 0.35 : pose === "sleep" ? 0.55 : Math.sin(t * 0.3 + this.seed) * 0.2 * (1 - move);
+    this.head.rotation.y = ease(this.head.rotation.y, look + Math.sin(p) * 0.09 * move);
+    this.head.position.y = ease(this.head.position.y, pose === "sleep" ? -0.02 : 0.12);
   }
 }

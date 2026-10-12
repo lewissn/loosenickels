@@ -1,5 +1,5 @@
 import {
-  AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, MeshStandardMaterial, Vector3,
+  AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, MeshStandardMaterial, Quaternion, Vector3,
   type AnimationAction, type AnimationClip, type Bone, type Object3D,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -12,12 +12,12 @@ import { clone } from "three/addons/utils/SkeletonUtils.js";
    tools/models.mjs (credits in public/models/CREDITS.md). They load after
    the island is already on screen; the animals walk on when they arrive. */
 
-export type ModelName = "deer" | "stag" | "fox" | "farmer" | "woman";
+export type ModelName = "deer" | "stag" | "fox" | "husky" | "farmer" | "woman";
 export interface Template { scene: Object3D; clips: AnimationClip[] }
 
 export async function loadModels(): Promise<Record<ModelName, Template>> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const names: ModelName[] = ["deer", "stag", "fox", "farmer", "woman"];
+  const names: ModelName[] = ["deer", "stag", "fox", "husky", "farmer", "woman"];
   const loaded = await Promise.all(names.map((n) => loader.loadAsync(`/models/${n}.glb`)));
   const out = {} as Record<ModelName, Template>;
   names.forEach((n, i) => {
@@ -105,4 +105,35 @@ export class Rig {
   }
 
   update(dt: number) { this.mixer.update(dt); }
+}
+
+const qa = new Quaternion(), qw = new Quaternion(), local = new Vector3();
+
+/**
+ * Turns a bone about an axis given in the world (the body's side-to-side
+ * axis, its forward axis, or up), whatever way the bone's own axes happen
+ * to point — the rig's are at an angle to the body, so a fixed one won't do.
+ * About `side`, negative swings it forward.
+ */
+export function bend(bone: Object3D | undefined, axis: Vector3, angle: number) {
+  if (!bone) return;
+  bone.getWorldQuaternion(qw);
+  local.copy(axis).applyQuaternion(qw.invert()).normalize();
+  bone.quaternion.multiply(qa.setFromAxisAngle(local, angle));
+}
+
+/**
+ * The resting turn of each of a rig's bones that are posed over its
+ * animation, to put back before each frame's animation: the clips don't
+ * all move every bone, and a bend applied to one they leave alone would
+ * build up frame after frame.
+ */
+export function restPose(rig: Rig, names: string[]) {
+  const bones: Record<string, Bone | undefined> = {}, rest = new Map<Bone, Quaternion>();
+  for (const n of names) {
+    const bone = rig.bone(n);
+    bones[n] = bone;
+    if (bone) rest.set(bone, bone.quaternion.clone());
+  }
+  return { bones, reset() { for (const [bone, q] of rest) bone.quaternion.copy(q); } };
 }

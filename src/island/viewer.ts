@@ -200,7 +200,7 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
       delta.copy(p).sub(controls.target).multiplyScalar(1 - Math.exp(-dt * 4 * glide));
       controls.target.add(delta);
       camera.position.add(delta);
-      const want = follow.kind === "rabbit" || follow.kind === "fox" ? 14 : follow.kind === "person" ? 12 : 20, d = camera.position.distanceTo(controls.target);
+      const want = follow.kind === "rabbit" || follow.kind === "fox" ? 14 : follow.kind === "person" || follow.kind === "dog" ? 12 : 20, d = camera.position.distanceTo(controls.target);
       if (d > want + 0.5) camera.position.lerp(controls.target, ((d - want) / d) * (1 - Math.exp(-dt * 1.5 * glide)));
     } else {
       delta.copy(HOME).sub(controls.target).multiplyScalar(1 - Math.exp(-dt * 0.8));

@@ -82,7 +82,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   });
   const habitat: Habitat = { scene, world, camera: viewer.camera, season, hitboxes, shared, people: [] };
   const walk = createWalk(world, viewer.camera, cottage.spots, { pines: vegetation.trees.pine, broadleaves: [...vegetation.trees.dec, ...vegetation.trees.cherry], rocks: vegetation.rocks, leaves: () => season.leafAmt }, events.onWalk, (f) => viewer.zoom(f));
-  const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0], cottage.spots, (h) => walk.attach(h));
+  const creatures = populate(habitat, vegetation.trees.dec[0] ?? vegetation.trees.pine[0], vegetation.trees.pine, cottage.spots, (h) => walk.attach(h));
 
   const post = createPost(renderer, scene, viewer.camera, detail, shared);
   const rain = createRain(scene, world, detail, shared, viewer.camera, viewer.controls.target, options.weather);

@@ -225,7 +225,9 @@ export function createCottage(scene: Scene, world: World, shared: Shared) {
     solid,
     door: at(0.7, D / 2 + 0.7),
     garden: { at: at(GARDEN.x + 1.9, GARDEN.z), face: facing(-1, 0) },
-    bench: { at: at(BENCH.x, BENCH.z - 0.3), face: seaward, seat: site.y + 0.47 },
+    // Where a sitter's hips go (on the seat, just in front of the back), and
+    // the height of the top of the seat.
+    bench: { at: at(BENCH.x, BENCH.z - 0.08), face: seaward, seat: site.y + 0.51 },
     lookout: { at: lookout, face: seaward },
   };
 
