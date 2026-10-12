@@ -47,7 +47,7 @@ export function populate(habitat: Habitat, roostTree: Placed | undefined, cottag
     // Both brunette; he's the taller.
     recolour(models.woman.scene, "Red", BRUNETTE); // her hair; her shoes share it
     recolour(models.woman.scene, "Brown", BRUNETTE); // her brows
-    household = new Household(habitat, cottage, new Rig(models.farmer, 1.82), new Rig(models.woman, 1.66));
+    household = new Household(habitat, cottage, new Rig(models.farmer, 1.82), new Rig(models.woman, 1.66), [1.82, 1.66]);
     onCouple?.(household);
   }).catch((error) => console.warn("The animal models didn't load.", error));
 

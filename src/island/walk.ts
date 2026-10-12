@@ -26,6 +26,8 @@ export interface WalkState {
   who: "him" | "her";
   /** Whether they're by the bench and could sit. */
   canSit: boolean;
+  /** Whether the other one is close enough to kiss. */
+  canKiss: boolean;
   sitting: boolean;
 }
 
@@ -78,7 +80,7 @@ export function createWalk(
   // ---- input
   const keys = new Set<string>();
   const stick = { x: 0, y: 0 };
-  let sitRequested = false, stopRequested = false, switchRequested = false;
+  let sitRequested = false, stopRequested = false, switchRequested = false, kissRequested = false;
   const onKey = (down: boolean) => (e: KeyboardEvent) => {
     if (!active) return;
     const k = e.key.toLowerCase();
@@ -88,6 +90,7 @@ export function createWalk(
     }
     if (down && k === "e") sitRequested = true;
     if (down && k === "q") switchRequested = true;
+    if (down && k === "k") kissRequested = true;
     // Zoom in and out, as in Roblox.
     if (down && k === "i") zoom(0.8);
     if (down && k === "o") zoom(1.25);
@@ -128,6 +131,7 @@ export function createWalk(
       who: who === 0 ? "him" : "her",
       sitting: !!p && active && p.doing === "sit",
       canSit: !!p && active && p.doing !== "sit" && p.distanceTo(spots.bench.at) < 1.8,
+      canKiss: !!p && active && household!.canKiss(),
     };
     if (!last || Object.keys(state).some((k) => state[k as keyof WalkState] !== last![k as keyof WalkState])) {
       last = state;
@@ -164,6 +168,7 @@ export function createWalk(
     },
     /** Asks for a switch to the other one (handled on the next update). */
     swap() { switchRequested = true; },
+    kiss() { kissRequested = true; },
     /** The thumbstick, -1 to 1 each way (y up the screen). */
     stick(x: number, y: number) { stick.x = x; stick.y = y; },
     sit() { sitRequested = true; },
@@ -178,6 +183,15 @@ export function createWalk(
         return "switched";
       }
       const me = person();
+      if (kissRequested) { kissRequested = false; household.kiss(); }
+      if (me.kissing > 0) {
+        // In a kiss: no walking off mid-way.
+        speed = 0;
+        me.speed = 0;
+        heading = me.heading;
+        report();
+        return null;
+      }
 
       // Which way is "forward": away from the camera, along the ground.
       camera.getWorldDirection(fwd).setY(0);

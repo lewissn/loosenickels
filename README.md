@@ -52,7 +52,8 @@ a client-only page at `/`, deployed on Vercel from `main`.
   just before the kitchen light comes on. In between they sit side by side
   on the bench, stand together above the shore looking at the sea, take
   turns in the vegetable patch, and potter about. Rain sends them in at a
-  run. Come close while following either of them and they wave.
+  run. Come close while following either of them and they wave. Side by
+  side on the bench or above the shore, now and then, they kiss.
 - **Animals:** six deer (two stags) who graze, wander, sleep at night and
   startle if you get too close; ten rabbits who bolt; a fox that sleeps by
   day and hunts the rabbits at night (they always get away); swallows that
@@ -62,15 +63,15 @@ a client-only page at `/`, deployed on Vercel from `main`.
   it; tap empty space to let go. Left alone, the camera slowly turns.
 - **Walk as him** or **walk as her** (bottom right, once the couple have
   arrived) to walk the island as either of them, switching between the two
-  with Q or the link: WASD or the arrow keys, Shift to run,
-  drag to look, scroll or I/O to zoom (right in to first person), Esc to
-  stop — or on a phone, a thumbstick wherever your left thumb lands, pushed
-  further to run, with another finger to look and two to pinch-zoom. He walks round trees, rocks and the
-  house, wade into the shallows but no further, and can sit on the bench.
-  Whoever you're not walking carries on with their day, and when you stop,
-  both go back to theirs.
-  While you follow an animal or take a walk, the screen is kept from
-  dimming (where the browser allows).
+  with Q or the link: WASD or the arrow keys, Shift to run, drag to look,
+  scroll or I/O to zoom (right in to first person), Esc to stop — or on a
+  phone, a thumbstick wherever your left thumb lands, pushed further to run,
+  with another finger to look and two to pinch-zoom. They walk round trees,
+  rocks and the house, wade into the shallows but no further, and can sit
+  on the bench, and walked up to the other, can kiss them (K, or the link).
+  Whoever you're not walking carries on with their day, and
+  when you stop, both go back to theirs. While you follow an animal or take
+  a walk, the screen is kept from dimming (where the browser allows).
 - Detail scales by device (shadow map, terrain, trees, grass, flowers,
   particles), the render resolution is capped at 1.5x, and
   `prefers-reduced-motion` slows the camera.

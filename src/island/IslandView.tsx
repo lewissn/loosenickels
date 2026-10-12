@@ -31,7 +31,7 @@ function readOptions(defaults: IslandOptions): IslandOptions {
 }
 
 type Island = ReturnType<typeof import("./engine").startIsland>;
-const IDLE_WALK: WalkState = { ready: false, active: false, who: "him", canSit: false, sitting: false };
+const IDLE_WALK: WalkState = { ready: false, active: false, who: "him", canSit: false, canKiss: false, sitting: false };
 
 export function IslandView() {
   const stage = useRef<HTMLDivElement>(null);
@@ -99,9 +99,14 @@ export function IslandView() {
       <div className={`${s.ui} ${s.walkHint} ${walk.active ? s.on : ""}`}>
         {touch
           ? "thumb on the left to walk, further to run · drag to look · pinch to zoom"
-          : "WASD or arrows to walk · shift to run · drag to look · scroll or I/O to zoom · Q to switch · esc to stop"}
+          : "WASD or arrows to walk · shift to run · drag to look · scroll or I/O to zoom · Q to switch · K to kiss · esc to stop"}
       </div>
       <div className={s.actions}>
+        {walk.active && walk.canKiss && (
+          <button type="button" className={s.action} onClick={() => island.current?.walk.kiss()}>
+            {touch ? `kiss ${other}` : `kiss ${other} (K)`}
+          </button>
+        )}
         {walk.active && walk.canSit && (
           <button type="button" className={s.action} onClick={() => island.current?.walk.sit()}>
             {touch ? "sit on the bench" : "sit on the bench (E)"}

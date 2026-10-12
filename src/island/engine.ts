@@ -157,6 +157,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
       stop() { walk.stop(); viewer.ride(null); },
       stick: (x: number, y: number) => walk.stick(x, y),
       sit: () => walk.sit(),
+      kiss: () => walk.kiss(),
     },
   };
   return handle;
