@@ -95,7 +95,7 @@ class Resident implements Creature {
   update(dt: number) {
     const { world, camera } = this.habitat;
     if (this.controlled) {
-      // You're walking him: walk or run to match his pace, otherwise stand.
+      // You're walking them: walk or run to match the pace, otherwise stand.
       if (this.doing !== "sit") {
         this.doing = this.speed > 0.15 ? "walk" : "potter";
         this.running = this.speed > 3;
@@ -139,7 +139,7 @@ class Resident implements Creature {
   private pose(dt: number) {
     const d = this.doing;
     if (this.controlled && d === "walk") {
-      // The stride keeps pace with however fast you're walking him.
+      // The stride keeps pace with however fast you're walking them.
       this.rig.play(this.running ? "Run" : "Walk", this.running ? this.speed / RUN : this.speed / WALK * 0.85, 0.25);
       this.shown = null; // so stopping re-picks the idle
     } else if (d !== this.shown) {
@@ -227,23 +227,20 @@ export class Household {
     this.people.forEach((p, i) => { if (!p.controlled) p.go(this.beat!.errands[i]); });
   }
 
-  /** The man, for walking as. */
-  get him() { return this.people[0]; }
-
-  /** Hands him over to you, or back to the household. */
-  control(on: boolean) {
-    const him = this.people[0];
+  /** Hands one of them (0 him, 1 her) over to you, or back to the household. */
+  control(who: 0 | 1, on: boolean) {
+    const p = this.people[who];
     if (on) {
       // Out of the door, facing the sea.
-      if (him.doing === "inside") { him.comeOut(); him.heading = this.spots.bench.face; }
-      him.controlled = true;
-      him.speed = 0;
+      if (p.doing === "inside") { p.comeOut(); p.heading = this.spots.bench.face; }
+      p.controlled = true;
+      p.speed = 0;
     } else {
-      him.controlled = false;
-      him.speed = 0;
-      // Back to his day: to the current beat, or home if it's time.
-      if (this.home || !this.beat) him.go({ at: this.spots.door, face: 0, doing: "inside" });
-      else him.go(this.beat.errands[0]);
+      p.controlled = false;
+      p.speed = 0;
+      // Back to their day: to the current beat, or home if it's time.
+      if (this.home || !this.beat) p.go({ at: this.spots.door, face: 0, doing: "inside" });
+      else p.go(this.beat.errands[who]);
     }
   }
 
@@ -263,7 +260,7 @@ export class Household {
       if (!him.controlled) him.comeOut();
       this.planDay();
       this.nextBeat();
-      her.doing = "inside";
+      if (!her.controlled) her.doing = "inside";
     } else if (!this.home && !out) {
       this.home = true;
       this.beat = null;
@@ -274,7 +271,7 @@ export class Household {
     if (!this.home) {
       if (this.stagger > 0) {
         this.stagger -= dt;
-        if (this.stagger <= 0 && this.beat) { her.comeOut(); her.go(this.beat.errands[1]); }
+        if (this.stagger <= 0 && this.beat && !her.controlled) { her.comeOut(); her.go(this.beat.errands[1]); }
       }
       // A beat ends once they've both arrived and spent its time there.
       if (this.beat && him.there && her.there && this.stagger <= 0) {

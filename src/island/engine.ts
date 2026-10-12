@@ -100,7 +100,8 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
 
   const tick = (time: number) => {
     timer.update(time);
-    const dt = Math.min(timer.getDelta(), 0.1), t = timer.getElapsed();
+    // Never backwards (which would turn every easing inside out), never a leap.
+    const dt = Math.min(Math.max(timer.getDelta(), 0), 0.1), t = timer.getElapsed();
     simT += dt * options.speed;
 
     season.blend(yearPosition(simT));
@@ -120,7 +121,9 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
     falling(dt, t, season);
     fireflies(t, season, env.elev);
     clouds(dt);
-    if (walk.update(dt)) viewer.ride(null);
+    const walked = walk.update(dt);
+    if (walked === "stopped") viewer.ride(null);
+    else if (walked === "switched") viewer.ride(walk.rider, true);
     creatures.update(dt, t, env, sun, sunRate(dayFraction(simT)) * options.speed);
     viewer.update(dt, world);
 
@@ -145,9 +148,12 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
 
   const handle = {
     dispose,
-    /** Taking a walk as the man from the cottage. */
+    /** Taking a walk as either of the couple from the cottage. */
     walk: {
-      start() { if (walk.start()) viewer.ride(walk.rider); },
+      start(as: "him" | "her") {
+        const switching = walk.active;
+        if (walk.start(as)) viewer.ride(walk.rider, switching);
+      },
       stop() { walk.stop(); viewer.ride(null); },
       stick: (x: number, y: number) => walk.stick(x, y),
       sit: () => walk.sit(),

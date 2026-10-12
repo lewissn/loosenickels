@@ -60,9 +60,11 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
   let follow: Creature | null = null;
   let rider: Rider | null = null;
   let dragging = false, lastDrag = 0;
-  // The distance you've chosen to ride at, and whether the camera has been
-  // pulled in closer than that to keep the house out of the way.
-  let preferred = RIDE_DISTANCE, pulled = false, firstPerson = false;
+  // Riding: the distance you've chosen (by zooming), the distance the camera
+  // is actually at (closer when something's in the way), and the distance
+  // it was set to last frame (so a change means you zoomed).
+  let preferred = RIDE_DISTANCE, current = RIDE_DISTANCE, lastSet = RIDE_DISTANCE, firstPerson = false;
+  const dir = new Vector3(), offset = new Vector3(), probe = new Vector3();
   let lastInteract = performance.now();
   let downAt: { x: number; y: number; t: number } | null = null;
 
@@ -99,8 +101,17 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
   const delta = new Vector3();
   const glide = detail.reducedMotion ? 0.5 : 1;
 
-  /** Rides with someone (for walking), or stops riding when given null. */
-  function ride(next: Rider | null) {
+  /**
+   * Rides with someone (for walking), or stops riding when given null. With
+   * `glide`, keeps the current view and glides across to them (switching
+   * from one walker to the other).
+   */
+  function ride(next: Rider | null, glide = false) {
+    if (glide && rider && next) {
+      rider = next;
+      firstPerson = false; // re-checked next frame, for whoever's now ridden
+      return;
+    }
     rider = next;
     if (follow) { follow = null; events.onFollow(null); }
     if (rider) {
@@ -108,114 +119,80 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
       controls.minDistance = RIDE_NEAREST;
       controls.maxDistance = RIDE_FURTHEST;
       controls.maxPolarAngle = Math.PI * 0.49;
-      preferred = RIDE_DISTANCE;
-      pulled = false;
+      preferred = current = lastSet = RIDE_DISTANCE;
       firstPerson = false;
-      // Start behind and above him, or at the first angle round him with a
-      // clear view (in front, looking back, if the house is behind him).
+      // Start behind and a little above them — or, if that's inside the
+      // house (stepping out of the door), at the first clear angle round
+      // them, which may be in front, looking back.
       const p = rider.focus(), h = rider.heading();
       controls.target.copy(p);
       for (let i = 0; i <= 8; i++) {
-        const a = h + Math.PI + Math.ceil(i / 2) * (Math.PI / 4) * (i % 2 ? 1 : -1);
-        offset.set(Math.cos(a) * RIDE_DISTANCE, 3.2, -Math.sin(a) * RIDE_DISTANCE);
-        if (clearView(p, offset)) break;
+        const a = Math.ceil(i / 2) * (Math.PI / 4) * (i % 2 ? 1 : -1);
+        dir.set(-Math.cos(h), 0, Math.sin(h)).applyAxisAngle(UP, a).setY(0.34).normalize();
+        let clear = true;
+        for (let d = 1; d <= RIDE_DISTANCE && clear; d += 0.5) {
+          probe.copy(p).addScaledVector(dir, d);
+          if (rider.solid(probe.x, probe.y, probe.z)) clear = false;
+        }
+        if (clear) break;
       }
-      camera.position.copy(p).add(offset);
+      camera.position.copy(p).addScaledVector(dir, RIDE_DISTANCE);
     } else {
       controls.minDistance = 6;
       controls.maxDistance = 360;
-      controls.minPolarAngle = 0;
       controls.maxPolarAngle = Math.PI * 0.47;
       lastInteract = performance.now();
     }
   }
 
-  const offset = new Vector3(), probe = new Vector3();
-
-  /** Whether the camera at target + o would see the target with nothing in between. */
-  function clearView(target: Vector3, o: Vector3) {
-    if (!rider) return true;
-    for (let f = 0.2; f <= 1.0001; f += 0.1) {
-      probe.copy(target).addScaledVector(o, f);
-      if (rider.solid(probe.x, probe.y, probe.z)) return false;
-    }
-    return true;
-  }
-
   function update(dt: number, world: World) {
     if (rider) {
+      // Worked out afresh each frame from a direction and a distance, so
+      // nothing builds up from one frame to the next and it can't fly off.
       const p = rider.focus();
-      delta.copy(p).sub(controls.target).multiplyScalar(1 - Math.exp(-dt * 10));
+      delta.copy(p).sub(controls.target).multiplyScalar(1 - Math.exp(-dt * 6));
       controls.target.add(delta);
       camera.position.add(delta);
-      // Swing round behind him as he walks, once you've let go of the view.
-      if (rider.moving() && !dragging && performance.now() - lastDrag > 1200) {
-        offset.copy(camera.position).sub(controls.target);
+      controls.update(dt); // your dragging and zooming, with their easing
+
+      offset.copy(camera.position).sub(controls.target);
+      const measured = offset.length();
+      if (!Number.isFinite(measured) || measured < 1e-4) {
         const h = rider.heading();
-        const now = Math.atan2(offset.x, offset.z), behind = Math.atan2(-Math.cos(h), Math.sin(h));
+        dir.set(-Math.cos(h), 0.34, Math.sin(h)).normalize();
+      } else {
+        dir.copy(offset).divideScalar(measured);
+        // A distance other than the one we set means you zoomed.
+        if (Math.abs(measured - lastSet) > 0.01) preferred = Math.min(RIDE_FURTHEST, Math.max(RIDE_NEAREST, preferred * (measured / lastSet)));
+      }
+
+      // Swing round behind them as they walk, once you've let go of the view.
+      if (rider.moving() && !dragging && performance.now() - lastDrag > 1200) {
+        const h = rider.heading();
+        const now = Math.atan2(dir.x, dir.z), behind = Math.atan2(-Math.cos(h), Math.sin(h));
         let turn = (behind - now) % (Math.PI * 2);
         if (turn > Math.PI) turn -= Math.PI * 2;
         if (turn < -Math.PI) turn += Math.PI * 2;
-        offset.applyAxisAngle(UP, turn * Math.min(1, dt * 1.6 * glide));
-        // Only swing where the view stays clear.
-        if (clearView(controls.target, offset)) camera.position.copy(controls.target).add(offset);
+        dir.applyAxisAngle(UP, turn * Math.min(1, dt * 1.6 * glide));
       }
-      controls.update(dt);
-      // If something's between him and the camera, come in closer than it.
-      offset.copy(camera.position).sub(controls.target);
-      const len = offset.length();
-      if (!Number.isFinite(len)) {
-        // Never let the camera go missing: put it back behind him.
-        const h = rider.heading();
-        camera.position.set(controls.target.x - Math.cos(h) * RIDE_DISTANCE, controls.target.y + 3.2, controls.target.z + Math.sin(h) * RIDE_DISTANCE);
-        return;
+
+      // As far out as you've chosen, unless something's in the way: then
+      // just in front of it. In at once; back out gently.
+      let want = preferred;
+      for (let d = RIDE_NEAREST; d <= preferred; d += 0.25) {
+        probe.copy(controls.target).addScaledVector(dir, d);
+        if (rider.solid(probe.x, probe.y, probe.z)) { want = Math.max(RIDE_NEAREST, d - 0.3); break; }
       }
-      // Whatever distance you zoom to is the one to keep, unless the camera
-      // is only this close because something got in the way.
-      if (!pulled) preferred = Math.min(RIDE_FURTHEST, Math.max(RIDE_NEAREST, len));
-      let clear = true;
-      for (let f = 0.15; f <= 1; f += 0.05) {
-        const x = controls.target.x + offset.x * f, y = controls.target.y + offset.y * f, z = controls.target.z + offset.z * f;
-        if (rider.solid(x, y, z)) {
-          camera.position.copy(controls.target).addScaledVector(offset, Math.max(RIDE_NEAREST / len, f - 0.1));
-          clear = false;
-          pulled = true;
-          break;
-        }
-      }
-      // Still inside something (he's at the door with the house behind him,
-      // say)? Swing round him to the nearest clear side instead.
-      if (rider.solid(camera.position.x, camera.position.y, camera.position.z)) {
-        offset.copy(camera.position).sub(controls.target).setLength(RIDE_DISTANCE);
-        for (let i = 1; i <= 18; i++) {
-          const a = Math.ceil(i / 2) * (Math.PI / 9) * (i % 2 ? 1 : -1);
-          const o = offset.clone().applyAxisAngle(UP, a);
-          if (!rider.solid(controls.target.x + o.x, controls.target.y + o.y, controls.target.z + o.z)) {
-            camera.position.copy(controls.target).add(o);
-            break;
-          }
-        }
-        clear = false;
-      }
-      // Once the way is clear again, drift back out to your distance.
-      if (clear && pulled) {
-        const now = camera.position.distanceTo(controls.target);
-        if (now >= preferred - 0.05) pulled = false;
-        else camera.position.copy(controls.target).addScaledVector(offset, (now + (preferred - now) * Math.min(1, dt * 1.5)) / len);
-      }
-      // Right in close, see through his eyes.
-      const fp = camera.position.distanceTo(controls.target) < FIRST_PERSON;
-      if (fp !== firstPerson) { firstPerson = fp; rider.show(!fp); }
-      const ground = Math.max(world.height(camera.position.x, camera.position.z), 0) + (firstPerson ? 0.2 : 1.2);
+      current = want < current ? want : current + (want - current) * Math.min(1, dt * 2);
+      camera.position.copy(controls.target).addScaledVector(dir, current);
+
+      const ground = Math.max(world.height(camera.position.x, camera.position.z), 0) + (current < FIRST_PERSON ? 0.2 : 1.2);
       if (camera.position.y < ground) camera.position.y = ground;
-      // A last guard: however it happened, a camera that has flown off (or
-      // lost its position) goes back behind him at your distance.
-      const now = camera.position.distanceTo(controls.target);
-      if (!Number.isFinite(now) || now > RIDE_FURTHEST * 1.5) {
-        const h = rider.heading();
-        camera.position.set(controls.target.x - Math.cos(h) * preferred, controls.target.y + preferred * 0.33, controls.target.z + Math.sin(h) * preferred);
-        pulled = false;
-      }
+      lastSet = camera.position.distanceTo(controls.target);
+
+      // Right in close, see through their eyes.
+      const fp = lastSet < FIRST_PERSON;
+      if (fp !== firstPerson) { firstPerson = fp; rider.show(!fp); }
       return;
     }
     if (follow) {
@@ -250,12 +227,7 @@ export function createViewer(canvas: HTMLCanvasElement, detail: Detail, hitboxes
 
   /** Zooms the riding camera in (f < 1) or out (f > 1). */
   function zoom(f: number) {
-    if (!rider) return;
-    offset.copy(camera.position).sub(controls.target);
-    const len = Math.min(RIDE_FURTHEST, Math.max(RIDE_NEAREST, offset.length() * f));
-    camera.position.copy(controls.target).add(offset.setLength(len));
-    preferred = len;
-    pulled = false;
+    if (rider) preferred = Math.min(RIDE_FURTHEST, Math.max(RIDE_NEAREST, preferred * f));
   }
 
   return { camera, controls, update, resize, dispose, ride, zoom };

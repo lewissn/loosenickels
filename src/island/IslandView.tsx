@@ -31,7 +31,7 @@ function readOptions(defaults: IslandOptions): IslandOptions {
 }
 
 type Island = ReturnType<typeof import("./engine").startIsland>;
-const IDLE_WALK: WalkState = { ready: false, active: false, canSit: false, sitting: false };
+const IDLE_WALK: WalkState = { ready: false, active: false, who: "him", canSit: false, sitting: false };
 
 export function IslandView() {
   const stage = useRef<HTMLDivElement>(null);
@@ -82,7 +82,8 @@ export function IslandView() {
   // for as long as either lasts (and only then, for the battery's sake).
   useWakeLock(following || walk.active);
 
-  const startWalk = () => { setHint(false); island.current?.walk.start(); };
+  const startWalk = (as: "him" | "her") => { setHint(false); island.current?.walk.start(as); };
+  const other = walk.who === "him" ? "her" : "him";
   const stopWalk = () => island.current?.walk.stop();
 
   return (
@@ -98,7 +99,7 @@ export function IslandView() {
       <div className={`${s.ui} ${s.walkHint} ${walk.active ? s.on : ""}`}>
         {touch
           ? "thumb on the left to walk, further to run · drag to look · pinch to zoom"
-          : "WASD or arrows to walk · shift to run · drag to look · scroll or I/O to zoom · esc to stop"}
+          : "WASD or arrows to walk · shift to run · drag to look · scroll or I/O to zoom · Q to switch · esc to stop"}
       </div>
       <div className={s.actions}>
         {walk.active && walk.canSit && (
@@ -106,10 +107,19 @@ export function IslandView() {
             {touch ? "sit on the bench" : "sit on the bench (E)"}
           </button>
         )}
-        {walk.ready && (
-          <button type="button" className={s.action} onClick={walk.active ? stopWalk : startWalk}>
-            {walk.active ? "stop walking" : "take a walk"}
+        {walk.ready && walk.active && (
+          <button type="button" className={s.action} onClick={() => startWalk(other)}>
+            {touch ? `switch to ${other}` : `switch to ${other} (Q)`}
           </button>
+        )}
+        {walk.ready && walk.active && (
+          <button type="button" className={s.action} onClick={stopWalk}>stop walking</button>
+        )}
+        {walk.ready && !walk.active && (
+          <>
+            <button type="button" className={s.action} onClick={() => startWalk("her")}>walk as her</button>
+            <button type="button" className={s.action} onClick={() => startWalk("him")}>walk as him</button>
+          </>
         )}
       </div>
       {walk.active && touch && <Thumbstick onMove={(x, y) => island.current?.walk.stick(x, y)} />}

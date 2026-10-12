@@ -5,14 +5,15 @@ import { CANOPY_AT, type Placed } from "./vegetation";
 import type { Rider } from "./viewer";
 import type { World } from "./world";
 
-/* Taking a walk as the man from the cottage.
+/* Taking a walk as either of the couple from the cottage.
 
-   Keys (WASD or arrows, Shift to run) or a thumbstick on a phone move him
-   relative to the camera, which rides behind him. He walks round trees,
-   rocks and the house, can wade into the shallows but no further, and
-   can't scale a cliff. Beside the bench he can sit down; any step stands
-   him up again. While you have him, his wife carries on with her day, and
-   when you stop he goes back to his. */
+   Keys (WASD or arrows, Shift to run) or a thumbstick on a phone move them
+   relative to the camera, which rides behind. They walk round trees, rocks
+   and the house, can wade into the shallows but no further, and can't
+   scale a cliff. Beside the bench they can sit down; any step stands them
+   up again. Whoever you're not walking carries on with their day, and you
+   can switch between the two at any time (Q, or the link); when you stop,
+   both go back to theirs. */
 
 const WALK = 2.0, RUN = 5.0, ACCEL = 10;
 const CELL = 4;
@@ -21,7 +22,9 @@ export interface WalkState {
   /** Whether there's anyone to walk yet (the models load after the island). */
   ready: boolean;
   active: boolean;
-  /** Whether he's by the bench and could sit. */
+  /** Who you're walking as. */
+  who: "him" | "her";
+  /** Whether they're by the bench and could sit. */
   canSit: boolean;
   sitting: boolean;
 }
@@ -75,7 +78,7 @@ export function createWalk(
   // ---- input
   const keys = new Set<string>();
   const stick = { x: 0, y: 0 };
-  let sitRequested = false, stopRequested = false;
+  let sitRequested = false, stopRequested = false, switchRequested = false;
   const onKey = (down: boolean) => (e: KeyboardEvent) => {
     if (!active) return;
     const k = e.key.toLowerCase();
@@ -84,6 +87,7 @@ export function createWalk(
       if (down) keys.add(k); else keys.delete(k);
     }
     if (down && k === "e") sitRequested = true;
+    if (down && k === "q") switchRequested = true;
     // Zoom in and out, as in Roblox.
     if (down && k === "i") zoom(0.8);
     if (down && k === "o") zoom(1.25);
@@ -96,25 +100,34 @@ export function createWalk(
   window.addEventListener("blur", blur);
 
   let household: Household | null = null;
-  let active = false, speed = 0, heading = 0, last: WalkState | null = null;
+  let active = false, who: 0 | 1 = 0, speed = 0, heading = 0, last: WalkState | null = null;
+  const person = () => household!.people[who];
   const fwd = new Vector3(), right = new Vector3(), want = new Vector3();
 
   const rider: Rider = {
-    focus: () => household!.him.focus(),
+    focus: () => person().focus(),
     heading: () => heading,
     moving: () => speed > 0.3,
     // The camera mustn't end up inside the house.
     solid: (x, y, z) => spots.solid(x, y, z) || inGreenery(x, y, z),
-    show: (visible) => { if (household) household.him.rig.root.visible = visible; },
+    show: (visible) => { if (household) person().rig.root.visible = visible; },
   };
 
+  /** Hands whoever you're walking back to their day. */
+  function release() {
+    const p = person();
+    household!.control(who, false);
+    p.rig.root.visible = p.doing !== "inside";
+  }
+
   function report() {
-    const him = household?.him;
+    const p = household ? person() : null;
     const state: WalkState = {
       ready: !!household,
       active,
-      sitting: !!him && active && him.doing === "sit",
-      canSit: !!him && active && him.doing !== "sit" && him.distanceTo(spots.bench.at) < 1.8,
+      who: who === 0 ? "him" : "her",
+      sitting: !!p && active && p.doing === "sit",
+      canSit: !!p && active && p.doing !== "sit" && p.distanceTo(spots.bench.at) < 1.8,
     };
     if (!last || Object.keys(state).some((k) => state[k as keyof WalkState] !== last![k as keyof WalkState])) {
       last = state;
@@ -127,33 +140,44 @@ export function createWalk(
     get active() { return active; },
     /** Called once the couple have arrived. */
     attach(h: Household) { household = h; report(); },
-    start() {
-      if (!household || active) return false;
+    /** Starts a walk as him or her, or switches to them if already walking. */
+    start(as: "him" | "her") {
+      if (!household) return false;
+      const next: 0 | 1 = as === "him" ? 0 : 1;
+      if (active && next === who) return false;
+      if (active) release();
+      who = next;
       active = true;
-      household.control(true);
-      heading = household.him.heading;
+      household.control(who, true);
+      heading = person().heading;
       speed = 0;
       report();
       return true;
     },
     stop() {
       if (!household || !active) return;
+      release();
       active = false;
       keys.clear();
       stick.x = stick.y = 0;
-      household.control(false);
-      household.him.rig.root.visible = household.him.doing !== "inside";
       report();
     },
+    /** Asks for a switch to the other one (handled on the next update). */
+    swap() { switchRequested = true; },
     /** The thumbstick, -1 to 1 each way (y up the screen). */
     stick(x: number, y: number) { stick.x = x; stick.y = y; },
     sit() { sitRequested = true; },
-    /** Returns true when the walk has just been ended from the keyboard. */
-    update(dt: number) {
-      if (!household) return false;
-      if (stopRequested) { stopRequested = false; if (active) { this.stop(); return true; } }
-      if (!active) return false;
-      const him = household.him;
+    /** Returns "stopped" when the walk was just ended from the keyboard, "switched" on a switch. */
+    update(dt: number): "stopped" | "switched" | null {
+      if (!household) return null;
+      if (stopRequested) { stopRequested = false; if (active) { this.stop(); return "stopped"; } }
+      if (!active) return null;
+      if (switchRequested) {
+        switchRequested = false;
+        this.start(who === 0 ? "her" : "him");
+        return "switched";
+      }
+      const me = person();
 
       // Which way is "forward": away from the camera, along the ground.
       camera.getWorldDirection(fwd).setY(0);
@@ -170,17 +194,17 @@ export function createWalk(
 
       if (sitRequested) {
         sitRequested = false;
-        if (him.distanceTo(spots.bench.at) < 1.8 && him.doing !== "sit") {
-          him.sitAt(spots.bench.at, spots.bench.face);
+        if (me.distanceTo(spots.bench.at) < 1.8 && me.doing !== "sit") {
+          me.sitAt(spots.bench.at, spots.bench.face);
           heading = spots.bench.face;
           speed = 0;
         }
       }
-      if (him.doing === "sit" && push > 0.1) him.doing = "potter"; // any step stands him up
+      if (me.doing === "sit" && push > 0.1) me.doing = "potter"; // any step stands them up
 
-      const target = him.doing === "sit" ? 0 : push * (running ? RUN : WALK);
+      const target = me.doing === "sit" ? 0 : push * (running ? RUN : WALK);
       speed += (target - speed) * Math.min(1, dt * ACCEL);
-      if (push > 0.05 && him.doing !== "sit") {
+      if (push > 0.05 && me.doing !== "sit") {
         const h = Math.atan2(-want.z, want.x);
         let turn = (h - heading) % (Math.PI * 2);
         if (turn > Math.PI) turn -= Math.PI * 2;
@@ -191,16 +215,16 @@ export function createWalk(
         const dx = Math.cos(heading) * speed * dt, dz = -Math.sin(heading) * speed * dt;
         // Slide along whatever's in the way rather than stopping dead; and if
         // he's somehow already inside something (up from the bench, say), let
-        // him walk out of it.
-        if (blocked(him.x, him.z) || !blocked(him.x + dx, him.z + dz)) { him.x += dx; him.z += dz; }
-        else if (!blocked(him.x + dx, him.z)) him.x += dx;
-        else if (!blocked(him.x, him.z + dz)) him.z += dz;
+        // them walk out of it.
+        if (blocked(me.x, me.z) || !blocked(me.x + dx, me.z + dz)) { me.x += dx; me.z += dz; }
+        else if (!blocked(me.x + dx, me.z)) me.x += dx;
+        else if (!blocked(me.x, me.z + dz)) me.z += dz;
         else speed *= 0.5;
       }
-      him.heading = heading;
-      him.speed = speed;
+      me.heading = heading;
+      me.speed = speed;
       report();
-      return false;
+      return null;
     },
     dispose() {
       window.removeEventListener("keydown", keyDown);
