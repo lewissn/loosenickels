@@ -9,6 +9,7 @@ is given gladly.
 | `stag.glb` | Stag  | [Quaternius](https://quaternius.com) | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/tQdzbZ1Cmw), same pack |
 | `fox.glb`  | Fox   | [Quaternius](https://quaternius.com) | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/Bc97C66HKi), same pack |
 | `farmer.glb` | Farmer | [Quaternius](https://quaternius.com) | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/7pn3R6hPvE) |
+| `woman.glb` | Animated Woman | [Quaternius](https://quaternius.com) | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/nIItLV9nxS) |
 
 The files here are built from those sources by `node tools/models.mjs`,
 which keeps only the animations the island plays, quantises the geometry

@@ -6,7 +6,7 @@ import type { World } from "../world";
 /* What every creature lives in and answers to. */
 
 export interface Creature {
-  kind: "deer" | "rabbit" | "fox" | "bird" | "gull" | "farmer";
+  kind: "deer" | "rabbit" | "fox" | "bird" | "gull" | "person";
   /** For the caption: "following a stag". */
   label(): string;
   /** Where the camera looks when following. */

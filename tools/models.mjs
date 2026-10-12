@@ -39,6 +39,10 @@ const MODELS = {
     url: "https://static.poly.pizza/81f2f0cf-6f53-4b57-92ea-dba0928620f2.glb",
     clips: ["Idle", "Idle_Neutral", "Interact", "Walk", "Run", "Wave"],
   },
+  woman: {
+    url: "https://static.poly.pizza/46d6db5a-3c9f-4238-8cdf-8eb7194498dc.glb",
+    clips: ["Idle", "Idle_Neutral", "Interact", "Walk", "Run", "Wave"],
+  },
 };
 
 const out = path.resolve("public/models");

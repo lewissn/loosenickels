@@ -12,12 +12,12 @@ import { clone } from "three/addons/utils/SkeletonUtils.js";
    tools/models.mjs (credits in public/models/CREDITS.md). They load after
    the island is already on screen; the animals walk on when they arrive. */
 
-export type ModelName = "deer" | "stag" | "fox" | "farmer";
+export type ModelName = "deer" | "stag" | "fox" | "farmer" | "woman";
 export interface Template { scene: Object3D; clips: AnimationClip[] }
 
 export async function loadModels(): Promise<Record<ModelName, Template>> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const names: ModelName[] = ["deer", "stag", "fox", "farmer"];
+  const names: ModelName[] = ["deer", "stag", "fox", "farmer", "woman"];
   const loaded = await Promise.all(names.map((n) => loader.loadAsync(`/models/${n}.glb`)));
   const out = {} as Record<ModelName, Template>;
   names.forEach((n, i) => {

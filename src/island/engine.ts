@@ -86,7 +86,7 @@ export function startIsland(host: HTMLElement, options: IslandOptions, events: I
   // For looking at things while developing: the camera, controls, renderer
   // and everything tappable, from the browser console. Never in production.
   if (process.env.NODE_ENV === "development") {
-    (window as unknown as Record<string, unknown>).island = { world, shared, tick: (ms: number) => tick(ms), camera: viewer.camera, controls: viewer.controls, hitboxes, scene, renderer, post };
+    (window as unknown as Record<string, unknown>).island = { world, shared, creatures, tick: (ms: number) => tick(ms), camera: viewer.camera, controls: viewer.controls, hitboxes, scene, renderer, post };
   }
 
   const env: Env = { elev: 0 };
